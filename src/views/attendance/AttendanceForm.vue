@@ -102,6 +102,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import Modal from '@/components/ui/Modal.vue';
 import { useAbsensiStore } from '@/stores/absensi';
+import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
     show: Boolean,
@@ -119,6 +120,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'updated']);
 
 const store = useAbsensiStore();
+const authStore = useAuthStore();
 const loading = ref(true);
 const submitting = ref(false);
 const students = ref([]);
@@ -138,7 +140,15 @@ const teacherName = computed(() => {
     if (props.schedule?.substitute_teacher) {
         return `${props.schedule.substitute_teacher.name} (Pengganti)`;
     }
-    return props.schedule?.assignment?.teacher?.name || props.schedule?.assignment?.user?.name || '-';
+    return (
+        props.schedule?.teacher_name ||
+        props.schedule?.teacher?.name ||
+        props.schedule?.assignment?.teacher?.name ||
+        props.schedule?.assignment?.user?.name ||
+        props.schedule?.assignment?.teacher_name ||
+        authStore.user?.name ||
+        '-'
+    );
 });
 
 const loadAttendance = async () => {

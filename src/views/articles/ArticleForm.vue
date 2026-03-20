@@ -55,19 +55,71 @@
                 </button>
               </div>
 
-              <!-- Quill Editor -->
+              <!-- Tiptap Editor -->
               <div v-show="activeTab === 'editor'">
-                <QuillEditor
-                  ref="quillEditor"
-                  v-model:content="form.body"
-                  content-type="html"
-                  :options="quillOptions"
-                  style="min-height: 350px;"
-                />
+                <div class="tiptap-wrapper border border-gray-200 rounded-xl overflow-hidden">
+                  <div class="tiptap-toolbar">
+                    <!-- Text Formatting -->
+                    <div class="toolbar-group">
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('bold'))" @click="editor?.chain().focus().toggleBold().run()" title="Bold (Ctrl+B)">
+                        <span class="font-bold">B</span>
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('italic'))" @click="editor?.chain().focus().toggleItalic().run()" title="Italic (Ctrl+I)">
+                        <span class="italic">I</span>
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('underline'))" @click="editor?.chain().focus().toggleUnderline().run()" title="Underline (Ctrl+U)">
+                        <span class="underline">U</span>
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('strike'))" @click="editor?.chain().focus().toggleStrike().run()" title="Strikethrough">
+                        <span class="line-through text-xs">S</span>
+                      </button>
+                    </div>
+
+                    <!-- Lists & Blocks -->
+                    <div class="toolbar-group">
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('bulletList'))" @click="editor?.chain().focus().toggleBulletList().run()" title="Bullet List">
+                        <SvgIcon name="list" :size="16" />
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('orderedList'))" @click="editor?.chain().focus().toggleOrderedList().run()" title="Numbered List">
+                        <span class="text-xs font-bold">1.</span>
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('blockquote'))" @click="editor?.chain().focus().toggleBlockquote().run()" title="Quote">
+                        <SvgIcon name="quote" :size="16" />
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive('codeBlock'))" @click="editor?.chain().focus().toggleCodeBlock().run()" title="Code Block">
+                        <SvgIcon name="code" :size="16" />
+                      </button>
+                    </div>
+
+                    <!-- Alignment -->
+                    <div class="toolbar-group">
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive({ textAlign: 'left' }))" @click="editor?.chain().focus().setTextAlign('left').run()" title="Align Left">
+                        <SvgIcon name="align-left" :size="16" />
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive({ textAlign: 'center' }))" @click="editor?.chain().focus().setTextAlign('center').run()" title="Align Center">
+                        <SvgIcon name="align-center" :size="16" />
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(editor?.isActive({ textAlign: 'right' }))" @click="editor?.chain().focus().setTextAlign('right').run()" title="Align Right">
+                        <SvgIcon name="align-right" :size="16" />
+                      </button>
+                    </div>
+
+                    <!-- Utilities -->
+                    <div class="toolbar-group">
+                      <button type="button" :class="toolbarBtnClass(false)" @click="setEditorLink" title="Add Link">
+                        <SvgIcon name="link" :size="16" />
+                      </button>
+                      <button type="button" :class="toolbarBtnClass(false)" @click="editor?.chain().focus().unsetAllMarks().clearNodes().run()" title="Clear Formatting">
+                        <SvgIcon name="x" :size="16" />
+                      </button>
+                    </div>
+                  </div>
+                  <EditorContent :editor="editor" class="tiptap-editor" />
+                </div>
               </div>
 
               <!-- Preview -->
-              <div v-show="activeTab === 'preview'" class="border border-gray-200 rounded-xl bg-white min-h-[350px]">
+              <div v-show="activeTab === 'preview'" class="preview-panel border border-gray-200 rounded-xl bg-white min-h-[350px]">
                 <div class="max-w-3xl mx-auto p-6 md:p-10">
                   <div class="mb-6">
                     <div class="flex items-center gap-2 text-xs text-gray-400 mb-3">
@@ -234,13 +286,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import Modal from '@/components/ui/Modal.vue'
-import { QuillEditor } from '@vueup/vue-quill'
-import '@vueup/vue-quill/dist/vue-quill.snow.css'
+import { EditorContent, useEditor } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import Underline from '@tiptap/extension-underline'
+import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
+import TextAlign from '@tiptap/extension-text-align'
+import Placeholder from '@tiptap/extension-placeholder'
 
 const route = useRoute()
 const router = useRouter()
@@ -253,7 +310,26 @@ const selectedTags = ref([])
 const thumbnailFile = ref(null)
 const thumbnailPreview = ref(null)
 const activeTab = ref('editor')
-const quillEditor = ref(null)
+
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+    Underline,
+    Link.configure({ openOnClick: false, autolink: true }),
+    Image,
+    TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    Placeholder.configure({ placeholder: 'Mulai menulis konten artikel...' }),
+  ],
+  content: '',
+  editorProps: {
+    attributes: {
+      class: 'tiptap-content',
+    },
+  },
+  onUpdate: ({ editor }) => {
+    form.value.body = editor.getHTML()
+  },
+})
 
 const form = ref({
   title: '',
@@ -273,21 +349,27 @@ const gallerySearch = ref('')
 const galleryPage = ref(1)
 const galleryTotalPages = ref(1)
 
-const quillOptions = {
-  theme: 'snow',
-  placeholder: 'Mulai menulis konten artikel...',
-  modules: {
-    toolbar: [
-      [{ header: [1, 2, 3, 4, false] }],
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ color: [] }, { background: [] }],
-      [{ list: 'ordered' }, { list: 'bullet' }],
-      [{ align: [] }],
-      ['blockquote', 'code-block'],
-      ['link', 'image', 'video'],
-      ['clean'],
-    ],
-  },
+function toolbarBtnClass(active) {
+  return ['toolbar-btn', active ? 'is-active' : '']
+}
+
+function setEditorLink() {
+  const previousUrl = editor.value?.getAttributes('link').href || ''
+  const url = window.prompt('Masukkan URL', previousUrl)
+  if (url === null) return
+  const trimmed = url.trim()
+  if (trimmed === '') {
+    editor.value?.chain().focus().unsetLink().run()
+    return
+  }
+
+  const safeProtocol = /^(https?:|mailto:|tel:)/i
+  if (!safeProtocol.test(trimmed)) {
+    window.alert('URL tidak valid. Gunakan http://, https://, mailto:, atau tel:')
+    return
+  }
+
+  editor.value?.chain().focus().setLink({ href: trimmed }).run()
 }
 
 const selectedCategory = computed(() => {
@@ -350,14 +432,8 @@ function selectGalleryImage(img) {
     form.value.thumbnail_from_gallery = img.path
     showGalleryPicker.value = false
   } else {
-    // Insert into Quill editor
-    const editor = quillEditor.value?.getQuill()
-    if (editor) {
-      const range = editor.getSelection(true)
-      const imgUrl = '/uploads/' + img.path
-      editor.insertEmbed(range.index, 'image', imgUrl)
-      editor.setSelection(range.index + 1)
-    }
+    const imgUrl = '/uploads/' + img.path
+    editor.value?.chain().focus().setImage({ src: imgUrl }).run()
     showGalleryPicker.value = false
   }
 }
@@ -386,6 +462,7 @@ async function fetchArticle() {
       form.value.status = article.status
       form.value.existing_thumbnail = article.thumbnail
       selectedTags.value = article.tags || []
+      editor.value?.commands.setContent(form.value.body || '')
     }
   } catch (e) { console.error(e) }
 }
@@ -430,38 +507,156 @@ onMounted(() => {
   fetchMeta()
   fetchArticle()
 })
+
+onBeforeUnmount(() => {
+  editor.value?.destroy()
+})
 </script>
 
 <style>
-/* Quill editor container styling */
-.ql-toolbar.ql-snow {
-  border-radius: 0.75rem 0.75rem 0 0 !important;
-  border-color: #e5e7eb !important;
-  background: #f9fafb;
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+  align-items: center;
 }
-.ql-container.ql-snow {
-  border-radius: 0 0 0.75rem 0.75rem !important;
-  border-color: #e5e7eb !important;
-  font-family: inherit;
-  font-size: 0.95rem;
+
+.toolbar-group {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  border-right: 1px solid #d1d5db;
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.375rem;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.toolbar-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.toolbar-btn.is-active {
+  background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+  border-color: #6ee7b7;
+  color: #065f46;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+.toolbar-btn.is-active:hover {
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.15);
+}
+
+.tiptap-editor {
+  min-height: 300px;
+  background: #ffffff;
+}
+.tiptap-editor :deep(.ProseMirror) {
   min-height: 300px;
 }
-.ql-editor {
+.tiptap-content {
   min-height: 300px;
+  padding: 1rem;
   line-height: 1.7;
-  caret-color: #111827 !important;
-  cursor: text;
-}
-.ql-editor * {
-  caret-color: #111827 !important;
-}
-.ql-editor:focus {
   outline: none;
-  caret-color: #111827 !important;
 }
-.ql-editor.ql-blank::before {
-  font-style: normal;
+.tiptap-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 0.75rem 0;
+}
+.tiptap-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.tiptap-content p.is-editor-empty:first-child::before {
   color: #9ca3af;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .preview-panel {
+  background: #111827;
+  border-color: #334155;
+}
+[data-theme="dark"] .tiptap-wrapper {
+  border-color: #334155 !important;
+}
+[data-theme="dark"] .tiptap-toolbar {
+  background: linear-gradient(to bottom, #0f172a, #1a202c);
+  border-color: #334155;
+}
+[data-theme="dark"] .toolbar-group {
+  border-right-color: #475569;
+}
+[data-theme="dark"] .toolbar-btn {
+  border-color: #475569;
+  background: #1f2937;
+  color: #e2e8f0;
+}
+[data-theme="dark"] .toolbar-btn:hover {
+  background: #273449;
+  border-color: #64748b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark"] .toolbar-btn.is-active {
+  background: linear-gradient(135deg, rgba(21, 128, 61, 0.4) 0%, rgba(34, 197, 94, 0.3) 100%);
+  border-color: #22c55e;
+  color: #dcfce7;
+  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.15);
+}
+[data-theme="dark"] .tiptap-editor {
+  background: #111827;
+}
+[data-theme="dark"] .tiptap-content {
+  color: #e2e8f0;
+  caret-color: #f8fafc;
+}
+[data-theme="dark"] .tiptap-content p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+}
+[data-theme="dark"] .tiptap-content blockquote {
+  border-left-color: #60a5fa;
+  background: #1e293b;
+  color: #bfdbfe;
+}
+[data-theme="dark"] .tiptap-content pre {
+  background: #020617;
+  color: #cbd5e1;
+}
+[data-theme="dark"] .tiptap-content a {
+  color: #93c5fd;
 }
 
 /* Preview article prose styles */
@@ -504,4 +699,25 @@ onMounted(() => {
 }
 .ql-editor-preview strong { font-weight: 700; }
 .ql-editor-preview em { font-style: italic; }
+
+[data-theme="dark"] .ql-editor-preview {
+  color: #cbd5e1;
+}
+[data-theme="dark"] .ql-editor-preview h1,
+[data-theme="dark"] .ql-editor-preview h2,
+[data-theme="dark"] .ql-editor-preview h3 {
+  color: #f8fafc;
+}
+[data-theme="dark"] .ql-editor-preview blockquote {
+  border-left-color: #60a5fa;
+  background: #1e293b;
+  color: #bfdbfe;
+}
+[data-theme="dark"] .ql-editor-preview pre {
+  background: #020617;
+  color: #cbd5e1;
+}
+[data-theme="dark"] .ql-editor-preview a {
+  color: #93c5fd;
+}
 </style>

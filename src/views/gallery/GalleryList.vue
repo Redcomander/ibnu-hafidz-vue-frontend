@@ -55,8 +55,8 @@
     </div>
 
     <!-- Mass Actions -->
-    <div v-if="selectedIds.length > 0" class="glass-card p-3 mb-4 flex items-center justify-between bg-blue-50/50">
-      <span class="text-sm text-blue-700 font-medium">{{ selectedIds.length }} item dipilih</span>
+    <div v-if="selectedIds.length > 0" :class="['glass-card p-3 mb-4 flex items-center justify-between', theme.isDark ? 'bg-sky-900/30' : 'bg-blue-50/50']">
+      <span :class="['text-sm font-medium', theme.isDark ? 'text-sky-200' : 'text-blue-700']">{{ selectedIds.length }} item dipilih</span>
       <button @click="massDelete" class="btn-primary !bg-red-600 hover:!bg-red-700 !py-1.5 !px-3 text-sm">Hapus Terpilih</button>
     </div>
 
@@ -93,10 +93,10 @@
 
         <!-- Actions overlay -->
         <div class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-          <button @click.stop="editItem = g; showEditModal = true" class="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-blue-50">
+          <button @click.stop="editItem = g; showEditModal = true" :class="['w-7 h-7 rounded-full shadow flex items-center justify-center', theme.isDark ? 'bg-slate-800/90 text-blue-300 hover:bg-slate-700' : 'bg-white/90 hover:bg-blue-50']">
             <SvgIcon name="edit" :size="12" />
           </button>
-          <button @click.stop="deleteGallery(g.id)" class="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center hover:bg-red-50">
+          <button @click.stop="deleteGallery(g.id)" :class="['w-7 h-7 rounded-full shadow flex items-center justify-center', theme.isDark ? 'bg-slate-800/90 text-red-300 hover:bg-slate-700' : 'bg-white/90 hover:bg-red-50']">
             <SvgIcon name="trash" :size="12" />
           </button>
         </div>
@@ -228,6 +228,9 @@ import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import Modal from '@/components/ui/Modal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useThemeStore } from '@/stores/theme'
+
+const theme = useThemeStore()
 
 const loading = ref(false)
 const uploading = ref(false)

@@ -2,9 +2,16 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { useThemeStore } from './stores/theme'
 import './assets/main.css'
 
 const app = createApp(App)
+const pinia = createPinia()
+app.use(pinia)
+app.use(router)
+
+const themeStore = useThemeStore()
+themeStore.initTheme()
 
 // Global Click Outside Directive
 app.directive('click-outside', {
@@ -14,13 +21,19 @@ app.directive('click-outside', {
         binding.value(event, el);
       }
     };
-    document.body.addEventListener('click', el.clickOutsideEvent);
+
+    // Delay listener registration so the same click that opens a dropdown
+    // does not immediately trigger outside-close.
+    el.__clickOutsideTimer = setTimeout(() => {
+      document.addEventListener('mousedown', el.clickOutsideEvent);
+    }, 0);
   },
   unmounted(el) {
-    document.body.removeEventListener('click', el.clickOutsideEvent);
+    if (el.__clickOutsideTimer) {
+      clearTimeout(el.__clickOutsideTimer);
+    }
+    document.removeEventListener('mousedown', el.clickOutsideEvent);
   },
 });
 
-app.use(createPinia())
-app.use(router)
 app.mount('#app')

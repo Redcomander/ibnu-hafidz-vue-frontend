@@ -14,25 +14,25 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="stat-card bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100">
-        <div class="stat-icon bg-amber-500/10"><SvgIcon name="trophy" :size="20" class="text-amber-600" /></div>
-        <p class="text-3xl font-extrabold text-amber-700">{{ total }}</p>
-        <p class="text-xs text-amber-500/80 font-medium mt-1">Total Prestasi</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-amber-500/20' : 'bg-amber-500/10']"><SvgIcon name="trophy" :size="20" class="text-amber-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-amber-300' : 'text-amber-700']">{{ total }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-amber-200/80' : 'text-amber-500/80']">Total Prestasi</p>
       </div>
-      <div class="stat-card bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100">
-        <div class="stat-icon bg-blue-500/10"><SvgIcon name="folder" :size="20" class="text-blue-600" /></div>
-        <p class="text-3xl font-extrabold text-blue-700">{{ filterCategories.length }}</p>
-        <p class="text-xs text-blue-500/80 font-medium mt-1">Kategori</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-blue-500/20' : 'bg-blue-500/10']"><SvgIcon name="folder" :size="20" class="text-blue-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-blue-300' : 'text-blue-700']">{{ filterCategories.length }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-blue-200/80' : 'text-blue-500/80']">Kategori</p>
       </div>
-      <div class="stat-card bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-100">
-        <div class="stat-icon bg-purple-500/10"><SvgIcon name="scale" :size="20" class="text-purple-600" /></div>
-        <p class="text-3xl font-extrabold text-purple-700">{{ filterLevels.length }}</p>
-        <p class="text-xs text-purple-500/80 font-medium mt-1">Tingkat</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-purple-500/20' : 'bg-purple-500/10']"><SvgIcon name="scale" :size="20" class="text-purple-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-purple-300' : 'text-purple-700']">{{ filterLevels.length }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-purple-200/80' : 'text-purple-500/80']">Tingkat</p>
       </div>
-      <div class="stat-card bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100">
-        <div class="stat-icon bg-emerald-500/10"><SvgIcon name="image" :size="20" class="text-emerald-600" /></div>
-        <p class="text-3xl font-extrabold text-emerald-700">{{ withPhotoCount }}</p>
-        <p class="text-xs text-emerald-500/80 font-medium mt-1">Dengan Foto</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-emerald-500/20' : 'bg-emerald-500/10']"><SvgIcon name="image" :size="20" class="text-emerald-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-emerald-300' : 'text-emerald-700']">{{ withPhotoCount }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-emerald-200/80' : 'text-emerald-500/80']">Dengan Foto</p>
       </div>
     </div>
 
@@ -72,7 +72,10 @@
       <div
         v-for="p in items"
         :key="p.id"
-        class="prestasi-card group"
+        :class="[
+          'prestasi-card group',
+          theme.isDark ? 'bg-slate-900/85 border-slate-700' : 'bg-white/90 border-transparent'
+        ]"
       >
         <!-- Photo -->
         <div class="relative h-44 rounded-t-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
@@ -86,25 +89,25 @@
             <SvgIcon name="trophy" :size="48" class="text-gray-300" />
           </div>
           <!-- Kategori badge -->
-          <span class="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white/90 text-gray-800 backdrop-blur-sm shadow-sm">
+          <span :class="['absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[11px] font-bold backdrop-blur-sm shadow-sm', theme.isDark ? 'bg-slate-800/90 text-slate-100' : 'bg-white/90 text-gray-800']">
             {{ p.kategori }}
           </span>
           <!-- Actions overlay -->
           <div class="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button @click.stop="openForm(p)" class="w-8 h-8 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center text-blue-600 hover:bg-blue-50 shadow-sm transition-colors">
+            <button @click.stop="openForm(p)" :class="['w-8 h-8 rounded-lg backdrop-blur-sm flex items-center justify-center shadow-sm transition-colors', theme.isDark ? 'bg-slate-800/90 text-blue-300 hover:bg-slate-700' : 'bg-white/90 text-blue-600 hover:bg-blue-50']">
               <SvgIcon name="edit" :size="14" />
             </button>
-            <button @click.stop="confirmDelete(p.id)" class="w-8 h-8 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center text-red-500 hover:bg-red-50 shadow-sm transition-colors">
+            <button @click.stop="confirmDelete(p.id)" :class="['w-8 h-8 rounded-lg backdrop-blur-sm flex items-center justify-center shadow-sm transition-colors', theme.isDark ? 'bg-slate-800/90 text-red-300 hover:bg-slate-700' : 'bg-white/90 text-red-500 hover:bg-red-50']">
               <SvgIcon name="trash" :size="14" />
             </button>
           </div>
         </div>
         <!-- Content -->
         <div class="p-4">
-          <h3 class="font-bold text-gray-800 text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          <h3 :class="['font-bold text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors', theme.isDark ? 'text-slate-100' : 'text-gray-800']">
             {{ p.nama_prestasi }}
           </h3>
-          <div class="flex items-center gap-2 mt-2 text-xs text-gray-400">
+          <div :class="['flex items-center gap-2 mt-2 text-xs', theme.isDark ? 'text-slate-400' : 'text-gray-400']">
             <span v-if="p.tingkat" class="px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 font-semibold">{{ p.tingkat }}</span>
             <span v-if="p.tanggal">{{ formatDate(p.tanggal) }}</span>
           </div>
@@ -114,7 +117,7 @@
             </div>
             <span class="text-xs text-gray-600 font-medium truncate">{{ p.student.nama_lengkap }}</span>
           </div>
-          <p v-if="p.deskripsi" class="text-xs text-gray-400 mt-2 line-clamp-2">{{ p.deskripsi }}</p>
+          <p v-if="p.deskripsi" :class="['text-xs mt-2 line-clamp-2', theme.isDark ? 'text-slate-400' : 'text-gray-400']">{{ p.deskripsi }}</p>
         </div>
       </div>
     </div>
@@ -237,6 +240,9 @@ import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import Modal from '@/components/ui/Modal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useThemeStore } from '@/stores/theme'
+
+const theme = useThemeStore()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -413,13 +419,12 @@ onMounted(() => {
   @apply w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3;
 }
 .prestasi-card {
-  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
   border-radius: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   overflow: hidden;
   transition: all 0.2s;
-  border: 1px solid transparent;
+  border-width: 1px;
 }
 .prestasi-card:hover {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);

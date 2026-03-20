@@ -24,10 +24,16 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
       <!-- Total Kelas -->
       <div
-        class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white relative overflow-hidden shadow-lg"
+        :class="[
+          'rounded-xl p-6 text-white relative overflow-hidden shadow-lg',
+          theme.isDark
+            ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900'
+            : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+        ]"
       >
         <div
-          class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full"
+          :class="theme.isDark ? 'bg-white/10' : 'bg-white/10'"
+          class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 rounded-full"
         ></div>
         <div class="relative flex justify-between items-center">
           <div>
@@ -42,7 +48,12 @@
 
       <!-- Total Santri -->
       <div
-        class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white relative overflow-hidden shadow-lg"
+        :class="[
+          'rounded-xl p-6 text-white relative overflow-hidden shadow-lg',
+          theme.isDark
+            ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-teal-900'
+            : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+        ]"
       >
         <div
           class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full"
@@ -60,7 +71,12 @@
 
       <!-- Wali Kelas Aktif -->
       <div
-        class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-6 text-white relative overflow-hidden shadow-lg"
+        :class="[
+          'rounded-xl p-6 text-white relative overflow-hidden shadow-lg',
+          theme.isDark
+            ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-cyan-950'
+            : 'bg-gradient-to-br from-blue-500 to-cyan-600'
+        ]"
       >
         <div
           class="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-white/10 rounded-full"
@@ -179,7 +195,7 @@
               v-else
               v-for="item in data"
               :key="item.id"
-              class="hover:bg-gray-50 transition"
+              :class="['transition', theme.isDark ? 'hover:bg-slate-800' : 'hover:bg-gray-50']"
             >
               <td class="py-3 px-4 text-sm font-medium text-gray-800">
                 {{ item.nama }}
@@ -420,6 +436,7 @@
 <script setup>
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { useThemeStore } from "@/stores/theme";
 import { useTable } from "@/composables/useTable";
 import api from "@/api";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
@@ -429,6 +446,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import { useToastStore } from "@/stores/toast";
 
 const auth = useAuthStore();
+const theme = useThemeStore();
 const toast = useToastStore();
 
 // Form state

@@ -2,16 +2,45 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/api';
 import { useAuthStore } from './auth';
+import { useToastStore } from './toast';
 
 export const useNotificationStore = defineStore('notification', () => {
     const notifications = ref([]);
     const isConnected = ref(false);
     const eventSource = ref(null);
     const authStore = useAuthStore();
+    const toastStore = useToastStore();
+    let reconnectTimer = null;
+    let reconnectAttempt = 0;
+    const maxReconnectAttempts = 8;
+    let initialized = false;
 
     const unreadCount = computed(() => 
         notifications.value.filter(n => !n.is_read).length
     );
+
+    const scheduleReconnect = () => {
+        if (reconnectTimer || !authStore.isAuthenticated) return;
+        if (reconnectAttempt >= maxReconnectAttempts) return;
+        const delay = Math.min(30000, 2000 * Math.max(1, reconnectAttempt));
+        reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            connectSSE();
+        }, delay);
+    };
+
+    const buildSSEURL = () => {
+        const token = authStore.accessToken;
+        if (!token) return null;
+
+        const apiBase = import.meta.env.VITE_API_URL;
+        if (apiBase) {
+            const base = apiBase.replace(/\/$/, '');
+            return `${base}/notifications/stream?token=${encodeURIComponent(token)}`;
+        }
+
+        return `/api/notifications/stream?token=${encodeURIComponent(token)}`;
+    };
 
     const fetchRecent = async () => {
         try {
@@ -37,36 +66,39 @@ export const useNotificationStore = defineStore('notification', () => {
     };
 
     const connectSSE = () => {
-        if (isConnected.value || !authStore.token) return;
+        if (eventSource.value || isConnected.value) return;
 
-        // Use native EventSource
-        // Note: Standard EventSource doesn't support custom headers easily.
-        // We generally pass token via query param or use a polyfill if headers are strictly required.
-        // For simplicity in this protected internal app, we might check if cookie auth works
-        // OR we just use query param `?token=...` if backend supports it.
-        // Let's assume standard Authorization header injection via a polyfill or 
-        // passing it in URL for this MVP (less secure but functional for now).
-        // EDIT: Fiber middleware checks Authorization header. Native EventSource CANNOT send headers.
-        // Better approach: Use a library 'event-source-polyfill' OR
-        // append token to URL: `/api/notifications/stream?token=${token}`
-        
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/notifications/stream?token=${authStore.token}`;
-        
-        eventSource.value = new EventSource(url);
+        const url = buildSSEURL();
+        if (!url) return;
+
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+
+        if (eventSource.value) {
+            eventSource.value.close();
+            eventSource.value = null;
+        }
+
+        eventSource.value = new EventSource(url, { withCredentials: true });
 
         eventSource.value.onopen = () => {
             isConnected.value = true;
-            console.log('SSE Connected');
+            reconnectAttempt = 0;
         };
 
         eventSource.value.onmessage = (event) => {
             try {
                 const newNotif = JSON.parse(event.data);
-                notifications.value.unshift(newNotif);
+                const exists = notifications.value.some(n => n.id === newNotif.id);
+                if (!exists) {
+                    notifications.value.unshift(newNotif);
+                    if (!newNotif.is_read) {
+                        toastStore.info(newNotif.title || 'Notifikasi baru');
+                    }
+                }
                 
-                // Show browser notification or toast here if needed
-                // const audio = new Audio('/notification.mp3');
-                // audio.play().catch(e => {}); // Play sound if user interacted
             } catch (e) {
                 console.error('Error parsing SSE message', e);
             }
@@ -74,19 +106,45 @@ export const useNotificationStore = defineStore('notification', () => {
 
         eventSource.value.onerror = (err) => {
             console.error('SSE Error', err);
-            eventSource.value?.close();
             isConnected.value = false;
-            // Retry logic could go here
-            setTimeout(connectSSE, 5000);
+
+            // Stop current stream instance to prevent native infinite retry loops.
+            if (eventSource.value) {
+                eventSource.value.close();
+                eventSource.value = null;
+            }
+
+            // Only reconnect if token is still present (in-memory check, no API call).
+            if (!authStore.accessToken || !authStore.isAuthenticated) {
+                disconnectSSE();
+                return;
+            }
+
+            reconnectAttempt += 1;
+            scheduleReconnect();
         };
     };
 
     const disconnectSSE = () => {
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
         if (eventSource.value) {
             eventSource.value.close();
             eventSource.value = null;
-            isConnected.value = false;
         }
+        isConnected.value = false;
+        reconnectAttempt = 0;
+        initialized = false;
+    };
+
+    const initialize = async () => {
+        if (!authStore.isAuthenticated) return;
+        if (initialized) return;
+        initialized = true;
+        await fetchRecent();
+        connectSSE();
     };
 
     return {
@@ -96,6 +154,7 @@ export const useNotificationStore = defineStore('notification', () => {
         fetchRecent,
         markAsRead,
         connectSSE,
-        disconnectSSE
+        disconnectSSE,
+        initialize
     };
 });

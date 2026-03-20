@@ -24,25 +24,25 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="stat-card bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100">
-        <div class="stat-icon bg-blue-500/10"><SvgIcon name="document" :size="20" class="text-blue-600" /></div>
-        <p class="text-3xl font-extrabold text-blue-700">{{ total }}</p>
-        <p class="text-xs text-blue-500/80 font-medium mt-1">Total Artikel</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-blue-500/20' : 'bg-blue-500/10']"><SvgIcon name="document" :size="20" class="text-blue-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-blue-300' : 'text-blue-700']">{{ total }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-blue-200/80' : 'text-blue-500/80']">Total Artikel</p>
       </div>
-      <div class="stat-card bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100">
-        <div class="stat-icon bg-emerald-500/10"><SvgIcon name="check-circle" :size="20" class="text-emerald-600" /></div>
-        <p class="text-3xl font-extrabold text-emerald-700">{{ publishedCount }}</p>
-        <p class="text-xs text-emerald-500/80 font-medium mt-1">Published</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-emerald-500/20' : 'bg-emerald-500/10']"><SvgIcon name="check-circle" :size="20" class="text-emerald-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-emerald-300' : 'text-emerald-700']">{{ publishedCount }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-emerald-200/80' : 'text-emerald-500/80']">Published</p>
       </div>
-      <div class="stat-card bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100">
-        <div class="stat-icon bg-amber-500/10"><SvgIcon name="edit" :size="20" class="text-amber-600" /></div>
-        <p class="text-3xl font-extrabold text-amber-700">{{ draftCount }}</p>
-        <p class="text-xs text-amber-500/80 font-medium mt-1">Draft</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-amber-50 to-amber-100/50 border-amber-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-amber-500/20' : 'bg-amber-500/10']"><SvgIcon name="edit" :size="20" class="text-amber-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-amber-300' : 'text-amber-700']">{{ draftCount }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-amber-200/80' : 'text-amber-500/80']">Draft</p>
       </div>
-      <div class="stat-card bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-100">
-        <div class="stat-icon bg-purple-500/10"><SvgIcon name="folder" :size="20" class="text-purple-600" /></div>
-        <p class="text-3xl font-extrabold text-purple-700">{{ categories.length }}</p>
-        <p class="text-xs text-purple-500/80 font-medium mt-1">Kategori</p>
+      <div :class="['stat-card border', theme.isDark ? 'bg-slate-900/80 border-slate-700' : 'bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-100']">
+        <div :class="['stat-icon', theme.isDark ? 'bg-purple-500/20' : 'bg-purple-500/10']"><SvgIcon name="folder" :size="20" class="text-purple-500" /></div>
+        <p :class="['text-3xl font-extrabold', theme.isDark ? 'text-purple-300' : 'text-purple-700']">{{ categories.length }}</p>
+        <p :class="['text-xs font-medium mt-1', theme.isDark ? 'text-purple-200/80' : 'text-purple-500/80']">Kategori</p>
       </div>
     </div>
 
@@ -82,7 +82,7 @@
       <div
         v-for="a in articles"
         :key="a.id"
-        class="article-card group"
+        :class="['article-card group', theme.isDark ? 'bg-slate-900/85 border-slate-700' : 'bg-white/85 border-transparent']"
       >
         <div class="flex gap-3 md:gap-4 items-start">
           <!-- Thumbnail -->
@@ -104,7 +104,7 @@
                 {{ a.status === 'published' ? '● Published' : '● Draft' }}
               </span>
             </div>
-            <h3 class="font-bold text-gray-800 text-sm sm:text-base md:text-lg leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 :class="['font-bold text-sm sm:text-base md:text-lg leading-snug line-clamp-2 group-hover:text-primary transition-colors', theme.isDark ? 'text-slate-100' : 'text-gray-800']">
               {{ a.title }}
             </h3>
             <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1.5 text-[11px] sm:text-xs text-gray-400">
@@ -122,7 +122,7 @@
             </div>
             <!-- Tags -->
             <div v-if="a.tags && a.tags.length > 0" class="flex flex-wrap gap-1 mt-1.5 hidden sm:flex">
-              <span v-for="t in a.tags.slice(0, 3)" :key="t.id" class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
+              <span v-for="t in a.tags.slice(0, 3)" :key="t.id" :class="['text-[10px] px-2 py-0.5 rounded-md font-medium', theme.isDark ? 'text-slate-300 bg-slate-800' : 'text-gray-500 bg-gray-100']">
                 #{{ t.name }}
               </span>
               <span v-if="a.tags.length > 3" class="text-[10px] text-gray-400">+{{ a.tags.length - 3 }}</span>
@@ -219,6 +219,9 @@ import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import Modal from '@/components/ui/Modal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { useThemeStore } from '@/stores/theme'
+
+const theme = useThemeStore()
 
 const loading = ref(false)
 const articles = ref([])
@@ -377,7 +380,6 @@ onMounted(() => {
   @apply w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3;
 }
 .article-card {
-  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   border-radius: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);

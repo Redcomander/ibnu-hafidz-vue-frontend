@@ -41,6 +41,12 @@ const routes = [
         meta: { permission: 'users.view', title: 'Data Guru' },
       },
       {
+        path: 'users/activity-logs',
+        name: 'users-activity-logs',
+        component: () => import('@/views/users/ActivityLogView.vue'),
+        meta: { permission: 'users.view', title: 'Log Aktivitas Pengguna' },
+      },
+      {
         path: 'roles',
         name: 'roles',
         component: () => import('@/views/roles/RoleList.vue'),
@@ -214,6 +220,12 @@ const routes = [
         name: 'gallery',
         component: () => import('@/views/gallery/GalleryList.vue'),
         meta: { permission: 'gallery.view', title: 'Galeri' },
+      },
+      {
+        path: 'settings',
+        name: 'settings',
+        component: () => import('@/views/settings/SettingsView.vue'),
+        meta: { title: 'Pengaturan' },
       },
       {
         path: 'kelas/:id',

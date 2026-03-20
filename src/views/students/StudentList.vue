@@ -12,14 +12,48 @@
           Kelola data santri pondok pesantren
         </p>
       </div>
-      <button
-        v-if="auth.hasPermission('students.create')"
-        @click="createStudent"
-        class="btn-primary flex items-center gap-2"
-      >
-        <SvgIcon name="plus" :size="16" />
-        <span>Tambah Santri</span>
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <input ref="importInput" type="file" accept=".csv" class="hidden" @change="handleImport" />
+        <button
+          v-if="auth.hasPermission('students.view')"
+          @click="downloadTemplate"
+          class="btn-secondary flex items-center gap-2 !px-3"
+        >
+          <SvgIcon name="document" :size="14" />
+          <span>Template</span>
+        </button>
+        <button
+          v-if="auth.hasPermission('students.view')"
+          @click="exportStudents"
+          class="btn-secondary flex items-center gap-2 !px-3"
+        >
+          <SvgIcon name="download" :size="14" />
+          <span>Export</span>
+        </button>
+        <button
+          v-if="auth.hasPermission('students.create')"
+          @click="openImport"
+          class="btn-secondary flex items-center gap-2 !px-3"
+        >
+          <SvgIcon name="upload" :size="14" />
+          <span>Import</span>
+        </button>
+        <button
+          v-if="auth.hasPermission('students.delete') && selectedIds.length > 0"
+          @click="handleMassDelete"
+          class="px-3 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 transition"
+        >
+          Hapus Terpilih ({{ selectedIds.length }})
+        </button>
+        <button
+          v-if="auth.hasPermission('students.create')"
+          @click="createStudent"
+          class="btn-primary flex items-center gap-2"
+        >
+          <SvgIcon name="plus" :size="16" />
+          <span>Tambah Santri</span>
+        </button>
+      </div>
     </div>
 
     <!-- Filters & Search -->
@@ -63,6 +97,9 @@
       <table v-else class="data-table hidden md:table">
         <thead>
           <tr>
+            <th class="w-10 text-center">
+              <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+            </th>
             <th @click="setSort('nisn')" class="cursor-pointer">
               NISN
               {{
@@ -87,6 +124,9 @@
         </thead>
         <tbody>
           <tr v-for="student in data" :key="student.id">
+            <td class="text-center">
+              <input type="checkbox" :value="student.id" v-model="selectedIds" />
+            </td>
             <td class="font-mono text-xs">{{ student.nisn || "-" }}</td>
             <td class="font-medium text-gray-800">
               {{ student.nama_lengkap }}
@@ -150,7 +190,7 @@
             </td>
           </tr>
           <tr v-if="data.length === 0">
-            <td colspan="6" class="text-center py-8 text-gray-400">
+            <td colspan="7" class="text-center py-8 text-gray-400">
               Tidak ada data ditemukan
             </td>
           </tr>
@@ -331,7 +371,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
@@ -351,6 +391,8 @@ const selectedStudent = ref(null);
 const showDeleteModal = ref(false);
 const studentToDelete = ref(null);
 const deleteLoading = ref(false);
+const selectedIds = ref([]);
+const importInput = ref(null);
 
 // useTable — gives us search, filter, sort, pagination for free!
 const {
@@ -390,6 +432,91 @@ const visiblePages = computed(() => {
 
   return pages;
 });
+
+const isAllSelected = computed(() => {
+  if (!data.value?.length) return false;
+  return data.value.every((s) => selectedIds.value.includes(s.id));
+});
+
+watch(
+  () => data.value,
+  () => {
+    selectedIds.value = [];
+  },
+);
+
+function toggleSelectAll(e) {
+  if (e.target.checked) {
+    selectedIds.value = (data.value || []).map((s) => s.id);
+  } else {
+    selectedIds.value = [];
+  }
+}
+
+function openImport() {
+  importInput.value?.click();
+}
+
+async function handleImport(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const { data: res } = await api.post("/students/import", fd, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    toast.success(`Import selesai. Berhasil: ${res.created}, dilewati: ${res.skipped}`);
+    fetchData();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Gagal import data santri");
+  } finally {
+    e.target.value = "";
+  }
+}
+
+async function downloadTemplate() {
+  try {
+    const res = await api.get("/students/template", { responseType: "blob" });
+    const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "students-template.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Gagal unduh template");
+  }
+}
+
+async function exportStudents() {
+  try {
+    const res = await api.get("/students/export/excel", { responseType: "blob" });
+    const blob = new Blob([res.data], { type: "text/csv;charset=utf-8" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "students-export.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Gagal export data");
+  }
+}
+
+async function handleMassDelete() {
+  if (!selectedIds.value.length) return;
+  if (!window.confirm(`Hapus ${selectedIds.value.length} santri terpilih?`)) return;
+  try {
+    await api.post("/students/mass-delete", { ids: selectedIds.value });
+    toast.success("Santri terpilih berhasil dihapus");
+    selectedIds.value = [];
+    fetchData();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Gagal hapus massal");
+  }
+}
 
 function createStudent() {
   selectedStudent.value = null;

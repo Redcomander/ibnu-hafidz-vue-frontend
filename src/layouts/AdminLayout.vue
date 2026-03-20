@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div :class="['min-h-screen', theme.isDark ? 'bg-slate-950 text-slate-100' : 'bg-gray-50 text-slate-900']">
     <!-- Sidebar -->
     <!-- Mobile Sidebar Overlay -->
     <div
@@ -92,9 +92,18 @@
       <div class="border-t border-white/10 p-4">
         <div class="flex items-center gap-3">
           <div
-            class="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-primary-dark font-bold text-sm flex-shrink-0"
+            class="w-9 h-9 rounded-full overflow-hidden bg-secondary flex items-center justify-center text-primary-dark font-bold text-sm flex-shrink-0"
           >
-            {{ auth.userName?.charAt(0)?.toUpperCase() || "U" }}
+            <img
+              v-if="sidebarAvatarUrl"
+              :src="sidebarAvatarUrl"
+              alt="Avatar"
+              class="w-full h-full object-cover"
+              @error="avatarLoadFailed = true"
+            />
+            <span v-else>
+              {{ auth.userName?.charAt(0)?.toUpperCase() || "U" }}
+            </span>
           </div>
           <transition name="fade">
             <div v-if="!collapsed" class="flex-1 min-w-0">
@@ -127,7 +136,7 @@
     >
       <!-- Top Bar -->
       <header
-        class="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 md:px-6 py-3 flex items-center justify-between"
+        :class="['sticky top-0 z-20 backdrop-blur-md border-b px-4 md:px-6 py-3 flex items-center justify-between', theme.isDark ? 'bg-slate-900/80 border-slate-700 text-slate-100' : 'bg-white/80 border-gray-200 text-slate-900']"
       >
         <!-- Mobile Search Overlay -->
         <div
@@ -146,7 +155,7 @@
           </button>
         </div>
 
-        <div class="flex items-center gap-2 text-sm text-gray-500">
+        <div :class="['flex items-center gap-2 text-sm', theme.isDark ? 'text-slate-300' : 'text-gray-500']">
           <!-- Mobile Menu Toggle -->
           <button
             @click="isSidebarOpen = !isSidebarOpen"
@@ -183,9 +192,16 @@
           >
             <SvgIcon name="search" :size="20" />
           </button>
+          <button
+            @click="theme.toggleTheme()"
+            class="p-2 rounded-md text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            :title="theme.isDark ? 'Light mode' : 'Dark mode'"
+          >
+            <SvgIcon :name="theme.isDark ? 'sun' : 'moon'" :size="18" />
+          </button>
           <div class="relative">
             <button
-              @click="showNotifications = !showNotifications"
+              @click.stop="showNotifications = !showNotifications"
               class="relative text-gray-500 hover:text-primary transition text-xl p-1"
             >
               <SvgIcon name="bell" :size="22" />
@@ -224,27 +240,66 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
+import { useThemeStore } from "@/stores/theme";
 import { useRoute } from "vue-router";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 import NotificationDropdown from "@/components/ui/NotificationDropdown.vue";
 
 const auth = useAuthStore();
 const notifStore = useNotificationStore();
+const theme = useThemeStore();
 const route = useRoute();
 const collapsed = ref(false);
 const isSidebarOpen = ref(false);
 const showMobileSearch = ref(false);
 const showNotifications = ref(false);
+const avatarLoadFailed = ref(false);
 
-// Connect to SSE for notifications
-onMounted(() => {
-  notifStore.fetchRecent(); // Fetch initial list
-  notifStore.connectSSE();  // Start real-time stream
+const sidebarAvatarUrl = computed(() => {
+  if (avatarLoadFailed.value) return '';
+  const raw = auth.user?.foto_guru;
+  if (!raw) return '';
+
+  const value = String(raw);
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:')) {
+    return value;
+  }
+
+  const normalized = value.replace(/^\/+/, '');
+  return normalized.startsWith('uploads/') ? `/${normalized}` : `/uploads/${normalized}`;
 });
 
 onUnmounted(() => {
   notifStore.disconnectSSE();
 });
+
+watch(
+  () => auth.isAuthenticated,
+  (isAuthed) => {
+    if (isAuthed) {
+      notifStore.initialize();
+    } else {
+      notifStore.disconnectSSE();
+    }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => auth.accessToken,
+  (newToken, oldToken) => {
+    if (!newToken || newToken === oldToken) return;
+    notifStore.disconnectSSE();
+    notifStore.initialize();
+  }
+);
+
+watch(
+  () => auth.user?.foto_guru,
+  () => {
+    avatarLoadFailed.value = false;
+  }
+);
 
 // Close sidebar on route change (mobile)
 watch(
@@ -274,6 +329,13 @@ const navItems = [
     to: "/users",
     icon: "users",
     label: "Data Guru",
+    permission: "users.view",
+    exact: true,
+  },
+  {
+    to: "/users/activity-logs",
+    icon: "clock",
+    label: "Log Aktivitas",
     permission: "users.view",
   },
   {
@@ -425,6 +487,9 @@ const visibleNavItems = computed(() =>
 
 function isNavActive(item, isExactActive) {
   if (item.to === '/') return isExactActive
+  if (item.exact) {
+    return route.path === item.to
+  }
   if (item.activeOn) {
     return item.activeOn.some((p) => route.path.startsWith(p))
   }

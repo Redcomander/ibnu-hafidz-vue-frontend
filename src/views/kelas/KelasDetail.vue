@@ -16,6 +16,22 @@
       </div>
       <div class="flex gap-2">
         <button
+          v-if="kelas"
+          @click="exportKelas('excel')"
+          class="btn-secondary flex items-center gap-2"
+        >
+          <SvgIcon name="download" :size="16" />
+          Export Excel
+        </button>
+        <button
+          v-if="kelas"
+          @click="exportKelas('pdf')"
+          class="btn-secondary flex items-center gap-2"
+        >
+          <SvgIcon name="document" :size="16" />
+          Export PDF
+        </button>
+        <button
           v-if="auth.hasPermission('kelas.edit')"
           @click="showForm = true"
           class="btn-secondary flex items-center gap-2"
@@ -178,6 +194,47 @@
       </div>
     </div>
 
+    <div v-if="kelas" class="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div class="mb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold">Data Pelajaran</h2>
+          <p class="text-sm text-gray-500">Lesson assignments formal & diniyyah untuk kelas ini.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="border border-gray-200 rounded-lg p-3">
+          <div class="mb-2 flex items-center justify-between">
+            <p class="font-semibold text-gray-800">Pelajaran Formal</p>
+            <span class="text-xs text-gray-500">{{ formalAssignments.length }} ditemukkan</span>
+          </div>
+          <div v-if="loadingAssignments" class="text-sm text-gray-500">Memuat...</div>
+          <div v-else-if="formalAssignments.length === 0" class="text-sm text-gray-500">Belum ada penugasan pelajaran formal.</div>
+          <ul v-else class="space-y-2">
+            <li v-for="item in formalAssignments" :key="item.id" class="p-2 border border-gray-100 rounded-md bg-gray-50">
+              <div class="text-sm font-semibold text-gray-800">{{ item.lesson?.name || '-' }}</div>
+              <div class="text-xs text-gray-600">Guru: {{ item.teacher?.name || '-' }}</div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="border border-gray-200 rounded-lg p-3">
+          <div class="mb-2 flex items-center justify-between">
+            <p class="font-semibold text-gray-800">Pelajaran Diniyyah</p>
+            <span class="text-xs text-gray-500">{{ diniyyahAssignments.length }} ditemukkan</span>
+          </div>
+          <div v-if="loadingAssignments" class="text-sm text-gray-500">Memuat...</div>
+          <div v-else-if="diniyyahAssignments.length === 0" class="text-sm text-gray-500">Belum ada penugasan pelajaran diniyyah.</div>
+          <ul v-else class="space-y-2">
+            <li v-for="item in diniyyahAssignments" :key="item.id" class="p-2 border border-gray-100 rounded-md bg-gray-50">
+              <div class="text-sm font-semibold text-gray-800">{{ item.diniyyah_lesson?.name || '-' }}</div>
+              <div class="text-xs text-gray-600">Guru: {{ item.teacher?.name || '-' }}</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- Modals -->
     <KelasForm
       v-if="kelas"
@@ -210,14 +267,37 @@ const toast = useToastStore();
 
 const kelas = ref(null);
 const loading = ref(true);
+const loadingAssignments = ref(true);
+const formalAssignments = ref([]);
+const diniyyahAssignments = ref([]);
 const showForm = ref(false);
 const showMembersModal = ref(false);
+
+async function fetchAssignments() {
+  loadingAssignments.value = true;
+  try {
+    const formal = await api.get(`/kelas/${route.params.id}/teachers`, { params: { type: 'formal' } });
+    formalAssignments.value = formal.data;
+  } catch (e) {
+    console.error('Failed to fetch formal lesson assignments', e);
+    formalAssignments.value = [];
+  }
+  try {
+    const diniyyah = await api.get(`/kelas/${route.params.id}/teachers`, { params: { type: 'diniyyah' } });
+    diniyyahAssignments.value = diniyyah.data;
+  } catch (e) {
+    console.error('Failed to fetch diniyyah lesson assignments', e);
+    diniyyahAssignments.value = [];
+  }
+  loadingAssignments.value = false;
+}
 
 async function fetchData() {
   loading.value = true;
   try {
     const { data } = await api.get(`/kelas/${route.params.id}`);
     kelas.value = data;
+    await fetchAssignments();
   } catch (e) {
     console.error("Failed to fetch kelas detail", e);
     toast.error("Gagal memuat detail kelas");
@@ -236,6 +316,25 @@ async function removeStudent(student) {
   } catch (e) {
     console.error(e);
     toast.error("Gagal mengeluarkan santri");
+  }
+}
+
+async function exportKelas(type) {
+  if (!kelas.value?.id) return;
+  try {
+    const endpoint = type === 'excel' ? 'export-excel' : 'export-pdf';
+    const fileExt = type === 'excel' ? 'csv' : 'txt';
+    const res = await api.get(`/kelas/${kelas.value.id}/${endpoint}`, { responseType: 'blob' });
+    const blob = new Blob([res.data]);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kelas-${kelas.value.nama || kelas.value.id}.${fileExt}`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error(e);
+    toast.error('Gagal export data kelas');
   }
 }
 

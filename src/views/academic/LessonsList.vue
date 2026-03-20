@@ -30,7 +30,8 @@
        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
     </div>
     
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-else class="max-h-[65vh] overflow-y-auto pr-1">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div v-for="lesson in store.lessons" :key="lesson.id" class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition">
             <div class="flex justify-between items-start mb-3">
                 <div>
@@ -53,17 +54,16 @@
             
             <!-- Assignments Summary -->
             <div class="mt-3 pt-3 border-t border-gray-50">
-               <div v-if="lesson.assignments && lesson.assignments.length > 0" class="flex flex-wrap gap-2">
+               <div v-if="lesson.assignments && lesson.assignments.length > 0" class="max-h-28 overflow-y-auto pr-1">
+                   <div class="flex flex-wrap gap-2">
                    <span 
-                      v-for="assign in lesson.assignments.slice(0, 3)" 
+                      v-for="assign in lesson.assignments" 
                       :key="assign.id" 
                       class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
                    >
                        {{ assign.kelas?.nama }} {{ assign.kelas?.tingkat }}: {{ assign.teacher?.name }}
                    </span>
-                   <span v-if="lesson.assignments.length > 3" class="text-xs text-gray-400 py-1">
-                      +{{ lesson.assignments.length - 3 }} lainnya
-                   </span>
+                   </div>
                </div>
                <div v-else class="text-xs text-gray-400 italic">
                   Belum ada kelas/guru assigned
@@ -72,6 +72,7 @@
 
             <p v-if="lesson.description" class="text-sm text-gray-600 line-clamp-2 mt-2">{{ lesson.description }}</p>
         </div>
+      </div>
     </div>
 
     <!-- Modals -->

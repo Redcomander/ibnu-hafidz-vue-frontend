@@ -336,7 +336,7 @@ const dc = (d) => dayColors[d] || dayColors['Senin'];
                 </div>
 
                 <!-- Cards stacked vertically inside column -->
-                <div class="p-3 space-y-3">
+                <div class="p-3 space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                     <div v-for="item in items" :key="item.id"
                         :class="['bg-white rounded-lg border-l-4 border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow', dc(dayName).card]">
 

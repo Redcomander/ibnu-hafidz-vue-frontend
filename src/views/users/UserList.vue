@@ -75,9 +75,15 @@
             <td class="font-medium text-gray-800">
               <div class="flex items-center gap-3">
                 <div
-                  class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase"
+                  class="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-bold text-xs uppercase"
                 >
-                  {{ user.name.substring(0, 2) }}
+                  <img
+                    v-if="user.foto_guru"
+                    :src="getAvatarUrl(user.foto_guru)"
+                    :alt="user.name"
+                    class="w-full h-full object-cover"
+                  />
+                  <span v-else>{{ user.name.substring(0, 2) }}</span>
                 </div>
                 <div>
                   <div>{{ user.name }}</div>
@@ -158,9 +164,15 @@
         >
           <div class="flex items-center gap-3">
             <div
-              class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase"
+              class="w-10 h-10 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-bold text-sm uppercase"
             >
-              {{ user.name.substring(0, 2) }}
+              <img
+                v-if="user.foto_guru"
+                :src="getAvatarUrl(user.foto_guru)"
+                :alt="user.name"
+                class="w-full h-full object-cover"
+              />
+              <span v-else>{{ user.name.substring(0, 2) }}</span>
             </div>
             <div>
               <h3 class="font-semibold text-gray-800">{{ user.name }}</h3>
@@ -392,5 +404,15 @@ async function handleDelete() {
 
 function handleSaved() {
   fetchData();
+}
+
+function getAvatarUrl(raw) {
+  if (!raw) return '';
+  const value = String(raw);
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:')) {
+    return value;
+  }
+  const normalized = value.replace(/^\/+/, '');
+  return normalized.startsWith('uploads/') ? `/${normalized}` : `/uploads/${normalized}`;
 }
 </script>

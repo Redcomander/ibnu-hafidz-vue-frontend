@@ -105,7 +105,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import api from '@/api';
@@ -134,19 +134,17 @@ const form = ref({
 // Computed from store
 const assignments = computed(() => ltStore.assignments);
 
-onMounted(async () => {
+const loadData = async () => {
+   if (!props.lesson) return;
    loadingList.value = true;
    try {
-      // Fetch Assignments
       await ltStore.fetchAssignmentsByLesson(props.lesson.id, props.type);
 
-      // Fetch Options
       const [resKelas, resTeachers] = await Promise.all([
          api.get('/kelas'),
-         api.get('/users?per_page=1000') // All users
+         api.get('/users?per_page=1000')
       ]);
       
-      // Map class data for SearchableSelect
       kelasList.value = (resKelas.data.data || resKelas.data).map(k => ({
          id: k.id,
          name: `${k.nama} (${k.tingkat})`
@@ -161,11 +159,18 @@ onMounted(async () => {
    } finally {
       loadingList.value = false;
    }
+};
+
+onMounted(loadData);
+
+watch(() => [props.lesson?.id, props.type, props.show], (vals) => {
+  if (props.show && props.lesson?.id) {
+    loadData();
+  }
 });
 
 const handleAssign = async () => {
    if (!form.value.kelas_id || !form.value.teacher_id) return;
-   
    creating.value = true;
    try {
       await ltStore.assignToLesson(
@@ -175,11 +180,9 @@ const handleAssign = async () => {
          props.type
       );
       toast.success("Assignment berhasil ditambahkan");
-      form.value.kelas_id = null; // Reset class selection only? or both?
-      // Keep teacher might be useful if assigning same teacher to multiple classes.
-      // Let's reset class only for UX convenience or reset both. Reset both is safer.
       form.value.kelas_id = null;
-      form.value.teacher_id = null; 
+      form.value.teacher_id = null;
+      await loadData();
    } catch (e) {
       toast.error(ltStore.error || "Gagal menambahkan assignment");
    } finally {

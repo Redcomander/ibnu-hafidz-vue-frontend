@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 const api = axios.create({
   baseURL: '/api',
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
   withCredentials: true, // Send HttpOnly cookies for refresh token
@@ -17,6 +16,12 @@ api.interceptors.request.use((config) => {
   if (auth.accessToken) {
     config.headers.Authorization = `Bearer ${auth.accessToken}`
   }
+
+  // Let browser set multipart boundary automatically for FormData.
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+  }
+
   return config
 })
 

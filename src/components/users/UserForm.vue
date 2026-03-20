@@ -204,12 +204,18 @@ onMounted(() => {
 async function fetchRoles() {
   loadingRoles.value = true;
   try {
-    // Fetch roles (assuming endpoint exists)
     const response = await api.get("/roles?per_page=100");
-    availableRoles.value = response.data.data || [];
+    const payload = response.data;
+
+    // Support multiple API response shapes.
+    if (Array.isArray(payload)) {
+      availableRoles.value = payload;
+    } else {
+      availableRoles.value = payload?.roles || payload?.data || [];
+    }
   } catch (e) {
     console.error("Failed to fetch roles", e);
-    // Fallback empty
+    toast.error("Gagal memuat daftar role");
     availableRoles.value = [];
   } finally {
     loadingRoles.value = false;
