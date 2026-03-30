@@ -319,6 +319,7 @@ import SvgIcon from "@/components/ui/SvgIcon.vue";
 import UserForm from "@/components/users/UserForm.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import { useToastStore } from "@/stores/toast";
+import { normalizePublicMediaUrl } from "@/utils/mediaUrl";
 
 const auth = useAuthStore();
 const toast = useToastStore();
@@ -407,12 +408,6 @@ function handleSaved() {
 }
 
 function getAvatarUrl(raw) {
-  if (!raw) return '';
-  const value = String(raw);
-  if (/^https?:\/\//i.test(value) || value.startsWith('data:')) {
-    return value;
-  }
-  const normalized = value.replace(/^\/+/, '');
-  return normalized.startsWith('uploads/') ? `/${normalized}` : `/uploads/${normalized}`;
+  return normalizePublicMediaUrl(raw, '');
 }
 </script>

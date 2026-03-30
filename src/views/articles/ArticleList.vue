@@ -87,7 +87,7 @@
         <div class="flex gap-3 md:gap-4 items-start">
           <!-- Thumbnail -->
           <div v-if="a.thumbnail" class="w-16 h-16 sm:w-24 sm:h-20 md:w-32 md:h-24 rounded-lg sm:rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
-            <img :src="'/uploads/' + a.thumbnail" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <img :src="thumbnailUrl(a.thumbnail)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           </div>
           <div v-else class="w-16 h-16 sm:w-24 sm:h-20 md:w-32 md:h-24 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/5 to-primary/15 flex items-center justify-center flex-shrink-0">
             <SvgIcon name="document" :size="20" class="text-primary/40 sm:hidden" />
@@ -220,6 +220,7 @@ import SvgIcon from '@/components/ui/SvgIcon.vue'
 import Modal from '@/components/ui/Modal.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import { useThemeStore } from '@/stores/theme'
+import { normalizePublicMediaUrl } from '@/utils/mediaUrl'
 
 const theme = useThemeStore()
 
@@ -268,6 +269,10 @@ function debounceFetch() {
 function formatDate(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function thumbnailUrl(path) {
+  return normalizePublicMediaUrl(path, '')
 }
 
 async function fetchCategories() {

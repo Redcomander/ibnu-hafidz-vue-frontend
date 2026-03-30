@@ -128,6 +128,7 @@ import { computed, reactive, ref, onMounted } from 'vue';
 import api from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import { normalizePublicMediaUrl } from '@/utils/mediaUrl';
 
 const auth = useAuthStore();
 const toast = useToastStore();
@@ -160,8 +161,9 @@ const fillFromAuth = () => {
 const avatarPreviewUrl = computed(() => {
   const raw = auth.user?.foto_guru;
   if (!raw) return '';
-  const normalized = String(raw).replace(/^\/+/, '');
-  return `/uploads/${normalized}?v=${avatarVersion.value}`;
+  const baseUrl = normalizePublicMediaUrl(raw, '');
+  if (!baseUrl) return '';
+  return `${baseUrl}?v=${avatarVersion.value}`;
 });
 
 onMounted(async () => {

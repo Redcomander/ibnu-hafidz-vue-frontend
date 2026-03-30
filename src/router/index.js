@@ -1,20 +1,71 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { applySeoMetadata, nonPublicSeo, publicSeo } from '@/utils/seo'
 
 const routes = [
+  // ---- Public Pages ----
+  {
+    path: '/',
+    component: () => import('@/layouts/PublicLayout.vue'),
+    children: [
+      {
+        path: '',
+        name: 'public-home',
+        component: () => import('@/views/public/PublicWelcomeView.vue'),
+        meta: { title: 'Beranda Ibnu Hafidz', seo: publicSeo.home },
+      },
+      {
+        path: 'profil',
+        name: 'public-profil',
+        component: () => import('@/views/public/PublicProfileView.vue'),
+        meta: { title: 'Profil Ibnu Hafidz', seo: publicSeo.profile },
+      },
+      {
+        path: 'galeri-prestasi',
+        name: 'public-prestasi',
+        component: () => import('@/views/public/PublicPrestasiView.vue'),
+        meta: { title: 'Galeri Prestasi', seo: publicSeo.home },
+      },
+      {
+        path: 'gallery/photo',
+        name: 'public-gallery-photo',
+        component: () => import('@/views/public/PublicGalleryPhotoView.vue'),
+        meta: { title: 'Galeri Foto', seo: publicSeo.home },
+      },
+      {
+        path: 'gallery/video',
+        name: 'public-gallery-video',
+        component: () => import('@/views/public/PublicGalleryVideoView.vue'),
+        meta: { title: 'Galeri Video', seo: publicSeo.home },
+      },
+      {
+        path: 'all-article',
+        name: 'public-articles-all',
+        component: () => import('@/views/public/PublicArticleAllView.vue'),
+        meta: { title: 'Semua Artikel', seo: publicSeo.home },
+      },
+      {
+        path: 'berita/:slug',
+        name: 'public-article-detail',
+        component: () => import('@/views/public/PublicArticleDetailView.vue'),
+        meta: { title: 'Detail Artikel', seo: publicSeo.home },
+      },
+    ],
+  },
+
   // ---- Auth (public) ----
   {
     path: '/login',
     name: 'login',
     component: () => import('@/views/auth/LoginView.vue'),
-    meta: { guest: true },
+    meta: { guest: true, title: 'Login', seo: { ...nonPublicSeo, title: 'Login' } },
   },
 
   // ---- Admin (protected) ----
   {
-    path: '/',
+    path: '/dashboard',
     component: () => import('@/layouts/AdminLayout.vue'),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, seo: nonPublicSeo },
     children: [
       {
         path: '',
@@ -216,7 +267,7 @@ const routes = [
         meta: { permission: 'content.view', title: 'Edit Artikel' },
       },
       {
-        path: 'dashboard/galeri',
+        path: 'galeri',
         name: 'gallery',
         component: () => import('@/views/gallery/GalleryList.vue'),
         meta: { permission: 'gallery.view', title: 'Galeri' },
@@ -241,6 +292,14 @@ const routes = [
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/views/NotFound.vue'),
+    meta: {
+      title: 'Halaman Tidak Ditemukan',
+      seo: {
+        ...nonPublicSeo,
+        title: 'Halaman Tidak Ditemukan',
+        description: 'Halaman yang Anda tuju tidak tersedia di situs Ibnu Hafidz.',
+      },
+    },
   },
 ]
 
@@ -277,10 +336,14 @@ router.beforeEach(async (to, from, next) => {
     return next({ name: 'dashboard' }) // Redirect to dashboard if no permission
   }
 
-  // Update page title
-  document.title = to.meta.title
-    ? `${to.meta.title} — Ibnu Hafidz`
-    : 'Ibnu Hafidz — Sistem Manajemen Pesantren'
+  applySeoMetadata(
+    to.meta.seo || {
+      ...nonPublicSeo,
+      title: to.meta.title || nonPublicSeo.title,
+      url: to.fullPath,
+      canonical: to.path,
+    },
+  )
 
   next()
 })

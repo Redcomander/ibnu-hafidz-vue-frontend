@@ -164,7 +164,7 @@
             <SvgIcon name="menu" :size="24" />
           </button>
 
-          <router-link to="/" class="hover:text-primary transition"
+          <router-link to="/dashboard" class="hover:text-primary transition"
             >Dashboard</router-link
           >
           <span v-if="$route.meta.title && $route.name !== 'dashboard'">/</span>
@@ -312,7 +312,7 @@ watch(
 const navItems = [
   { header: 'Main' },
   {
-    to: "/",
+    to: "/dashboard",
     icon: "dashboard",
     label: "Dashboard",
     permission: "dashboard.view",
@@ -320,32 +320,32 @@ const navItems = [
   
   { header: 'Data Master' },
   {
-    to: "/students",
+    to: "/dashboard/students",
     icon: "students",
     label: "Data Santri",
     permission: "students.view",
   },
   {
-    to: "/users",
+    to: "/dashboard/users",
     icon: "users",
     label: "Data Guru",
     permission: "users.view",
     exact: true,
   },
   {
-    to: "/users/activity-logs",
+    to: "/dashboard/users/activity-logs",
     icon: "clock",
     label: "Log Aktivitas",
     permission: "users.view",
   },
   {
-    to: "/kelas",
+    to: "/dashboard/kelas",
     icon: "bookmark",
     label: "Data Kelas",
     permission: "kelas.view",
   },
   {
-    to: "/kamar",
+    to: "/dashboard/kamar",
     icon: "room",
     label: "Data Kamar",
     permission: "kamar.view",
@@ -353,71 +353,71 @@ const navItems = [
 
   { header: 'Akademik' },
   {
-    to: "/lessons",
+    to: "/dashboard/lessons",
     icon: "book",
     label: "Data Pelajaran",
     permission: "lessons.view",
-    activeOn: ["/lessons", "/diniyyah-lesson"],
+    activeOn: ["/dashboard/lessons", "/dashboard/diniyyah-lesson"],
   },
   {
-    to: "/jadwal-formal",
+    to: "/dashboard/jadwal-formal",
     icon: "clock",
     label: "Jadwal Pelajaran",
     permission: "jadwal_formal.view",
-    activeOn: ["/jadwal-formal", "/jadwal-diniyyah"],
+    activeOn: ["/dashboard/jadwal-formal", "/dashboard/jadwal-diniyyah"],
   },
 
   { header: 'Kesantrian' },
   {
-    to: "/absensi/statistik",
+    to: "/dashboard/absensi/statistik",
     icon: "attendance",
     label: "Absensi Formal",
     permission: "absensi.view",
   },
   {
-    to: "/absensi/guru",
+    to: "/dashboard/absensi/guru",
     icon: "users",
     label: "Rekapan Guru Formal",
     permission: "absensi.view",
   },
   {
-    to: "/absensi-diniyyah/statistik",
+    to: "/dashboard/absensi-diniyyah/statistik",
     icon: "attendance",
     label: "Absensi Diniyyah",
     permission: "absensi_diniyyah.view",
   },
   {
-    to: "/absensi-diniyyah/guru",
+    to: "/dashboard/absensi-diniyyah/guru",
     icon: "users",
     label: "Rekapan Guru Diniyyah",
     permission: "absensi_diniyyah.view",
   },
   {
-    to: "/halaqoh-assignments",
+    to: "/dashboard/halaqoh-assignments",
     icon: "halaqoh",
     label: "Penugasan Halaqoh",
     permission: "halaqoh.create",
   },
   {
-    to: "/halaqoh/statistik/santri",
+    to: "/dashboard/halaqoh/statistik/santri",
     icon: "attendance",
     label: "Rekapan Halaqoh Santri",
     permission: "halaqoh.view",
   },
   {
-    to: "/halaqoh/statistik/guru",
+    to: "/dashboard/halaqoh/statistik/guru",
     icon: "users",
     label: "Rekapan Halaqoh Guru",
     permission: "halaqoh.view",
   },
   {
-    to: "/absensi-ekstra",
+    to: "/dashboard/absensi-ekstra",
     icon: "check-circle",
     label: "Absensi Ekstra",
     permission: "absensi_ekstra.view_all",
   },
   {
-    to: "/prestasi",
+    to: "/dashboard/prestasi",
     icon: "trophy",
     label: "Prestasi",
     permission: "prestasi.view",
@@ -425,25 +425,25 @@ const navItems = [
 
   { header: 'Laundry & Sarpras' },
   {
-    to: "/laundry/vendors",
+    to: "/dashboard/laundry/vendors",
     icon: "users",
     label: "Vendor Laundry",
     permission: "laundry_accounts.view",
   },
   {
-    to: "/laundry/accounts",
+    to: "/dashboard/laundry/accounts",
     icon: "users",
     label: "Manajemen Akun",
     permission: "laundry_accounts.view",
   },
   {
-    to: "/laundry/transactions",
+    to: "/dashboard/laundry/transactions",
     icon: "laundry",
     label: "Transaksi Laundry",
     permission: "laundry_accounts.view",
   },
   {
-    to: "/laundry/pickups",
+    to: "/dashboard/laundry/pickups",
     icon: "check-circle",
     label: "Pengambilan Laundry",
     permission: "laundry_accounts.view",
@@ -451,7 +451,7 @@ const navItems = [
 
   { header: 'Konten & Galeri' },
   {
-    to: "/articles",
+    to: "/dashboard/articles",
     icon: "article",
     label: "Berita & Artikel",
     permission: "content.view",
@@ -465,13 +465,13 @@ const navItems = [
 
   { header: 'Sistem' },
   {
-    to: "/roles",
+    to: "/dashboard/roles",
     icon: "roles",
     label: "Roles & Permissions",
     permission: "roles.view",
   },
   {
-    to: "/settings",
+    to: "/dashboard/settings",
     icon: "settings",
     label: "Pengaturan",
     permission: null,
@@ -486,7 +486,7 @@ const visibleNavItems = computed(() =>
 );
 
 function isNavActive(item, isExactActive) {
-  if (item.to === '/') return isExactActive
+  if (item.to === '/dashboard') return isExactActive
   if (item.exact) {
     return route.path === item.to
   }

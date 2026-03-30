@@ -209,7 +209,7 @@ async function handleLogin() {
   const result = await auth.login(form.username, form.password);
 
   if (result.success) {
-    const redirect = route.query.redirect || "/";
+    const redirect = route.query.redirect || "/dashboard";
     router.push(redirect);
   } else {
     errorMessage.value = result.message;
