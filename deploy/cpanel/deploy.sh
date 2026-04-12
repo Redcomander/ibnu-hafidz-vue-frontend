@@ -96,10 +96,14 @@ fi
 echo "[deploy] Mem-publish folder dist ke $PUBLISH_DIR"
 mkdir -p "$PUBLISH_DIR"
 if command -v rsync >/dev/null 2>&1; then
-  rsync -a --delete "$REPO_ROOT/dist/" "$PUBLISH_DIR/"
+  # Keep old hashed assets to avoid temporary 404 for clients/CDN still caching older index chunks.
+  mkdir -p "$PUBLISH_DIR/assets"
+  rsync -a "$REPO_ROOT/dist/assets/" "$PUBLISH_DIR/assets/"
+  rsync -a --exclude 'assets/' "$REPO_ROOT/dist/" "$PUBLISH_DIR/"
 else
   echo "[deploy] rsync tidak tersedia, memakai fallback cp -a"
-  find "$PUBLISH_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+  mkdir -p "$PUBLISH_DIR/assets"
+  cp -a "$REPO_ROOT/dist/assets/." "$PUBLISH_DIR/assets/"
   cp -a "$REPO_ROOT/dist/." "$PUBLISH_DIR/"
 fi
 
