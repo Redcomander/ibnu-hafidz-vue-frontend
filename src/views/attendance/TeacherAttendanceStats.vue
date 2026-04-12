@@ -5,7 +5,7 @@
       <div>
         <h1 class="text-xl sm:text-2xl font-bold text-gray-800">{{ title }}</h1>
         <p class="text-gray-500 text-xs sm:text-sm mt-0.5">
-          Statistik kehadiran guru {{ isDiniyyah ? 'diniyyah' : 'formal' }} berdasarkan periode
+          Statistik kehadiran guru {{ attendanceTypeLabel }} berdasarkan periode
         </p>
       </div>
       <!-- Export Buttons -->
@@ -228,6 +228,9 @@ import { id } from 'date-fns/locale'
 
 const route = useRoute()
 const isDiniyyah = computed(() => route.name === 'attendance-guru-diniyyah')
+const isRamadhan = computed(() => route.name === 'attendance-guru-ramadhan')
+const attendanceType = computed(() => isDiniyyah.value ? 'diniyyah' : isRamadhan.value ? 'ramadhan' : 'formal')
+const attendanceTypeLabel = computed(() => isDiniyyah.value ? 'diniyyah' : isRamadhan.value ? 'ramadhan' : 'formal')
 const title = computed(() => route.meta.title || 'Rekapan Kehadiran Guru')
 
 const loading = ref(false)
@@ -313,7 +316,7 @@ onMounted(async () => {
 })
 
 // watch for route type changes (Formal <-> Diniyyah)
-watch(isDiniyyah, () => {
+watch(() => route.name, () => {
   fetchStats()
 })
 
@@ -321,7 +324,7 @@ async function fetchStats() {
   loading.value = true
   try {
     const params = {
-      type: isDiniyyah.value ? 'diniyyah' : 'formal',
+      type: attendanceType.value,
       ...filters.value,
     }
     Object.keys(params).forEach((k) => { if (!params[k]) delete params[k] })
@@ -369,7 +372,7 @@ async function exportFile(format) {
 
   try {
     const params = {
-      type: isDiniyyah.value ? 'diniyyah' : 'formal',
+      type: attendanceType.value,
       ...filters.value
     }
     const query = new URLSearchParams()

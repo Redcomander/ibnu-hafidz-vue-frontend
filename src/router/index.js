@@ -50,6 +50,18 @@ const routes = [
         component: () => import('@/views/public/PublicArticleDetailView.vue'),
         meta: { title: 'Detail Artikel', seo: publicSeo.home },
       },
+      {
+        path: 'kedatangan/:token',
+        name: 'public-arrivals-form',
+        component: () => import('@/views/public/PublicArrivalFormView.vue'),
+        meta: { title: 'Form Kedatangan', seo: publicSeo.home },
+      },
+      {
+        path: 'absen-kedatangan/:token',
+        name: 'public-arrivals-form-legacy',
+        component: () => import('@/views/public/PublicArrivalFormView.vue'),
+        meta: { title: 'Form Kedatangan', seo: publicSeo.home },
+      },
     ],
   },
 
@@ -135,16 +147,34 @@ const routes = [
         meta: { permission: 'jadwal_formal.view', title: 'Jadwal Formal' },
       },
       {
+        path: 'jadwal-ramadhan',
+        name: 'schedule-ramadhan',
+        component: () => import('@/views/academic/ScheduleList.vue'),
+        meta: { permission: 'jadwal_formal.view', title: 'Jadwal Ramadhan' },
+      },
+      {
         path: 'absensi/statistik',
         name: 'attendance-formal',
         component: () => import('@/views/attendance/AttendanceHistory.vue'),
         meta: { permission: 'absensi.view', title: 'Riwayat Absensi Formal' },
       },
       {
+        path: 'absensi-ramadhan/statistik',
+        name: 'attendance-ramadhan',
+        component: () => import('@/views/attendance/AttendanceHistory.vue'),
+        meta: { permission: 'absensi.view', title: 'Riwayat Absensi Ramadhan' },
+      },
+      {
         path: 'absensi/guru',
         name: 'attendance-guru-formal',
         component: () => import('@/views/attendance/TeacherAttendanceStats.vue'),
         meta: { permission: 'absensi.view', title: 'Rekapan Guru Formal' },
+      },
+      {
+        path: 'absensi-ramadhan/guru',
+        name: 'attendance-guru-ramadhan',
+        component: () => import('@/views/attendance/TeacherAttendanceStats.vue'),
+        meta: { permission: 'absensi.view', title: 'Rekapan Guru Ramadhan' },
       },
       // ---- Academic (Diniyyah) ----
       {
@@ -208,6 +238,12 @@ const routes = [
         name: 'absensi-ekstra-session',
         component: () => import('@/views/attendance/AbsensiEkstraSession.vue'),
         meta: { title: 'Sesi Kehadiran Ekstra' },
+      },
+      {
+        path: 'arrivals',
+        name: 'arrivals-dashboard',
+        component: () => import('@/views/arrivals/ArrivalDashboardView.vue'),
+        meta: { permission: 'dashboard.view', title: 'Kedatangan Harian' },
       },
       // ---- Prestasi ----
       {
@@ -277,6 +313,12 @@ const routes = [
         name: 'settings',
         component: () => import('@/views/settings/SettingsView.vue'),
         meta: { title: 'Pengaturan' },
+      },
+      {
+        path: 'sidebar-menu-settings',
+        name: 'sidebar-menu-settings',
+        component: () => import('@/views/settings/SettingsView.vue'),
+        meta: { title: 'Pengaturan Sidebar' },
       },
       {
         path: 'kelas/:id',

@@ -246,8 +246,8 @@
             <span class="text-xs font-bold text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">{{ currentDate }}</span>
           </div>
 
-          <div v-if="stats.teacher?.personal_schedule?.length" class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
-            <div v-for="s in stats.teacher.personal_schedule" :key="s.id" class="flex gap-4 group/item">
+          <div v-if="visiblePersonalSchedules.length" class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+            <div v-for="s in visiblePersonalSchedules" :key="s.id" class="flex gap-4 group/item">
               <!-- Timeline Line & Dot -->
               <div class="flex flex-col items-center">
                 <div class="w-3 h-3 rounded-full bg-blue-500 ring-4 ring-blue-50 z-10 flex-shrink-0 mt-3"></div>
@@ -368,6 +368,7 @@ const authStore = useAuthStore();
 const stats = ref({});
 const loading = ref(true);
 const error = ref(null);
+const ramadhanEnabled = ref(false);
 
 // Attendance modal state
 const showAttendanceForm = ref(false);
@@ -419,10 +420,15 @@ const fetchStats = async () => {
   error.value = null;
   try {
     const [year, month] = selectedPeriod.value.split('-');
-    const response = await api.get('/dashboard/stats', {
-      params: { month, year }
-    });
-    stats.value = response.data;
+    const [statsRes, flagRes] = await Promise.all([
+      api.get('/dashboard/stats', {
+        params: { month, year }
+      }),
+      api.get('/feature-flags/ramadhan').catch(() => ({ data: { is_enabled: false } })),
+    ]);
+
+    stats.value = statsRes.data;
+    ramadhanEnabled.value = !!flagRes?.data?.is_enabled;
   } catch (err) {
     console.error('Failed to fetch stats:', err);
     error.value = "Gagal memuat statistik. Silakan coba lagi.";
@@ -430,6 +436,23 @@ const fetchStats = async () => {
     loading.value = false;
   }
 };
+
+const visiblePersonalSchedules = computed(() => {
+  const list = stats.value?.teacher?.personal_schedule || [];
+  if (ramadhanEnabled.value) return list;
+
+  return list.filter((s) => {
+    // Prefer explicit flags if backend provides them.
+    if (s?.is_ramadhan === true || s?.ramadhan === true || s?.ramadan === true) return false;
+
+    const scheduleType = String(s?.type || s?.schedule_type || s?.assignment?.type || s?.assignment?.lesson?.type || '').toLowerCase();
+    if (scheduleType.includes('ramadhan') || scheduleType.includes('ramadan')) return false;
+
+    // Fallback: detect common ramadhan labels anywhere in schedule payload.
+    const haystack = JSON.stringify(s || {}).toLowerCase();
+    return !/(ramadhan|ramadan|romadhon|romadon)/.test(haystack);
+  });
+});
 
 onMounted(() => {
   fetchStats();

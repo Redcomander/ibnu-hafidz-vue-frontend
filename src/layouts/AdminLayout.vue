@@ -244,6 +244,7 @@ import { useThemeStore } from "@/stores/theme";
 import { useRoute } from "vue-router";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 import NotificationDropdown from "@/components/ui/NotificationDropdown.vue";
+import { fetchSidebarMenuSettings } from "@/api/sidebarMenuSettings";
 
 const auth = useAuthStore();
 const notifStore = useNotificationStore();
@@ -254,6 +255,7 @@ const isSidebarOpen = ref(false);
 const showMobileSearch = ref(false);
 const showNotifications = ref(false);
 const avatarLoadFailed = ref(false);
+const sidebarMenuSettings = ref({});
 
 const sidebarAvatarUrl = computed(() => {
   if (avatarLoadFailed.value) return '';
@@ -271,6 +273,7 @@ const sidebarAvatarUrl = computed(() => {
 
 onUnmounted(() => {
   notifStore.disconnectSSE();
+  window.removeEventListener('sidebar-menu-settings-updated', reloadSidebarMenuSettings)
 });
 
 watch(
@@ -301,6 +304,28 @@ watch(
   }
 );
 
+watch(
+  () => auth.isAuthenticated,
+  (isAuthed) => {
+    if (!isAuthed) {
+      sidebarMenuSettings.value = {};
+      return;
+    }
+    reloadSidebarMenuSettings();
+  },
+  { immediate: true },
+);
+
+watch(
+  () => auth.user?.roles,
+  () => {
+    if (auth.isAuthenticated) {
+      reloadSidebarMenuSettings();
+    }
+  },
+  { deep: true },
+);
+
 // Close sidebar on route change (mobile)
 watch(
   () => route.fullPath,
@@ -309,6 +334,8 @@ watch(
   },
 );
 
+const hasRole = (roleName) => auth.userRoles?.some((role) => role.name === roleName)
+
 const navItems = [
   { header: 'Main' },
   {
@@ -316,21 +343,24 @@ const navItems = [
     icon: "dashboard",
     label: "Dashboard",
     permission: "dashboard.view",
+    exact: true,
   },
   
   { header: 'Data Master' },
   {
     to: "/dashboard/students",
     icon: "students",
-    label: "Data Santri",
+    label: "Santri",
     permission: "students.view",
+    menuKey: 'students',
   },
   {
     to: "/dashboard/users",
     icon: "users",
-    label: "Data Guru",
+    label: "Pengajar",
     permission: "users.view",
     exact: true,
+    menuKey: 'teachers',
   },
   {
     to: "/dashboard/users/activity-logs",
@@ -341,68 +371,119 @@ const navItems = [
   {
     to: "/dashboard/kelas",
     icon: "bookmark",
-    label: "Data Kelas",
+    label: "Kelas",
     permission: "kelas.view",
+    menuKey: 'kelas',
   },
   {
     to: "/dashboard/kamar",
     icon: "room",
     label: "Data Kamar",
     permission: "kamar.view",
+    menuKey: 'kamar',
   },
 
   { header: 'Akademik' },
   {
     to: "/dashboard/lessons",
     icon: "book",
-    label: "Data Pelajaran",
+    label: "Pelajaran Formal",
     permission: "lessons.view",
-    activeOn: ["/dashboard/lessons", "/dashboard/diniyyah-lesson"],
+    activeOn: ["/dashboard/lessons"],
+    menuKey: 'lessons',
+  },
+  {
+    to: "/dashboard/diniyyah-lesson",
+    icon: "book",
+    label: "Pelajaran Diniyyah",
+    permission: "diniyyah_lesson.view",
+    menuKey: 'diniyyah_lesson',
   },
   {
     to: "/dashboard/jadwal-formal",
     icon: "clock",
-    label: "Jadwal Pelajaran",
+    label: "Jadwal Formal",
     permission: "jadwal_formal.view",
-    activeOn: ["/dashboard/jadwal-formal", "/dashboard/jadwal-diniyyah"],
+    activeOn: ["/dashboard/jadwal-formal"],
+    activeExcept: ["/dashboard/jadwal-ramadhan"],
+    menuKey: 'jadwal_formal',
+  },
+  {
+    to: "/dashboard/jadwal-ramadhan",
+    icon: "clock",
+    label: "Jadwal Formal Ramadhan",
+    permission: "jadwal_formal.view",
+    activeOn: ["/dashboard/jadwal-ramadhan"],
+    menuKey: 'jadwal_formal_ramadhan',
+  },
+  {
+    to: "/dashboard/jadwal-diniyyah",
+    icon: "clock",
+    label: "Jadwal Diniyyah",
+    permission: "jadwal_diniyyah.view",
+    activeOn: ["/dashboard/jadwal-diniyyah"],
+    menuKey: 'jadwal_diniyyah',
   },
 
   { header: 'Kesantrian' },
   {
     to: "/dashboard/absensi/statistik",
     icon: "attendance",
-    label: "Absensi Formal",
+    label: "Riwayat Absensi Formal",
     permission: "absensi.view",
+    activeOn: ["/dashboard/absensi/statistik"],
+    menuKey: 'absensi_formal_history',
+  },
+  {
+    to: "/dashboard/absensi-ramadhan/statistik",
+    icon: "attendance",
+    label: "Absensi Formal Ramadhan",
+    permission: "absensi.view",
+    activeOn: ["/dashboard/absensi-ramadhan"],
+    menuKey: 'absensi_formal_ramadhan',
+  },
+  {
+    to: "/dashboard/absensi-diniyyah/statistik",
+    icon: "attendance",
+    label: "Riwayat Absensi Diniyyah",
+    permission: "absensi_diniyyah.view",
+    activeOn: ["/dashboard/absensi-diniyyah"],
+    menuKey: 'absensi_diniyyah_history',
   },
   {
     to: "/dashboard/absensi/guru",
     icon: "users",
     label: "Rekapan Guru Formal",
     permission: "absensi.view",
+    exact: true,
   },
   {
-    to: "/dashboard/absensi-diniyyah/statistik",
-    icon: "attendance",
-    label: "Absensi Diniyyah",
-    permission: "absensi_diniyyah.view",
+    to: "/dashboard/absensi-ramadhan/guru",
+    icon: "users",
+    label: "Rekapan Guru Ramadhan",
+    permission: "absensi.view",
+    exact: true,
   },
   {
     to: "/dashboard/absensi-diniyyah/guru",
     icon: "users",
     label: "Rekapan Guru Diniyyah",
     permission: "absensi_diniyyah.view",
+    exact: true,
   },
   {
     to: "/dashboard/halaqoh-assignments",
     icon: "halaqoh",
-    label: "Penugasan Halaqoh",
+    label: "Halaqoh",
     permission: "halaqoh.create",
+    menuKey: 'halaqoh',
   },
   {
     to: "/dashboard/halaqoh/statistik/santri",
     icon: "attendance",
-    label: "Rekapan Halaqoh Santri",
+    label: "Riwayat Absensi Halaqoh",
     permission: "halaqoh.view",
+    menuKey: 'halaqoh_history',
   },
   {
     to: "/dashboard/halaqoh/statistik/guru",
@@ -415,32 +496,45 @@ const navItems = [
     icon: "check-circle",
     label: "Absensi Ekstra",
     permission: "absensi_ekstra.view_all",
+    menuKey: 'absensi_ekstra',
+  },
+  {
+    to: "/dashboard/arrivals",
+    icon: "attendance",
+    label: "Absen Kedatangan",
+    permission: "dashboard.view",
+    menuKey: 'student_arrival',
   },
   {
     to: "/dashboard/prestasi",
     icon: "trophy",
     label: "Prestasi",
     permission: "prestasi.view",
+    menuKey: 'prestasi',
   },
 
   { header: 'Laundry & Sarpras' },
   {
     to: "/dashboard/laundry/vendors",
     icon: "users",
-    label: "Vendor Laundry",
+    label: "Manajemen Akun Laundry",
     permission: "laundry_accounts.view",
+    activeOn: ["/dashboard/laundry/vendors", "/dashboard/laundry/accounts"],
+    menuKey: 'laundry_accounts',
   },
   {
     to: "/dashboard/laundry/accounts",
     icon: "users",
     label: "Manajemen Akun",
     permission: "laundry_accounts.view",
+    hiddenInSidebar: true,
   },
   {
     to: "/dashboard/laundry/transactions",
     icon: "laundry",
     label: "Transaksi Laundry",
     permission: "laundry_accounts.view",
+    menuKey: 'laundry_transactions',
   },
   {
     to: "/dashboard/laundry/pickups",
@@ -453,14 +547,16 @@ const navItems = [
   {
     to: "/dashboard/articles",
     icon: "article",
-    label: "Berita & Artikel",
+    label: "Berita",
     permission: "content.view",
+    menuKey: 'content',
   },
   {
     to: "/dashboard/galeri",
     icon: "gallery",
-    label: "Galeri Foto",
+    label: "Galeri",
     permission: "gallery.view",
+    menuKey: 'gallery',
   },
 
   { header: 'Sistem' },
@@ -476,17 +572,77 @@ const navItems = [
     label: "Pengaturan",
     permission: null,
   },
+  {
+    to: "/dashboard/sidebar-menu-settings",
+    icon: "settings",
+    label: "Pengaturan Sidebar",
+    permission: null,
+    roles: ['super_admin'],
+    activeOn: ["/dashboard/sidebar-menu-settings"],
+  },
 ];
 
-// Filter nav items by user permissions
-const visibleNavItems = computed(() =>
-  navItems.filter(
-    (item) => !item.permission || auth.hasPermission(item.permission),
-  ),
-);
+async function reloadSidebarMenuSettings() {
+  try {
+    const items = await fetchSidebarMenuSettings()
+    sidebarMenuSettings.value = items.reduce((acc, item) => {
+      acc[item.key] = item.is_active !== false
+      return acc
+    }, {})
+  } catch {
+    sidebarMenuSettings.value = {}
+  }
+}
+
+function canViewNavItem(item) {
+  if (item.hiddenInSidebar) return false
+  if (item.permission && !auth.hasPermission(item.permission)) return false
+  if (item.roles && !item.roles.some((roleName) => hasRole(roleName))) return false
+  if (item.menuKey && sidebarMenuSettings.value[item.menuKey] === false) return false
+  return true
+}
+
+const visibleNavItems = computed(() => {
+  const grouped = []
+  let currentHeader = null
+  let currentItems = []
+
+  const flushSection = () => {
+    if (currentHeader && currentItems.length) {
+      grouped.push(currentHeader, ...currentItems)
+    }
+    currentHeader = null
+    currentItems = []
+  }
+
+  navItems.forEach((item) => {
+    if (item.header) {
+      flushSection()
+      currentHeader = item
+      return
+    }
+
+    if (!canViewNavItem(item)) {
+      return
+    }
+
+    if (currentHeader) {
+      currentItems.push(item)
+      return
+    }
+
+    grouped.push(item)
+  })
+
+  flushSection()
+  return grouped
+})
 
 function isNavActive(item, isExactActive) {
   if (item.to === '/dashboard') return isExactActive
+  if (item.activeExcept && item.activeExcept.some((path) => route.path.startsWith(path))) {
+    return false
+  }
   if (item.exact) {
     return route.path === item.to
   }
@@ -495,6 +651,10 @@ function isNavActive(item, isExactActive) {
   }
   return route.path.startsWith(item.to)
 }
+
+onMounted(() => {
+	window.addEventListener('sidebar-menu-settings-updated', reloadSidebarMenuSettings)
+})
 </script>
 
 <style scoped>

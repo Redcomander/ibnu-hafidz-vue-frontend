@@ -1,11 +1,48 @@
 <template>
   <div class="space-y-6">
     <div>
-      <h1 class="text-2xl font-bold text-primary-dark tracking-tight">Pengaturan Profil</h1>
-      <p class="text-sm text-gray-500 mt-1">Kelola data akun dan keamanan akun Anda.</p>
+      <h1 class="text-2xl font-bold text-primary-dark tracking-tight">{{ pageTitle }}</h1>
+      <p class="text-sm text-gray-500 mt-1">{{ pageDescription }}</p>
     </div>
 
-    <div class="glass-card p-6 rounded-xl border border-gray-100">
+    <div v-if="isSidebarSettingsPage && !isSuperAdmin" class="glass-card p-6 rounded-xl border border-amber-200">
+      <h2 class="text-lg font-semibold text-amber-700 mb-2">Akses Dibatasi</h2>
+      <p class="text-sm text-gray-600">Hanya super admin yang dapat mengatur visibilitas menu sidebar.</p>
+    </div>
+
+    <div v-if="showSidebarSettings" class="glass-card p-6 rounded-xl border border-gray-100">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800">Pengaturan Menu Sidebar</h2>
+          <p class="text-sm text-gray-500 mt-1">Menu yang dimatikan akan disembunyikan untuk semua pengguna.</p>
+        </div>
+        <button
+          type="button"
+          :disabled="savingSidebarSettings || loadingSidebarSettings"
+          @click="saveSidebarSettings"
+          class="btn-primary px-5 py-2.5"
+        >
+          {{ savingSidebarSettings ? 'Menyimpan...' : 'Simpan Sidebar' }}
+        </button>
+      </div>
+
+      <div v-if="loadingSidebarSettings" class="text-sm text-gray-500">Memuat pengaturan sidebar...</div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <label
+          v-for="item in sidebarMenuSettings"
+          :key="item.key"
+          class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3"
+        >
+          <div>
+            <p class="text-sm font-medium text-gray-800">{{ item.label }}</p>
+            <p class="text-xs text-gray-500 mt-0.5">Key: {{ item.key }}</p>
+          </div>
+          <input v-model="item.is_active" type="checkbox" class="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" />
+        </label>
+      </div>
+    </div>
+
+    <div v-if="!isSidebarSettingsPage" class="glass-card p-6 rounded-xl border border-gray-100">
       <h2 class="text-lg font-semibold text-gray-800 mb-4">Profil</h2>
 
       <div class="mb-6 p-4 rounded-lg border border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center gap-4">
@@ -72,7 +109,7 @@
       </form>
     </div>
 
-    <div class="glass-card p-6 rounded-xl border border-red-200">
+    <div v-if="!isSidebarSettingsPage" class="glass-card p-6 rounded-xl border border-red-200">
       <h2 class="text-lg font-semibold text-red-600 mb-2">Zona Berbahaya</h2>
       <p class="text-sm text-gray-600 mb-4">
         Menghapus akun akan menonaktifkan akses login akun ini.
@@ -100,7 +137,7 @@
       </div>
     </div>
 
-    <div class="glass-card p-6 rounded-xl border border-amber-200">
+    <div v-if="!isSidebarSettingsPage" class="glass-card p-6 rounded-xl border border-amber-200">
       <h2 class="text-lg font-semibold text-amber-600 mb-2">Mode Ramadhan</h2>
       <p class="text-sm text-gray-600 mb-4">
         Aktifkan hanya saat periode Ramadhan untuk menyalakan fitur khusus Ramadhan.
@@ -124,13 +161,16 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue';
+import { computed, reactive, ref, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import { fetchSidebarMenuSettings, updateSidebarMenuSettings } from '@/api/sidebarMenuSettings';
 
 const auth = useAuthStore();
 const toast = useToastStore();
+const route = useRoute();
 
 const saving = ref(false);
 const uploadingAvatar = ref(false);
@@ -140,6 +180,9 @@ const ramadhanEnabled = ref(false);
 const togglingRamadhan = ref(false);
 const avatarInput = ref(null);
 const avatarVersion = ref(0);
+const sidebarMenuSettings = ref([]);
+const loadingSidebarSettings = ref(false);
+const savingSidebarSettings = ref(false);
 
 const form = reactive({
   name: '',
@@ -147,6 +190,17 @@ const form = reactive({
   email: '',
   current_password: '',
   new_password: '',
+});
+
+const isSuperAdmin = computed(() => auth.userRoles?.some((role) => role.name === 'super_admin'));
+const isSidebarSettingsPage = computed(() => route.name === 'sidebar-menu-settings');
+const showSidebarSettings = computed(() => isSuperAdmin.value);
+const pageTitle = computed(() => isSidebarSettingsPage.value ? 'Pengaturan Sidebar' : 'Pengaturan Profil');
+const pageDescription = computed(() => {
+  if (isSidebarSettingsPage.value) {
+    return 'Kelola visibilitas menu sidebar untuk seluruh pengguna.';
+  }
+  return 'Kelola data akun dan keamanan akun Anda.';
 });
 
 const fillFromAuth = () => {
@@ -185,8 +239,56 @@ onMounted(async () => {
     await auth.fetchUser();
   }
   fillFromAuth();
-  await fetchRamadhanFlag();
+  if (!isSidebarSettingsPage.value) {
+    await fetchRamadhanFlag();
+  }
+  if (isSuperAdmin.value) {
+    await loadSidebarSettings();
+  }
 });
+
+watch(
+  () => route.name,
+  async () => {
+    fillFromAuth();
+    if (!isSidebarSettingsPage.value) {
+      await fetchRamadhanFlag();
+    }
+    if (isSuperAdmin.value && sidebarMenuSettings.value.length === 0) {
+      await loadSidebarSettings();
+    }
+  },
+);
+
+async function loadSidebarSettings() {
+  loadingSidebarSettings.value = true;
+  try {
+    sidebarMenuSettings.value = await fetchSidebarMenuSettings();
+  } catch (e) {
+    toast.error(e.response?.data?.message || 'Gagal memuat pengaturan sidebar');
+    sidebarMenuSettings.value = [];
+  } finally {
+    loadingSidebarSettings.value = false;
+  }
+}
+
+async function saveSidebarSettings() {
+  savingSidebarSettings.value = true;
+  try {
+    const payload = sidebarMenuSettings.value.reduce((acc, item) => {
+      acc[item.key] = !!item.is_active;
+      return acc;
+    }, {});
+    await updateSidebarMenuSettings(payload);
+    toast.success('Pengaturan sidebar berhasil diperbarui');
+    window.dispatchEvent(new CustomEvent('sidebar-menu-settings-updated'));
+    await loadSidebarSettings();
+  } catch (e) {
+    toast.error(e.response?.data?.message || 'Gagal menyimpan pengaturan sidebar');
+  } finally {
+    savingSidebarSettings.value = false;
+  }
+}
 
 async function fetchRamadhanFlag() {
   try {

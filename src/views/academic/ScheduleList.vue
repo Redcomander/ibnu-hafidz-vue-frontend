@@ -31,13 +31,17 @@ const day = ref('');
 const selectedItems = ref([]);
 const expandedItems = ref([]);
 
-const scheduleType = computed(() => route.name?.includes('diniyyah') ? 'diniyyah' : 'formal');
+const scheduleType = computed(() => {
+    if (route.name?.includes('diniyyah')) return 'diniyyah';
+    if (route.name?.includes('ramadhan')) return 'ramadhan';
+    return 'formal';
+});
 const activeTab = ref(scheduleType.value);
 watch(scheduleType, (val) => { activeTab.value = val; }, { immediate: true });
 
 const switchTab = (tab) => {
     activeTab.value = tab;
-    const routeName = tab === 'diniyyah' ? 'schedule-diniyyah' : 'schedule-formal';
+    const routeName = tab === 'diniyyah' ? 'schedule-diniyyah' : tab === 'ramadhan' ? 'schedule-ramadhan' : 'schedule-formal';
     if (route.name !== routeName) router.push({ name: routeName });
 };
 
@@ -235,12 +239,12 @@ const dc = (d) => dayColors[d] || dayColors['Senin'];
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
             <div>
                 <h1 class="text-2xl font-bold">
-                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-green-700 to-emerald-600">Jadwal Pelajaran</span>
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-green-700 to-emerald-600">{{ activeTab === 'ramadhan' ? 'Jadwal Ramadhan' : 'Jadwal Pelajaran' }}</span>
                 </h1>
                 <p class="text-sm text-gray-500 mt-0.5">{{ formattedDate }} · {{ totalSchedules }} jadwal {{ activeTab }}</p>
             </div>
             <div class="flex items-center gap-2">
-                <router-link :to="{ name: activeTab === 'formal' ? 'attendance-formal' : 'attendance-diniyyah' }"
+                <router-link :to="{ name: activeTab === 'formal' ? 'attendance-formal' : activeTab === 'ramadhan' ? 'attendance-ramadhan' : 'attendance-diniyyah' }"
                     class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Riwayat Absensi
@@ -259,6 +263,11 @@ const dc = (d) => dayColors[d] || dayColors['Senin'];
                 :class="['px-4 py-2 rounded-md text-sm font-semibold transition', activeTab === 'formal' ? 'bg-white text-green-700 shadow' : 'text-gray-500 hover:text-gray-700']">
                 <svg class="w-4 h-4 inline mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 Formal
+            </button>
+            <button @click="switchTab('ramadhan')"
+                :class="['px-4 py-2 rounded-md text-sm font-semibold transition', activeTab === 'ramadhan' ? 'bg-white text-green-700 shadow' : 'text-gray-500 hover:text-gray-700']">
+                <svg class="w-4 h-4 inline mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a8.997 8.997 0 008.354-5.646z"/></svg>
+                Ramadhan
             </button>
             <button @click="switchTab('diniyyah')"
                 :class="['px-4 py-2 rounded-md text-sm font-semibold transition', activeTab === 'diniyyah' ? 'bg-white text-green-700 shadow' : 'text-gray-500 hover:text-gray-700']">
