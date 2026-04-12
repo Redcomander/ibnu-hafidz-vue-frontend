@@ -224,7 +224,7 @@ const getTimeDisplay = (item) => {
 const dayColors = {
     'Senin':  { header: 'bg-blue-600',    card: 'border-l-blue-500',  badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700/50' },
     'Selasa': { header: 'bg-emerald-600', card: 'border-l-emerald-500', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-200 dark:border-emerald-700/50' },
-    'Rabu':   { header: 'bg-violet-600',  card: 'border-l-violet-500', badge: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-200 dark:border-violet-700/50' },
+    'Rabu':   { header: 'bg-purple-400',  card: 'border-l-purple-300', badge: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-700/50' },
     'Kamis':  { header: 'bg-amber-600',   card: 'border-l-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700/50' },
     'Jumat':  { header: 'bg-teal-600',    card: 'border-l-teal-500',  badge: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-200 dark:border-teal-700/50' },
     'Sabtu':  { header: 'bg-rose-600',    card: 'border-l-rose-500',  badge: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:border-rose-700/50' },
