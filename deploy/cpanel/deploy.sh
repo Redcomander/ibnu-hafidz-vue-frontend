@@ -30,6 +30,32 @@ find_npm_bin() {
   return 1
 }
 
+find_node_bin() {
+  if command -v node >/dev/null 2>&1; then
+    command -v node
+    return 0
+  fi
+
+  local candidates=(
+    /opt/cpanel/ea-nodejs*/bin/node
+    /opt/alt/alt-nodejs*/root/usr/bin/node
+    /usr/local/bin/node
+    /usr/bin/node
+  )
+
+  local path
+  for path in "${candidates[@]}"; do
+    for resolved in $path; do
+      if [[ -x "$resolved" ]]; then
+        echo "$resolved"
+        return 0
+      fi
+    done
+  done
+
+  return 1
+}
+
 cd "$REPO_ROOT"
 
 NPM_BIN="$(find_npm_bin || true)"
@@ -40,7 +66,18 @@ if [[ -z "$NPM_BIN" ]]; then
   exit 1
 fi
 
+NODE_BIN="$(find_node_bin || true)"
+if [[ -z "$NODE_BIN" ]]; then
+  echo "[deploy] node tidak ditemukan di server."
+  echo "[deploy] Aktifkan Node.js di cPanel atau tambahkan node ke PATH shell."
+  exit 1
+fi
+
+# Pastikan npm dan node berada di PATH yang sama ketika npm menjalankan skrip internal.
+export PATH="$(dirname "$NPM_BIN"):$(dirname "$NODE_BIN"):$PATH"
+
 echo "[deploy] Menggunakan npm di: $NPM_BIN"
+echo "[deploy] Menggunakan node di: $NODE_BIN"
 
 echo "[deploy] Menginstal dependensi frontend..."
 "$NPM_BIN" ci
