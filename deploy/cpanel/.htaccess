@@ -30,6 +30,8 @@ RewriteRule ^(api|uploads)/(.*)$ http://127.0.0.1:18080/$1/$2 [P,L]
 </IfModule>
 
 # Fallback SPA Vite
+RewriteCond %{REQUEST_URI} !^/assets/
+RewriteCond %{REQUEST_URI} !\.(js|css|map|json|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2)$ [NC]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]
