@@ -51,193 +51,215 @@
           <div class="overflow-y-auto flex-1 custom-scrollbar max-h-60">
             <button
               type="button"
-              v-for="option in filteredOptions"
-              :key="getValue(option)"
-              @click="select(option)"
-              class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors"
-              :class="{ 'bg-primary/5 text-primary': modelValue === getValue(option) }"
-            >
-              <span class="truncate">{{ getLabel(option) }}</span>
-              <SvgIcon
-                v-if="modelValue === getValue(option)"
-                name="check"
-                :size="16"
-                class="text-primary"
-              />
-            </button>
+              <template>
+                <div ref="container" class="relative">
+                  <button
+                    type="button"
+                    @click="toggle"
+                    class="input-field flex w-full items-center justify-between text-left cursor-pointer select-none"
+                    :class="[
+                      disabled ? 'cursor-not-allowed bg-gray-100 text-gray-400' : '',
+                      isOpen ? 'ring-2 ring-primary/20 border-primary' : ''
+                    ]"
+                    :disabled="disabled"
+                  >
+                    <span v-if="selectedOption" class="text-gray-800 truncate">{{ getLabel(selectedOption) }}</span>
+                    <span v-else class="text-gray-400 truncate">{{ placeholder }}</span>
+                    <SvgIcon
+                      name="chevron-down"
+                      :size="16"
+                      class="text-gray-400 transition-transform duration-200 shrink-0"
+                      :class="{ 'rotate-180': isOpen }"
+                    />
+                  </button>
 
-            <div
-              v-if="filteredOptions.length === 0"
-              class="p-4 text-center text-xs text-gray-400"
-            >
-              Tidak ada data ditemukan
-            </div>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
-  </div>
-</template>
+                  <Teleport to="body">
+                    <transition
+                      enter-active-class="transition duration-100 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-75 ease-in"
+                      leave-from-class="transform scale-100 opacity-100"
+                      leave-to-class="transform scale-95 opacity-0"
+                    >
+                      <div
+                        v-if="isOpen"
+                        ref="dropdownRef"
+                        :style="dropdownStyle"
+                        class="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-100 flex flex-col overflow-hidden"
+                        @click.stop
+                      >
+                        <div class="p-2 border-b border-gray-50 sticky top-0 bg-white">
+                          <input
+                            ref="searchInput"
+                            v-model="searchQuery"
+                            type="text"
+                            class="w-full px-3 py-1.5 text-sm bg-gray-50 rounded-md border-none focus:ring-1 focus:ring-primary focus:bg-white transition placeholder-gray-400 outline-none"
+                            placeholder="Cari..."
+                            @click.stop
+                          />
+                        </div>
 
-<script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
-import SvgIcon from "@/components/ui/SvgIcon.vue";
+                        <div class="overflow-y-auto flex-1 custom-scrollbar" :style="listStyle">
+                          <button
+                            v-for="option in filteredOptions"
+                            :key="getValue(option)"
+                            type="button"
+                            @click="select(option)"
+                            class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors"
+                            :class="{ 'bg-primary/5 text-primary': modelValue === getValue(option) }"
+                          >
+                            <span class="truncate">{{ getLabel(option) }}</span>
+                            <SvgIcon v-if="modelValue === getValue(option)" name="check" :size="16" class="text-primary" />
+                          </button>
 
-const props = defineProps({
-  modelValue: [String, Number, null],
-  options: {
-    type: Array,
-    default: () => [],
-  },
-  placeholder: {
-    type: String,
-    default: "Pilih...",
-  },
-  labelKey: {
-    type: String,
-    default: "name",
-  },
-  valueKey: {
-    type: String,
-    default: "id",
-  },
-});
+                          <div v-if="filteredOptions.length === 0" class="p-4 text-center text-xs text-gray-400">
+                            Tidak ada data ditemukan
+                          </div>
+                        </div>
+                      </div>
+                    </transition>
+                  </Teleport>
+                </div>
+              </template>
 
-const emit = defineEmits(["update:modelValue"]);
+              <script setup>
+              import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+              import SvgIcon from '@/components/ui/SvgIcon.vue'
 
-const isOpen = ref(false);
-const searchQuery = ref("");
-const container = ref(null);
-const searchInput = ref(null);
-const dropdownStyle = ref({});
+              const props = defineProps({
+                modelValue: [String, Number, null],
+                options: {
+                  type: Array,
+                  default: () => [],
+                },
+                placeholder: {
+                  type: String,
+                  default: 'Pilih...',
+                },
+                labelKey: {
+                  type: String,
+                  default: 'name',
+                },
+                valueKey: {
+                  type: String,
+                  default: 'id',
+                },
+                disabled: {
+                  type: Boolean,
+                  default: false,
+                },
+              })
 
-function getLabel(opt) {
-  if (!opt) return "";
-  return opt[props.labelKey] || "";
-}
+              const emit = defineEmits(['update:modelValue'])
 
-function getValue(opt) {
-  if (!opt) return null;
-  return opt[props.valueKey];
-}
+              const isOpen = ref(false)
+              const searchQuery = ref('')
+              const container = ref(null)
+              const dropdownRef = ref(null)
+              const searchInput = ref(null)
+              const dropdownStyle = ref({})
+              const listStyle = ref({ maxHeight: '240px' })
 
-const selectedOption = computed(() => {
-  return props.options.find((opt) => getValue(opt) === props.modelValue);
-});
+              function getLabel(opt) {
+                if (!opt) return ''
+                return opt[props.labelKey] || ''
+              }
 
-const filteredOptions = computed(() => {
-  if (!searchQuery.value) return props.options;
-  const query = searchQuery.value.toLowerCase();
-  return props.options.filter((opt) => String(getLabel(opt)).toLowerCase().includes(query));
-});
+              function getValue(opt) {
+                if (!opt) return null
+                return opt[props.valueKey]
+              }
 
-function updatePosition() {
-  if (container.value) {
-    const rect = container.value.getBoundingClientRect();
-    dropdownStyle.value = {
-      top: `${rect.bottom}px`,
-      left: `${rect.left}px`,
-      width: `${rect.width}px`,
-    };
-  }
-}
+              const selectedOption = computed(() => props.options.find((opt) => getValue(opt) === props.modelValue))
 
-function toggle() {
-  isOpen.value = !isOpen.value;
-  if (isOpen.value) {
-    updatePosition();
-    searchQuery.value = "";
-    nextTick(() => {
-      searchInput.value?.focus();
-    });
-  }
-}
+              const filteredOptions = computed(() => {
+                if (!searchQuery.value) return props.options
+                const query = searchQuery.value.toLowerCase()
+                return props.options.filter((opt) => String(getLabel(opt)).toLowerCase().includes(query))
+              })
 
-function select(option) {
-  emit("update:modelValue", getValue(option));
-  isOpen.value = false;
-}
+              function updatePosition() {
+                if (!container.value) return
 
-function handleClickOutside(event) {
-  if (container.value && !container.value.contains(event.target)) {
-    // Check if click is inside the dropdown (which is teleported)
-    // We can check if the target is inside the dropdown... wait.
-    // Since dropdown is NOT child of container in DOM due to Teleport, 
-    // container.contains(event.target) will be false for clicks in dropdown.
-    // BUT, the dropdown itself stops propagation on click?
-    // Let's add specific check for teleported content if possible, or just ignore clicks on dropdown elements?
-    // Actually, Vue's event bubbling might handle it if components were nested, but Teleport breaks DOM hierarchy.
-    // However, we rely on the input @click.stop to prevent bubbling to document?
-    // No, we need to check if target is inside the dropdown.
-    // Easy way: Check if target is inside the dropdown element using a ref on the dropdown?
-    // I can add ref="dropdown" to the dropdown div.
-  }
-}
+                const rect = container.value.getBoundingClientRect()
+                const viewportHeight = window.innerHeight
+                const spaceBelow = viewportHeight - rect.bottom - 12
+                const spaceAbove = rect.top - 12
+                const openUpward = spaceBelow < 260 && spaceAbove > spaceBelow
+                const maxHeight = Math.max(160, Math.min(260, openUpward ? spaceAbove - 8 : spaceBelow - 8))
 
-// Better Click Outside for Teleport
-// We can use a custom directive or just check if event path includes container OR dropdown.
-// But simpler:
-// Use a transparent overlay? No.
-// Let's track the dropdown ref.
-const dropdownRef = ref(null); // I need to add this to the template div
+                dropdownStyle.value = {
+                  left: `${rect.left}px`,
+                  width: `${rect.width}px`,
+                  ...(openUpward
+                    ? { bottom: `${viewportHeight - rect.top + 4}px` }
+                    : { top: `${rect.bottom + 4}px` }),
+                }
 
-// Updated handleClickOutside
-function handleGlobalClick(event) {
-  if (!isOpen.value) return;
-  
-  // Check if click is inside container (trigger)
-  const isTrigger = container.value && container.value.contains(event.target);
-  
-  // Check if click is inside dropdown (teleported)
-  // Since I haven't added ref yet, I'll rely on class or something?
-  // Actually, I can add ref="dropdownContent" to the fixed div.
-  // ... (I'll add it in template)
-  // But wait, replace_file_content is replacing the template too.
-  // I didn't add the ref in the replacement content above. 
-  // I should add `ref="dropdownContent"` to the div.
-  
-  // Let's rely on event bubbling not reaching document if we stopProp on the dropdown?
-  // Steps:
-  // 1. Add @click.stop to the dropdown container.
-  // 2. Document listener closes it.
-  // 3. Trigger @click.stop too.
-}
-// Actually, simple solution:
-// Just close on window scroll/resize?
-// Re-calculating position on scroll is needed if we want it to stick?
-// If we use `fixed`, it stays on screen. If user scrolls page, the input moves but dropdown stays? That's bad.
-// Proper way: `absolute` relative to body? `rect.bottom + window.scrollY`.
-// `fixed` is okay if we close on scroll.
-// Let's use `fixed` and Close on Scroll.
-// And close on Resize.
+                listStyle.value = {
+                  maxHeight: `${maxHeight}px`,
+                }
+              }
 
-function close(e) {
-  if (e && e.type === "scroll") {
-    // Ignore if scrolling happens inside the dropdown itself
-    if (e.target && dropdownRef.value && dropdownRef.value.contains(e.target)) {
-      return;
-    }
-  }
-  isOpen.value = false;
-}
+              function open() {
+                if (props.disabled) return
+                isOpen.value = true
+                searchQuery.value = ''
+                updatePosition()
+                nextTick(() => searchInput.value?.focus())
+              }
 
-onMounted(() => {
-  window.addEventListener("click", (e) => {
-      if (container.value && !container.value.contains(e.target)) {
-          // If we are clicking outside both container and dropdown (handled by @click.stop optionally)
-          // actually dropdown is teleported, so it's not in container.
-          // But dropdown has @click.stop which prevents it reaching window click handler.
-          // so this is enough to close it.
-          isOpen.value = false;
-      }
-  });
-  window.addEventListener("resize", close);
-  window.addEventListener("scroll", close, true); // Capture phase to catch all scrolls
-});
+              function close() {
+                isOpen.value = false
+              }
 
-onUnmounted(() => {
-   // ... remove listeners
-  window.removeEventListener("resize", close);
-  window.removeEventListener("scroll", close, true);
-});
-</script>
+              function toggle() {
+                if (isOpen.value) {
+                  close()
+                  return
+                }
+                open()
+              }
+
+              function select(option) {
+                emit('update:modelValue', getValue(option))
+                close()
+              }
+
+              function handleWindowClick(event) {
+                if (!isOpen.value) return
+                const clickedTrigger = container.value?.contains(event.target)
+                const clickedDropdown = dropdownRef.value?.contains(event.target)
+                if (!clickedTrigger && !clickedDropdown) {
+                  close()
+                }
+              }
+
+              function handleViewportChange() {
+                if (!isOpen.value) return
+                updatePosition()
+              }
+
+              watch(() => props.disabled, (disabled) => {
+                if (disabled) close()
+              })
+
+              watch(() => props.options, () => {
+                if (isOpen.value) {
+                  nextTick(updatePosition)
+                }
+              })
+
+              onMounted(() => {
+                window.addEventListener('click', handleWindowClick)
+                window.addEventListener('resize', handleViewportChange)
+                window.addEventListener('scroll', handleViewportChange, true)
+              })
+
+              onUnmounted(() => {
+                window.removeEventListener('click', handleWindowClick)
+                window.removeEventListener('resize', handleViewportChange)
+                window.removeEventListener('scroll', handleViewportChange, true)
+              })
+              </script>

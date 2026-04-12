@@ -144,13 +144,14 @@ const loadData = async () => {
       await ltStore.fetchAssignmentsByLesson(props.lesson.id, props.type);
 
       const [resKelas, resTeachers] = await Promise.all([
-         api.get('/kelas'),
+         api.get('/kelas', { params: { per_page: 1000 } }),
          api.get('/users?per_page=1000')
       ]);
-      
-      kelasList.value = (resKelas.data.data || resKelas.data).map(k => ({
+
+      const kelasData = resKelas.data?.data || resKelas.data || []
+      kelasList.value = kelasData.map(k => ({
          id: k.id,
-         name: `${k.nama} (${k.tingkat})`
+         name: `${k.tingkat || '-'} ${k.nama || '-'}${k.gender ? ` · ${String(k.gender).toUpperCase()}` : ''}`.trim()
       }));
       
       const usersData = resTeachers.data.data || resTeachers.data;
