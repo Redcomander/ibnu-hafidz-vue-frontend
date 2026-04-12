@@ -70,6 +70,9 @@
                <SvgIcon name="plus" class="w-4 h-4 text-primary" />
                Tambah Assignment Baru
             </h4>
+            <p class="text-xs text-gray-500 mb-3">
+              Jika kelas sudah pernah di-assign pada pelajaran ini, menyimpan akan mengubah gurunya (update data existing).
+            </p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Kelas</label>
@@ -184,7 +187,8 @@ const handleAssign = async () => {
       form.value.teacher_id = null;
       await loadData();
    } catch (e) {
-      toast.error(ltStore.error || "Gagal menambahkan assignment");
+      const msg = e?.response?.data?.message || e?.response?.data?.error || ltStore.error || "Gagal menambahkan assignment";
+      toast.error(msg);
    } finally {
       creating.value = false;
    }
