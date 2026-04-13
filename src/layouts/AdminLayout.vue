@@ -515,12 +515,20 @@ const navItems = [
 
   { header: 'Laundry & Sarpras' },
   {
-    to: "/dashboard/laundry/vendors",
+    to: "/dashboard/laundry/accounts",
     icon: "users",
     label: "Manajemen Akun Laundry",
     permission: "laundry_accounts.view",
-    activeOn: ["/dashboard/laundry/vendors", "/dashboard/laundry/accounts"],
+    activeOn: ["/dashboard/laundry/accounts"],
     menuKey: 'laundry_accounts',
+  },
+  {
+    to: "/dashboard/laundry/vendors",
+    icon: "users",
+    label: "Vendor Laundry",
+    permission: "laundry_accounts.view",
+    activeOn: ["/dashboard/laundry/vendors"],
+    menuKey: 'laundry_vendors',
   },
   {
     to: "/dashboard/laundry/accounts",

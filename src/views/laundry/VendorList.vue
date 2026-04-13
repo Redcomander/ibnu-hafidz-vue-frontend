@@ -76,6 +76,7 @@
             <tr>
               <th>Nama Vendor</th>
               <th>Kategori</th>
+              <th class="text-center">Akun</th>
               <th>Telepon</th>
               <th>Aktif</th>
               <th class="text-right">Aksi</th>
@@ -90,6 +91,11 @@
               <td>
                 <span :class="['px-2 py-0.5 rounded text-xs font-medium', item.gender_type === 'banin' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700']">
                   {{ item.gender_type === 'banin' ? 'Banin' : 'Banat' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="inline-flex items-center justify-center min-w-8 px-2 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+                  {{ item.accounts_count ?? 0 }}
                 </span>
               </td>
               <td class="text-gray-600">
@@ -171,6 +177,10 @@
                 <span :class="['px-2 py-0.5 rounded text-xs font-medium', item.gender_type === 'banin' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700']">
                   {{ item.gender_type === 'banin' ? 'Banin' : 'Banat' }}
                 </span>
+              </div>
+              <div class="flex items-center gap-1">
+                <SvgIcon name="users" :size="14" class="text-gray-400" />
+                <span class="font-medium">{{ item.accounts_count ?? 0 }} akun</span>
               </div>
               <div class="flex items-center gap-1">
                 <SvgIcon name="phone" :size="14" class="text-gray-400" />
