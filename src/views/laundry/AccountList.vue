@@ -360,7 +360,7 @@ const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString()
 
 const { data, loading, meta, search, filters, fetchData, setPage } =
   useTable("/laundry/accounts", {
-    defaultSort: "created_at",
+    defaultSort: "monthly_weight",
     defaultOrder: "desc",
     initialFilters: { 
       gender_type: "all",
