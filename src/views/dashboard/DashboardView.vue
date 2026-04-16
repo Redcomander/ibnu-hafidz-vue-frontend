@@ -65,19 +65,19 @@
               </div>
               
               <div class="flex-1 grid grid-cols-2 gap-y-3 gap-x-2 text-sm pt-1">
-                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Hadir</span><span class="font-bold text-emerald-600 break-words">{{ stats.teacher?.formal_stats?.hadir || 0 }}</span></div>
-                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Izin</span><span class="font-bold text-blue-600 break-words">{{ stats.teacher?.formal_stats?.izin || 0 }}</span></div>
-                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Sakit</span><span class="font-bold text-amber-500 break-words">{{ stats.teacher?.formal_stats?.sakit || 0 }}</span></div>
-                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Alpha</span><span class="font-bold text-red-500 break-words">{{ stats.teacher?.formal_stats?.alpha || 0 }}</span></div>
+                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Hadir</span><span class="font-bold text-emerald-600 break-words">{{ stats.global_attendance?.formal?.hadir || 0 }}</span></div>
+                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Izin</span><span class="font-bold text-blue-600 break-words">{{ stats.global_attendance?.formal?.izin || 0 }}</span></div>
+                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Sakit</span><span class="font-bold text-amber-500 break-words">{{ stats.global_attendance?.formal?.sakit || 0 }}</span></div>
+                <div class="flex flex-col"><span class="text-xs text-gray-400 font-medium">Alpha</span><span class="font-bold text-red-500 break-words">{{ stats.global_attendance?.formal?.alpha || 0 }}</span></div>
               </div>
             </div>
             
             <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs relative z-10">
               <div class="flex items-center gap-1.5 font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
-                 Pengganti: {{ stats.teacher?.formal_stats?.pengganti || 0 }}
+                 Pengganti: {{ stats.global_attendance?.formal?.pengganti || 0 }}
               </div>
               <div class="text-gray-500 font-medium">
-                Total <span class="text-gray-900 font-bold ml-0.5">{{ stats.teacher?.formal_stats?.total || 0 }}</span> sesi
+                Total <span class="text-gray-900 font-bold ml-0.5">{{ stats.global_attendance?.formal?.total || 0 }}</span> sesi
               </div>
             </div>
           </div>
