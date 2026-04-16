@@ -257,6 +257,62 @@
       </div>
 
       <!-- ============================================== -->
+      <!-- PENGGANTIAN MENGAJAR (SUBSTITUTE RECORDS)      -->
+      <!-- ============================================== -->
+      <div v-if="stats.teacher?.substitute_records?.length > 0" class="mt-8">
+        <h3 class="text-sm font-bold tracking-widest text-gray-500 uppercase mb-4">
+          PENGGANTIAN MENGAJAR ({{ stats.teacher.substitute_records.length }} SESI)
+        </h3>
+        <div class="bg-white border border-gray-100 rounded-3xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-gray-50/50 text-[11px] font-bold text-gray-500 uppercase tracking-widest border-b border-gray-100">
+                  <th class="px-6 py-4 whitespace-nowrap">Tanggal</th>
+                  <th class="px-6 py-4 whitespace-nowrap">Tipe</th>
+                  <th class="px-6 py-4 whitespace-nowrap">Mapel</th>
+                  <th class="px-6 py-4 whitespace-nowrap">Kelas / Sesi</th>
+                  <th class="px-6 py-4 whitespace-nowrap">Guru Asli</th>
+                  <th class="px-6 py-4">Alasan</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="(record, i) in stats.teacher.substitute_records" :key="i" class="hover:bg-gray-50/50 transition-colors">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900 whitespace-nowrap">
+                    {{ new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(record.date)) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span 
+                      class="px-2.5 py-1 rounded-md text-[10px] font-bold border"
+                      :class="{
+                        'bg-indigo-50 text-indigo-600 border-indigo-100': record.type === 'Formal',
+                        'bg-emerald-50 text-emerald-600 border-emerald-100': record.type === 'Diniyyah',
+                        'bg-amber-50 text-amber-600 border-amber-100': record.type === 'Halaqoh'
+                      }"
+                    >
+                      {{ record.type }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm font-bold text-gray-700 whitespace-nowrap">{{ record.lesson }}</td>
+                  <td class="px-6 py-4 text-sm font-medium text-gray-500 whitespace-nowrap">
+                    <template v-if="record.type === 'Halaqoh'">
+                      Sesi: {{ record.session }}
+                    </template>
+                    <template v-else>
+                      {{ record.kelas }} 
+                      <span v-if="record.tingkat && record.tingkat !== '-'" class="text-xs text-gray-400">({{ record.tingkat }})</span>
+                    </template>
+                  </td>
+                  <td class="px-6 py-4 text-sm font-medium text-orange-600 whitespace-nowrap">{{ record.original_teacher }}</td>
+                  <td class="px-6 py-4 text-xs font-medium text-gray-500 max-w-xs truncate" :title="record.reason">{{ record.reason }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
       <!-- BOTTOM SPLIT (JADWAL & AKSI CEPAT)             -->
       <!-- ============================================== -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
