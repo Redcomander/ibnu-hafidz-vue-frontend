@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import api from '@/api'
 
+const getLocalDateString = (date = new Date()) => {
+  const offsetMs = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10)
+}
+
 export const useHalaqohStore = defineStore('halaqoh', {
   state: () => ({
     groups: [],
@@ -9,7 +14,7 @@ export const useHalaqohStore = defineStore('halaqoh', {
     accessInfos: [],      // access control per teacher
     sessionTimes: [],     // session time windows from backend
     currentUserId: null,
-    selectedDate: new Date().toISOString().slice(0, 10),
+    selectedDate: getLocalDateString(),
     canFilterByDate: false,
     loading: false,
     error: null,

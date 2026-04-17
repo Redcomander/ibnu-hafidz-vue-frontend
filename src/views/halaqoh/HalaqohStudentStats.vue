@@ -191,9 +191,15 @@ import {
 ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale)
 
 
+const getLocalDateString = (date = new Date()) => {
+  const offsetMs = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10)
+}
+
+const now = new Date()
 const filters = ref({
-  start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10),
-  end_date: new Date().toISOString().substring(0, 10),
+  start_date: getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1)),
+  end_date: getLocalDateString(now),
   teacher_id: '',
   gender: ''
 })

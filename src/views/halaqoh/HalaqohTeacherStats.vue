@@ -270,10 +270,17 @@ const toast = useToastStore()
 const isSuperAdmin = computed(() => authStore.userRoles?.some((role) => role.name === 'super_admin'))
 const deletingHistoryId = ref(null)
 
+const getLocalDateString = (date = new Date()) => {
+  const offsetMs = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10)
+}
+
+const now = new Date()
+
 // Filters
 const filters = ref({
-  start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().substring(0, 10),
-  end_date: new Date().toISOString().substring(0, 10),
+  start_date: getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1)),
+  end_date: getLocalDateString(now),
   teacher_id: '',
   gender: ''
 })

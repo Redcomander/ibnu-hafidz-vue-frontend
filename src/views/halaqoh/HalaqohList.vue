@@ -387,9 +387,14 @@ const store = useHalaqohStore()
 const auth = useAuthStore()
 const toast = useToastStore()
 
+const getLocalDateString = (date = new Date()) => {
+  const offsetMs = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10)
+}
+
 const sessions = ['Shubuh', 'Ashar', 'Isya']
 const activeSession = ref('Shubuh')
-const selectedDate = ref(new Date().toISOString().slice(0, 10))
+const selectedDate = ref(getLocalDateString())
 const selectedGender = ref('')
 const rawSearch = ref('')
 const searchQuery = ref('')
