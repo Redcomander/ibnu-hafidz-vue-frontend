@@ -377,14 +377,16 @@
                       :style="{ left: `${guide.ratio * 100}%` }"
                       @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'col', guide.bandIndex, $event)"
                     ></button>
+                  </div>
 
+                  <div class="left-guide-rail">
                     <button
                       v-if="calibrationTouchMode === 'resize'"
                       v-for="guide in getRowGuideRatios(block)"
-                      :key="`row-guide-handle-top-${idx}-${guide.bandIndex}`"
+                      :key="`row-guide-handle-left-${idx}-${guide.bandIndex}`"
                       type="button"
-                      class="guide-handle row top"
-                      :style="{ left: `${guide.ratio * 100}%` }"
+                      class="guide-handle row left"
+                      :style="{ top: `${guide.ratio * 100}%` }"
                       @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'row', guide.bandIndex, $event)"
                     ></button>
                   </div>
@@ -3729,6 +3731,15 @@ const savedResultGroups = computed(() => {
   pointer-events: none;
 }
 
+.left-guide-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -24px;
+  width: 24px;
+  pointer-events: none;
+}
+
 .move-handle {
   position: absolute;
   left: 6px;
@@ -3873,6 +3884,14 @@ const savedResultGroups = computed(() => {
   cursor: ns-resize;
 }
 
+.guide-handle.row.left {
+  left: 50%;
+  right: auto;
+  width: 22px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+}
+
 .guide-handle.row::after {
   content: '';
   position: absolute;
@@ -3929,6 +3948,14 @@ const savedResultGroups = computed(() => {
   height: 22px;
   width: 14px;
   transform: translateX(-50%);
+}
+
+.guide-handle.row.left::after {
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 2px;
+  transform: translate(-50%, -50%);
 }
 
 .guide-handle.row.top::after {
@@ -4017,6 +4044,26 @@ const savedResultGroups = computed(() => {
 
   .guide-handle.row.top::after {
     height: 22px;
+  }
+
+  .left-guide-rail {
+    left: -20px;
+    width: 20px;
+  }
+
+  .guide-handle.row.left {
+    width: 20px;
+    height: 20px;
+  }
+
+  .left-guide-rail {
+    left: -20px;
+    width: 20px;
+  }
+
+  .guide-handle.row.left {
+    width: 20px;
+    height: 20px;
   }
 }
 
