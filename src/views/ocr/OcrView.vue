@@ -275,7 +275,7 @@
             </div>
 
             <div v-if="calibrationImageSrc" class="rounded-lg border border-gray-200 bg-white overflow-auto max-h-[78vh] lg:max-h-[82vh]">
-              <div ref="calibrationStageRef" class="relative" :style="calibrationStageStyle" @pointermove="onCalibrationPointerMove" @pointerup="onCalibrationPointerUp" @pointercancel="onCalibrationPointerUp" @click="() => { calibrationContextMenu.visible = false }">
+              <div ref="calibrationStageRef" class="relative touch-none" :style="calibrationStageStyle" @pointermove="onCalibrationPointerMove" @pointerup="onCalibrationPointerUp" @pointercancel="onCalibrationPointerUp" @click="() => { calibrationContextMenu.visible = false }">
                 <img :src="calibrationImageSrc" alt="Calibration" class="block w-full h-auto select-none" draggable="false" />
 
                 <!-- Grid Overlay SVG -->
@@ -348,11 +348,10 @@
                   @pointerdown="handleCalibrationBlockLongPress(idx, $event)"
                   @pointerup="clearLongPressTimer"
                   @pointercancel="clearLongPressTimer"
-                  @touchmove.passive="handlePinchMove($event, idx)"
-                  @touchstart="handlePinchStart($event)"
                 >
                   <div class="top-guide-rail">
                     <button
+                      v-if="calibrationTouchMode === 'move'"
                       type="button"
                       class="move-handle"
                       @pointerdown.stop.prevent="onMoveHandlePointerDown(idx, $event)"
@@ -444,7 +443,15 @@
           </div>
 
           <div v-if="selectedCalibrationBlock" class="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-3">
-            <p class="text-xs font-semibold text-gray-700">Atur Blok {{ selectedCalibrationBlockIndex + 1 }} · Q{{ selectedCalibrationBlock.startQ }}-{{ selectedCalibrationBlock.startQ + selectedCalibrationBlock.count - 1 }}</p>
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-semibold text-gray-700">Atur Blok {{ selectedCalibrationBlockIndex + 1 }} · Q{{ selectedCalibrationBlock.startQ }}-{{ selectedCalibrationBlock.startQ + selectedCalibrationBlock.count - 1 }}</p>
+              <button
+                type="button"
+                @click="calibrationSlidersEnabled = !calibrationSlidersEnabled"
+                :class="calibrationSlidersEnabled ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'"
+                class="rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-colors"
+              >{{ calibrationSlidersEnabled ? '🔓 Slider Aktif' : '🔒 Slider Terkunci' }}</button>
+            </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-3">
               <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
@@ -460,15 +467,15 @@
                 </div>
                 <div>
                   <label class="text-[10px] text-gray-500 block mb-1">Top: {{ (selectedCalibrationBlock?.rowTop * 100).toFixed(1) }}%</label>
-                  <input v-model.number="selectedCalibrationBlock.rowTop" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowTop', e.target.value)" type="range" step="0.005" min="0" max="0.9" class="w-full" />
+                  <input v-model.number="selectedCalibrationBlock.rowTop" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowTop', e.target.value)" type="range" step="0.005" min="0" max="0.9" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                 </div>
                 <div>
                   <label class="text-[10px] text-gray-500 block mb-1">Bottom: {{ (selectedCalibrationBlock?.rowBottom * 100).toFixed(1) }}%</label>
-                  <input v-model.number="selectedCalibrationBlock.rowBottom" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowBottom', e.target.value)" type="range" step="0.005" min="0.1" max="1" class="w-full" />
+                  <input v-model.number="selectedCalibrationBlock.rowBottom" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowBottom', e.target.value)" type="range" step="0.005" min="0.1" max="1" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                 </div>
                 <div>
                   <label class="text-[10px] text-gray-500 block mb-1">Height: {{ (selectedCalibrationBlock?.h * 100).toFixed(1) }}%</label>
-                  <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="w-full" />
+                  <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                 </div>
               </div>
 
@@ -483,11 +490,11 @@
                   </div>
                   <div>
                     <label class="text-[10px] text-gray-500 block mb-1">Blok: {{ (selectedCalibrationBlock?.questionColW * 100).toFixed(1) }}%</label>
-                    <input v-model.number="selectedCalibrationBlock.questionColW" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'questionColW', e.target.value)" type="range" step="0.005" min="0.02" max="0.3" class="w-full" />
+                    <input v-model.number="selectedCalibrationBlock.questionColW" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'questionColW', e.target.value)" type="range" step="0.005" min="0.02" max="0.3" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                   </div>
                   <div>
                     <label class="text-[10px] text-gray-500 block mb-1">Global: {{ (scanCalibration.questionColW * 100).toFixed(1) }}%</label>
-                    <input v-model.number="scanCalibration.questionColW" @input="(e) => { scanCalibration.questionColW = Number(clamp(Number(e.target.value), 0.02, 0.3).toFixed(4)) }" type="range" step="0.005" min="0.02" max="0.3" class="w-full" />
+                    <input v-model.number="scanCalibration.questionColW" @input="(e) => { scanCalibration.questionColW = Number(clamp(Number(e.target.value), 0.02, 0.3).toFixed(4)) }" type="range" step="0.005" min="0.02" max="0.3" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                   </div>
                 </div>
 
@@ -501,11 +508,11 @@
                   </div>
                   <div>
                     <label class="text-[10px] text-gray-500 block mb-1">Horizontal: {{ (scanCalibration.centerPadX * 100).toFixed(1) }}%</label>
-                    <input v-model.number="scanCalibration.centerPadX" @input="(e) => { scanCalibration.centerPadX = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" class="w-full" />
+                    <input v-model.number="scanCalibration.centerPadX" @input="(e) => { scanCalibration.centerPadX = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                   </div>
                   <div>
                     <label class="text-[10px] text-gray-500 block mb-1">Vertikal: {{ (scanCalibration.centerPadY * 100).toFixed(1) }}%</label>
-                    <input v-model.number="scanCalibration.centerPadY" @input="(e) => { scanCalibration.centerPadY = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" class="w-full" />
+                    <input v-model.number="scanCalibration.centerPadY" @input="(e) => { scanCalibration.centerPadY = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" :disabled="!calibrationSlidersEnabled" class="w-full calib-slider" />
                   </div>
                 </div>
               </div>
@@ -514,19 +521,19 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label class="text-[10px] text-gray-400">X: {{ (selectedCalibrationBlock?.x * 100).toFixed(1) }}%</label>
-                <input v-model.number="selectedCalibrationBlock.x" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'x', e.target.value)" type="range" step="0.01" min="0" max="1" class="mt-0.5 w-full" />
+                <input v-model.number="selectedCalibrationBlock.x" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'x', e.target.value)" type="range" step="0.01" min="0" max="1" :disabled="!calibrationSlidersEnabled" class="mt-0.5 w-full calib-slider" />
               </div>
               <div>
                 <label class="text-[10px] text-gray-400">Y: {{ (selectedCalibrationBlock?.y * 100).toFixed(1) }}%</label>
-                <input v-model.number="selectedCalibrationBlock.y" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'y', e.target.value)" type="range" step="0.01" min="0" max="1" class="mt-0.5 w-full" />
+                <input v-model.number="selectedCalibrationBlock.y" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'y', e.target.value)" type="range" step="0.01" min="0" max="1" :disabled="!calibrationSlidersEnabled" class="mt-0.5 w-full calib-slider" />
               </div>
               <div>
                 <label class="text-[10px] text-gray-400">W: {{ (selectedCalibrationBlock?.w * 100).toFixed(1) }}%</label>
-                <input v-model.number="selectedCalibrationBlock.w" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'w', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="mt-0.5 w-full" />
+                <input v-model.number="selectedCalibrationBlock.w" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'w', e.target.value)" type="range" step="0.01" min="0.01" max="1" :disabled="!calibrationSlidersEnabled" class="mt-0.5 w-full calib-slider" />
               </div>
               <div>
                 <label class="text-[10px] text-gray-400">H: {{ (selectedCalibrationBlock?.h * 100).toFixed(1) }}%</label>
-                <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="mt-0.5 w-full" />
+                <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" :disabled="!calibrationSlidersEnabled" class="mt-0.5 w-full calib-slider" />
               </div>
             </div>
 
@@ -1395,6 +1402,7 @@ const calibrationDimensionTooltip = reactive({
 })
 const calibrationAspectLocked = ref(false)
 const calibrationPinchStartDistance = ref(0)
+const calibrationSlidersEnabled = ref(false)
 const calibrationLongPressTimer = ref(null)
 const calibrationContextMenu = reactive({
   visible: false,
@@ -3482,12 +3490,14 @@ function handlePinchStart(event) {
 
 function handlePinchMove(event, blockIndex) {
   if (event.touches && event.touches.length === 2 && calibrationPinchStartDistance.value > 0) {
+    event.preventDefault()
     const dx = event.touches[0].clientX - event.touches[1].clientX
     const dy = event.touches[0].clientY - event.touches[1].clientY
     const distance = Math.sqrt(dx * dx + dy * dy)
     const ratio = distance / calibrationPinchStartDistance.value
 
-    const block = scanCalibration.blocks?.[blockIndex]
+    const idx = blockIndex ?? selectedCalibrationBlockIndex.value
+    const block = scanCalibration.blocks?.[idx]
     if (block && calibrationTouchMode.value === 'resize') {
       const delta = (ratio - 1) * 0.1
       block.w = Number(clamp(Number(block.w || 0) * (1 + delta), 0.01, 1).toFixed(4))
@@ -3513,6 +3523,16 @@ onMounted(() => {
   calibrationIsLandscape.value = window.innerWidth > window.innerHeight
   window.addEventListener('orientationchange', () => {
     calibrationIsLandscape.value = window.innerWidth > window.innerHeight
+  })
+
+  // Attach non-passive touch listeners to the calibration stage so we can call
+  // preventDefault() inside pinch handling and prevent the browser from zooming.
+  nextTick(() => {
+    const stage = calibrationStageRef.value
+    if (stage) {
+      stage.addEventListener('touchstart', handlePinchStart, { passive: false })
+      stage.addEventListener('touchmove', (e) => handlePinchMove(e), { passive: false })
+    }
   })
 })
 
@@ -3720,6 +3740,12 @@ const savedResultGroups = computed(() => {
   z-index: 20;
   touch-action: none;
   background: transparent;
+}
+
+.calib-slider:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .top-guide-rail {
