@@ -1718,6 +1718,52 @@ function analyzeFrameLighting(imageData, width, height) {
   }
 }
 
+function longestSegmentAroundCenter(values, threshold, maxGap = 2) {
+  if (!Array.isArray(values) || values.length === 0) return null
+  const center = Math.floor(values.length / 2)
+
+  const findNearestPass = () => {
+    if (values[center] >= threshold) return center
+    for (let step = 1; step < values.length; step += 1) {
+      const left = center - step
+      const right = center + step
+      if (left >= 0 && values[left] >= threshold) return left
+      if (right < values.length && values[right] >= threshold) return right
+    }
+    return -1
+  }
+
+  const seed = findNearestPass()
+  if (seed < 0) return null
+
+  let start = seed
+  let end = seed
+
+  let gap = 0
+  for (let i = seed - 1; i >= 0; i -= 1) {
+    if (values[i] >= threshold) {
+      start = i
+      gap = 0
+      continue
+    }
+    gap += 1
+    if (gap > maxGap) break
+  }
+
+  gap = 0
+  for (let i = seed + 1; i < values.length; i += 1) {
+    if (values[i] >= threshold) {
+      end = i
+      gap = 0
+      continue
+    }
+    gap += 1
+    if (gap > maxGap) break
+  }
+
+  return { start, end }
+}
+
 function buildLightingFilter(metrics) {
   if (!metrics) return ''
   if (metrics.quality === 'good') return ''
@@ -1738,12 +1784,25 @@ function buildLightingFilter(metrics) {
 function detectAnswerSheetRect(imageData, width, height) {
   if (!imageData?.data || !width || !height) return null
 
-  let minX = width
-  let minY = height
-  let maxX = -1
-  let maxY = -1
-  let count = 0
   const data = imageData.data
+  let sumLum = 0
+  let sumLumSq = 0
+  const totalPixels = width * height
+
+  for (let idx = 0; idx < data.length; idx += 4) {
+    const lum = (data[idx] + data[idx + 1] + data[idx + 2]) / 3
+    sumLum += lum
+    sumLumSq += lum * lum
+  }
+
+  const mean = sumLum / Math.max(1, totalPixels)
+  const variance = Math.max(0, sumLumSq / Math.max(1, totalPixels) - mean * mean)
+  const stdDev = Math.sqrt(variance)
+  const lumThreshold = Math.max(132, Math.min(214, mean + stdDev * 0.35))
+  const chromaThreshold = Math.max(34, Math.min(66, 40 + stdDev * 0.2))
+
+  const colWhite = Array(width).fill(0)
+  const rowWhite = Array(height).fill(0)
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -1756,32 +1815,33 @@ function detectAnswerSheetRect(imageData, width, height) {
       const minRgb = Math.min(r, g, b)
       const chroma = maxRgb - minRgb
 
-      // White-ish paper pixels tend to be bright and low-chroma.
-      if (lum >= 168 && chroma <= 44) {
-        count += 1
-        if (x < minX) minX = x
-        if (y < minY) minY = y
-        if (x > maxX) maxX = x
-        if (y > maxY) maxY = y
+      // Treat pixels as paper candidate when bright enough and not too colorful.
+      if (lum >= lumThreshold && chroma <= chromaThreshold) {
+        colWhite[x] += 1
+        rowWhite[y] += 1
       }
     }
   }
 
-  if (count < width * height * 0.07 || maxX <= minX || maxY <= minY) {
-    return null
-  }
+  const colRatio = colWhite.map((v) => v / Math.max(1, height))
+  const rowRatio = rowWhite.map((v) => v / Math.max(1, width))
 
-  const nx = minX / width
-  const ny = minY / height
-  const nw = (maxX - minX + 1) / width
-  const nh = (maxY - minY + 1) / height
+  const colSegment = longestSegmentAroundCenter(colRatio, 0.42, 3)
+  const rowSegment = longestSegmentAroundCenter(rowRatio, 0.4, 3)
+  if (!colSegment || !rowSegment) return null
+
+  const nx = colSegment.start / width
+  const ny = rowSegment.start / height
+  const nw = (colSegment.end - colSegment.start + 1) / width
+  const nh = (rowSegment.end - rowSegment.start + 1) / height
   const ratio = nw / Math.max(0.001, nh)
 
-  if (nw < 0.35 || nh < 0.35 || nw > 0.98 || nh > 0.98) return null
+  // Common camera view for portrait paper should stay in this range.
+  if (nw < 0.4 || nh < 0.42 || nw > 0.94 || nh > 0.96) return null
   if (ratio < 0.45 || ratio > 0.95) return null
 
-  const padX = 0.01
-  const padY = 0.01
+  const padX = 0.012
+  const padY = 0.012
   return normalizeFrameRect({
     x: Math.max(0, nx - padX),
     y: Math.max(0, ny - padY),
@@ -1792,8 +1852,8 @@ function detectAnswerSheetRect(imageData, width, height) {
 
 function updateLiveAutoFrameRect(nextRect) {
   if (!nextRect) {
-    liveAutoFrameConfidence.value = Math.max(0, liveAutoFrameConfidence.value - 0.08)
-    if (liveAutoFrameConfidence.value < 0.12) {
+    liveAutoFrameConfidence.value = Math.max(0, liveAutoFrameConfidence.value - 0.12)
+    if (liveAutoFrameConfidence.value < 0.1) {
       liveAutoFrameRect.value = null
     }
     return
@@ -1805,18 +1865,18 @@ function updateLiveAutoFrameRect(nextRect) {
   const prev = liveAutoFrameRect.value
   if (!prev) {
     liveAutoFrameRect.value = normalized
-    liveAutoFrameConfidence.value = 0.5
+    liveAutoFrameConfidence.value = 0.58
     return
   }
 
-  const alpha = 0.35
+  const alpha = 0.48
   liveAutoFrameRect.value = {
     x: Number((prev.x + (normalized.x - prev.x) * alpha).toFixed(4)),
     y: Number((prev.y + (normalized.y - prev.y) * alpha).toFixed(4)),
     w: Number((prev.w + (normalized.w - prev.w) * alpha).toFixed(4)),
     h: Number((prev.h + (normalized.h - prev.h) * alpha).toFixed(4)),
   }
-  liveAutoFrameConfidence.value = Math.min(1, liveAutoFrameConfidence.value + 0.12)
+  liveAutoFrameConfidence.value = Math.min(1, liveAutoFrameConfidence.value + 0.16)
 }
 
 function projectCalibrationToFrame(calibration, frameRect) {
@@ -1849,8 +1909,8 @@ async function captureLiveFrameData() {
 
   let lightingMetrics = null
   if (liveAutoAlignEnabled.value) {
-    const probeW = 320
-    const probeH = Math.max(200, Math.round((canvas.height / canvas.width) * probeW))
+    const probeW = 420
+    const probeH = Math.max(240, Math.round((canvas.height / canvas.width) * probeW))
     const probe = document.createElement('canvas')
     probe.width = probeW
     probe.height = probeH
