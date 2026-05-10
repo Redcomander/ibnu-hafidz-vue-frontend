@@ -9,16 +9,10 @@
       </div>
       <button @click="showAnswerKeyModal = true"
         class="btn-secondary flex items-center gap-2 text-sm shrink-0">
-      import { nextTick, onUnmounted } from 'vue'
         <SvgIcon name="document" :size="16" />
         <span class="hidden sm:inline">Kunci Jawaban</span>
       </button>
     </div>
-      const liveCameraVideoRef = ref(null)
-      const liveCameraStream = ref(null)
-      const liveCameraActive = ref(false)
-      const liveCameraLoading = ref(false)
-      const liveCameraError = ref('')
 
     <!-- Service Offline Banner -->
     <div v-if="serviceOffline" class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -111,21 +105,11 @@
     <!-- Scan Calibration -->
     <details class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4" open>
       <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm font-semibold text-gray-700">
-      watch(activeScanMode, (mode) => {
-        if (mode !== 'camera') stopLiveCamera()
-      })
-
-      watch(previewSrc, (value) => {
-        if (value) stopLiveCamera()
-      })
         Penyesuaian Posisi Blok Scan
       </summary>
       <div class="mt-3 space-y-3">
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <div>
-      onUnmounted(() => {
-        stopLiveCamera()
-      })
             <label class="text-[11px] uppercase tracking-wide text-gray-400">Layout Soal</label>
             <select v-model.number="selectedQuestionTotal" class="mt-1 w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5">
               <option v-for="total in QUESTION_LAYOUTS" :key="total" :value="total">{{ total }} Soal</option>
@@ -516,8 +500,48 @@
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
               <div class="w-[82%] h-[70%] border-2 border-dashed border-emerald-300/90 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.22)]"></div>
             </div>
-            <div class="absolute left-2 right-2 bottom-2 bg-black/55 text-white text-xs rounded-md px-2 py-1 text-center">
-              Posisikan area jawaban di dalam kotak lalu tekan Capture
+            <div v-if="liveDetectQuestionMarks.length" class="absolute top-2 right-2 bottom-2 w-[34%] min-w-[160px] max-w-[220px] pointer-events-none">
+              <div class="h-full rounded-xl border border-white/20 bg-black/45 backdrop-blur-sm overflow-hidden shadow-lg">
+                <div class="px-2 py-1.5 border-b border-white/10 text-[10px] font-semibold text-white/90 flex items-center justify-between gap-2">
+                  <span>Live Frame</span>
+                  <span class="text-white/60">{{ liveDetectQuestionMarks.length }} item</span>
+                </div>
+                <div class="h-[calc(100%-2rem)] overflow-hidden">
+                  <div class="h-full overflow-y-auto px-2 py-2 space-y-1.5">
+                    <div
+                      v-for="mark in liveDetectQuestionMarks"
+                      :key="mark.qn"
+                      :class="[
+                        'rounded-lg border px-2 py-1 text-[10px] leading-tight transition-colors',
+                        mark.state === 'correct'
+                          ? 'bg-emerald-500/20 border-emerald-300/40 text-emerald-50'
+                          : mark.state === 'wrong'
+                            ? 'bg-rose-500/20 border-rose-300/40 text-rose-50'
+                            : mark.state === 'blank'
+                              ? 'bg-white/8 border-white/15 text-white/75'
+                              : 'bg-amber-500/20 border-amber-300/40 text-amber-50'
+                      ]"
+                    >
+                      <div class="flex items-center justify-between gap-2 font-semibold">
+                        <span>Q{{ mark.qn }}</span>
+                        <span>{{ mark.detected }}</span>
+                      </div>
+                      <div class="mt-0.5 flex items-center justify-between gap-2 text-[9px] opacity-85">
+                        <span>{{ mark.expected || 'expected -' }}</span>
+                        <span>{{ mark.state }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="absolute left-2 right-2 bottom-2 space-y-1">
+              <div class="rounded-md bg-black/60 text-white text-[11px] px-2 py-1 backdrop-blur-sm">
+                {{ liveDetectStatusText }}
+              </div>
+              <div class="rounded-md bg-black/45 text-white text-[10px] px-2 py-1 backdrop-blur-sm break-words">
+                {{ liveDetectPreview || 'Arahkan lembar jawaban ke kotak hijau lalu tunggu deteksi otomatis.' }}
+              </div>
             </div>
           </div>
 
@@ -553,7 +577,21 @@
             >
               Pilih Dari Kamera/File
             </button>
+            <label
+              v-if="liveCameraActive"
+              class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700"
+            >
+              <input v-model="liveDetectEnabled" type="checkbox" class="accent-primary" />
+              Live Detect
+            </label>
           </div>
+
+          <div v-if="liveCameraActive" class="rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-800">
+            <p class="font-semibold">{{ liveDetectStatusText }}</p>
+            <p v-if="liveDetectPreview" class="mt-1 text-emerald-700 break-words">{{ liveDetectPreview }}</p>
+          </div>
+
+          <p v-if="liveDetectError" class="text-xs text-amber-600">{{ liveDetectError }}</p>
 
           <p v-if="liveCameraError" class="text-xs text-red-500">{{ liveCameraError }}</p>
 
@@ -1058,7 +1096,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, reactive, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
@@ -1142,6 +1180,16 @@ function buildDefaultScanCalibration(total) {
 // Camera / file
 const cameraInput = ref(null)
 const uploadInput = ref(null)
+const liveCameraVideoRef = ref(null)
+const liveCameraStream = ref(null)
+const liveCameraActive = ref(false)
+const liveCameraLoading = ref(false)
+const liveCameraError = ref('')
+const liveDetectEnabled = ref(true)
+const liveDetectBusy = ref(false)
+const liveDetectError = ref('')
+const liveDetectSnapshot = ref(null)
+let liveDetectTimer = null
 const previewSrc = ref(null)
 const previewFile = ref(null)
 const uploadFiles = ref([])
@@ -1239,6 +1287,20 @@ const selectedClassObj = computed(() => classes.value.find(k => Number(k.id) ===
 const selectedTeacherObj = computed(() => teachers.value.find(t => Number(t.id) === Number(selectedTeacherId.value)) || null)
 const selectedOptionLabels = computed(() => getOptionLabels(selectedOptionChoices.value))
 const activeOptionLabels = computed(() => getOptionLabels(lastResult.value?.optionChoices || selectedOptionChoices.value))
+const liveDetectStatusText = computed(() => {
+  if (!liveCameraActive.value) return 'Live detect belum aktif.'
+  if (!liveDetectEnabled.value) return 'Live detect dimatikan.'
+  if (liveDetectBusy.value) return 'Mendeteksi jawaban dari frame kamera...'
+  if (!liveDetectSnapshot.value) return 'Menunggu frame untuk deteksi...'
+
+  const snap = liveDetectSnapshot.value
+  const updatedLabel = snap.updatedAt
+    ? new Date(snap.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : '-'
+  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}`
+})
+const liveDetectPreview = computed(() => liveDetectSnapshot.value?.previewText || '')
+const liveDetectQuestionMarks = computed(() => Array.isArray(liveDetectSnapshot.value?.answerMarks) ? liveDetectSnapshot.value.answerMarks : [])
 const selectedCalibrationBlock = computed(() => scanCalibration.blocks?.[selectedCalibrationBlockIndex.value] || null)
 const calibrationImageSrc = computed(() => previewSrc.value || lastResult?.value?.debug?.sourceImage || lastResultPreview.value || lastResult?.value?.previewUrl || null)
 const calibrationStageStyle = computed(() => ({ width: `${Math.max(1, Number(calibrationZoom.value) || 1) * 100}%`, minWidth: '100%' }))
@@ -1355,6 +1417,11 @@ onMounted(async () => {
   await loadSavedResultLinks()
 })
 
+onUnmounted(() => {
+  stopLiveCamera()
+  clearLiveDetectLoop(true)
+})
+
 watch(selectedQuestionTotal, async () => {
   newKey.answers = Array(questionTotal.value).fill('')
   answerInputRefs.value = []
@@ -1369,10 +1436,208 @@ watch(selectedOptionChoices, async (value) => {
   await loadCalibrationDefaults()
 })
 
+watch(activeScanMode, (mode) => {
+  if (mode !== 'camera') {
+    stopLiveCamera()
+    clearLiveDetectLoop(true)
+  }
+})
+
+watch(previewSrc, (value) => {
+  if (value) stopLiveCamera()
+})
+
+watch(liveDetectEnabled, (enabled) => {
+  if (!enabled) {
+    clearLiveDetectLoop(false)
+    return
+  }
+  if (liveCameraActive.value && !previewSrc.value) {
+    scheduleLiveDetect(250)
+  }
+})
+
 // ─── File Handling ────────────────────────────────────────────────────────────
 
 function triggerCamera() {
   cameraInput.value?.click()
+}
+
+function clearLiveDetectLoop(clearSnapshot = false) {
+  if (liveDetectTimer) {
+    clearTimeout(liveDetectTimer)
+    liveDetectTimer = null
+  }
+  liveDetectBusy.value = false
+  liveDetectError.value = ''
+  if (clearSnapshot) {
+    liveDetectSnapshot.value = null
+  }
+}
+
+async function captureLiveFrameBlob() {
+  const video = liveCameraVideoRef.value
+  if (!video || !video.videoWidth || !video.videoHeight) return null
+
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+  return await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+}
+
+function collectDetectedAnswers(scanData) {
+  if (Array.isArray(scanData?.answers)) {
+    return scanData.answers
+      .map((item) => String(item?.detected || '').toUpperCase())
+      .filter((choice) => choice && choice !== '-')
+  }
+
+  if (scanData?.parsedAnswers && typeof scanData.parsedAnswers === 'object') {
+    return Object.values(scanData.parsedAnswers)
+      .map((value) => String(value || '').toUpperCase())
+      .filter((choice) => choice && choice !== '-')
+  }
+
+  return []
+}
+
+function buildAnswerMarks(scanData) {
+  const answers = Array.isArray(scanData?.answers) ? scanData.answers : []
+  return answers.slice(0, 20).map((item, idx) => {
+    const detected = String(item?.detected || item?.actual || '').toUpperCase()
+    const expected = String(item?.expected || '').toUpperCase()
+    const correct = typeof item?.correct === 'boolean' ? item.correct : null
+    const blank = !detected || detected === '-'
+    return {
+      qn: idx + 1,
+      detected: blank ? '-' : detected,
+      expected: expected || null,
+      correct,
+      blank,
+      state: blank ? 'blank' : correct === true ? 'correct' : correct === false ? 'wrong' : 'detected',
+    }
+  })
+}
+
+async function runLiveDetectOnce() {
+  if (!liveCameraActive.value || !liveDetectEnabled.value || liveDetectBusy.value || scanning.value) return
+
+  const blob = await captureLiveFrameBlob()
+  if (!blob) return
+
+  liveDetectBusy.value = true
+  liveDetectError.value = ''
+
+  try {
+    const fd = new FormData()
+    const frameFile = new File([blob], `live-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    fd.append('file', frameFile)
+    fd.append('total', String(questionTotal.value))
+    fd.append('optionChoices', normalizeOptionChoices(selectedOptionChoices.value))
+    fd.append('rotation', String(scanRotation.value || 0))
+    fd.append('calibration', JSON.stringify({ ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) }))
+    if (selectedAnswerKeyId.value) fd.append('answerKeyId', selectedAnswerKeyId.value)
+
+    const res = await ocrScan(fd)
+    const scanData = addResultContext(res.data)
+    const detectedAnswers = collectDetectedAnswers(scanData)
+    const answerMarks = buildAnswerMarks(scanData)
+    const previewText = detectedAnswers.slice(0, 12).map((value, idx) => `${idx + 1}:${value}`).join(' · ')
+    const totalQuestions = Number(questionTotal.value) || detectedAnswers.length
+
+    liveDetectSnapshot.value = {
+      detectedCount: detectedAnswers.length,
+      blankCount: Math.max(0, totalQuestions - detectedAnswers.length),
+      totalQuestions,
+      updatedAt: Date.now(),
+      previewText,
+      answerMarks,
+    }
+  } catch (err) {
+    liveDetectError.value = err?.response?.data?.message || err?.message || 'Live detect gagal pada frame ini'
+  } finally {
+    liveDetectBusy.value = false
+  }
+}
+
+function scheduleLiveDetect(delayMs = 550) {
+  if (!liveCameraActive.value || !liveDetectEnabled.value) return
+
+  clearTimeout(liveDetectTimer)
+  liveDetectTimer = setTimeout(async () => {
+    await runLiveDetectOnce()
+    scheduleLiveDetect(900)
+  }, Math.max(250, Number(delayMs) || 550))
+}
+
+async function startLiveCamera() {
+  if (liveCameraActive.value || liveCameraLoading.value) return
+  liveCameraLoading.value = true
+  liveCameraError.value = ''
+  liveDetectError.value = ''
+
+  try {
+    if (!navigator?.mediaDevices?.getUserMedia) {
+      throw new Error('Browser tidak mendukung live camera')
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false,
+    })
+
+    liveCameraStream.value = stream
+    liveCameraActive.value = true
+
+    await nextTick()
+    const video = liveCameraVideoRef.value
+    if (video) {
+      video.srcObject = stream
+      await video.play().catch(() => {})
+    }
+
+    if (liveDetectEnabled.value) {
+      scheduleLiveDetect(350)
+    }
+  } catch (err) {
+    liveCameraError.value = err?.message || 'Gagal membuka kamera live'
+    stopLiveCamera()
+  } finally {
+    liveCameraLoading.value = false
+  }
+}
+
+function stopLiveCamera() {
+  const video = liveCameraVideoRef.value
+  if (video) {
+    video.pause?.()
+    video.srcObject = null
+  }
+
+  const stream = liveCameraStream.value
+  if (stream?.getTracks) {
+    stream.getTracks().forEach((track) => track.stop())
+  }
+
+  clearLiveDetectLoop(false)
+  liveCameraStream.value = null
+  liveCameraActive.value = false
+}
+
+async function captureLiveCameraFrame() {
+  const blob = await captureLiveFrameBlob()
+  if (!blob) {
+    liveCameraError.value = 'Kamera belum siap untuk capture'
+    return
+  }
+
+  const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
+  stopLiveCamera()
+  loadPreview(file)
 }
 
 function triggerUpload() {
