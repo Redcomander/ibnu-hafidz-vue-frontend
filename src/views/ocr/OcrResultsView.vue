@@ -193,6 +193,16 @@
                 </button>
               </div>
 
+              <div class="flex justify-end">
+                <button
+                  class="text-[11px] px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  :disabled="mappingLoadingByResult[item.id] || deletingByResult[item.id]"
+                  @click="openEditAnswers(item)"
+                >
+                  Edit Jawaban
+                </button>
+              </div>
+
               <p v-if="mappingErrorByResult[item.id]" class="text-[11px] text-red-500">
                 {{ mappingErrorByResult[item.id] }}
               </p>
@@ -213,13 +223,78 @@
         </button>
       </div>
     </div>
+
+    <teleport to="body">
+      <transition name="fade">
+        <div v-if="showEditAnswersModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="closeEditAnswersModal">
+          <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
+          <div class="relative bg-white w-full sm:max-w-2xl rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+              <h3 class="text-base font-bold text-gray-900">Edit Jawaban Riwayat Scan</h3>
+              <button @click="closeEditAnswersModal" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                x
+              </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 p-5 space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <p class="text-xs font-medium text-gray-500">Kunci Jawaban</p>
+                  <select v-model="editAnswersAnswerKeyId" class="w-full mt-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <option :value="null">Tanpa kunci</option>
+                    <option v-for="ak in answerKeys" :key="ak.id" :value="ak.id">{{ ak.name || `Kunci #${ak.id}` }}</option>
+                  </select>
+                </div>
+                <div class="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                  <p class="text-xs font-medium text-gray-500">Preview Skor</p>
+                  <p class="text-sm font-semibold text-gray-800 mt-1">
+                    {{ editedScorePreview.scoreText }} · ✓ {{ editedScorePreview.correct }} · ✗ {{ editedScorePreview.wrong }} · kosong {{ editedScorePreview.blank }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
+                <div v-for="(value, idx) in editAnswersList" :key="idx" class="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                  <span class="text-xs font-semibold text-gray-500 w-8">{{ idx + 1 }}</span>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      v-for="label in editAnswersOptionLabels"
+                      :key="`${idx}-${label}`"
+                      type="button"
+                      @click="editAnswersList[idx] = (editAnswersList[idx] === label ? '' : label)"
+                      :class="[
+                        'w-8 h-8 rounded-full text-xs font-bold border transition-colors',
+                        editAnswersList[idx] === label
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-primary hover:text-primary'
+                      ]"
+                    >
+                      {{ label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <p v-if="editAnswersError" class="text-xs text-red-500">{{ editAnswersError }}</p>
+            </div>
+
+            <div class="border-t border-gray-100 px-5 py-4 flex items-center justify-end gap-2">
+              <button class="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50" @click="closeEditAnswersModal">Batal</button>
+              <button class="px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60" :disabled="savingEditedAnswers" @click="saveEditedAnswers">
+                {{ savingEditedAnswers ? 'Menyimpan...' : 'Simpan Jawaban' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </teleport>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/api'
-import { ocrDeleteResultLink, ocrGetResultLinks, ocrUpdateResultLinkStudent } from '@/api/ocr'
+import { ocrDeleteResultLink, ocrGetAnswerKeys, ocrGetResultLinks, ocrUpdateResultLink, ocrUpdateResultLinkStudent } from '@/api/ocr'
 
 const loading = ref(false)
 const loadingMore = ref(false)
@@ -241,12 +316,37 @@ const mappingLoadingByResult = reactive({})
 const deletingByResult = reactive({})
 const mappingErrorByResult = reactive({})
 const mappingSuccessMessage = ref('')
+const answerKeys = ref([])
+const showEditAnswersModal = ref(false)
+const editingResult = ref(null)
+const editAnswersList = ref([])
+const editAnswersOptionLabels = ref(['A', 'B', 'C', 'D', 'E'])
+const editAnswersAnswerKeyId = ref(null)
+const editAnswersError = ref('')
+const savingEditedAnswers = ref(false)
 
 onMounted(async () => {
-  await Promise.all([loadClasses(), loadTeachers()])
+  await Promise.all([loadClasses(), loadTeachers(), loadAnswerKeys()])
   await loadLessons()
   await loadResultLinks(true)
 })
+
+function normalizeOptionChoices(value) {
+  return String(value || '').toUpperCase() === 'ABCD' ? 'ABCD' : 'ABCDE'
+}
+
+function getOptionLabels(optionChoices) {
+  return normalizeOptionChoices(optionChoices).split('')
+}
+
+async function loadAnswerKeys() {
+  try {
+    const res = await ocrGetAnswerKeys()
+    answerKeys.value = Array.isArray(res.data?.keys) ? res.data.keys : Array.isArray(res.data) ? res.data : []
+  } catch {
+    answerKeys.value = []
+  }
+}
 
 async function onLessonTypeChange() {
   selectedLessonId.value = null
@@ -424,6 +524,163 @@ async function deleteResult(item) {
         mappingSuccessMessage.value = ''
       }, 2500)
     }
+  }
+}
+
+function parseRawResult(raw) {
+  if (!raw) return null
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return null
+    }
+  }
+  return typeof raw === 'object' ? raw : null
+}
+
+function normalizeAnswerKeyMap(answers) {
+  if (!answers) return {}
+  if (Array.isArray(answers)) {
+    return answers.reduce((acc, value, idx) => {
+      const v = String(value || '').toUpperCase()
+      if (v) acc[String(idx + 1)] = v
+      return acc
+    }, {})
+  }
+  if (typeof answers === 'object') {
+    return Object.entries(answers).reduce((acc, [k, v]) => {
+      const nv = String(v || '').toUpperCase()
+      if (nv) acc[String(k)] = nv
+      return acc
+    }, {})
+  }
+  return {}
+}
+
+function getActiveAnswerKeyMap() {
+  const keyId = Number(editAnswersAnswerKeyId.value || 0)
+  if (!keyId) return null
+  const key = answerKeys.value.find((x) => Number(x.id) === keyId)
+  if (!key) return null
+  return normalizeAnswerKeyMap(key.answers)
+}
+
+const editedScorePreview = computed(() => {
+  const total = editAnswersList.value.length
+  const keyMap = getActiveAnswerKeyMap()
+
+  let correct = 0
+  let wrong = 0
+  let blank = 0
+
+  editAnswersList.value.forEach((ans, idx) => {
+    const detected = String(ans || '').toUpperCase()
+    if (!detected) {
+      blank += 1
+      return
+    }
+
+    if (!keyMap) return
+    const expected = String(keyMap[String(idx + 1)] || '').toUpperCase()
+    if (!expected) return
+    if (detected === expected) correct += 1
+    else wrong += 1
+  })
+
+  const scoredTotal = keyMap ? Object.keys(keyMap).length : total
+  const score = scoredTotal > 0 ? Number(((correct / scoredTotal) * 100).toFixed(2)) : null
+  return {
+    score,
+    scoreText: score == null ? '-' : score,
+    correct,
+    wrong,
+    blank,
+  }
+})
+
+function openEditAnswers(item) {
+  const raw = parseRawResult(item?.raw_result)
+  const answerMap = normalizeAnswerKeyMap(raw?.answers)
+  const optionLabels = getOptionLabels(raw?.optionChoices)
+  const maxAnswerIndex = Object.keys(answerMap).reduce((max, key) => {
+    const n = Number(key)
+    return Number.isFinite(n) && n > max ? n : max
+  }, 0)
+
+  const selectedKeyId = Number(item?.answer_key_id || 0)
+  const selectedKey = answerKeys.value.find((x) => Number(x.id) === selectedKeyId)
+  const keyMap = selectedKey ? normalizeAnswerKeyMap(selectedKey.answers) : {}
+  const maxKeyIndex = Object.keys(keyMap).reduce((max, key) => {
+    const n = Number(key)
+    return Number.isFinite(n) && n > max ? n : max
+  }, 0)
+
+  const total = Math.max(1, maxAnswerIndex, maxKeyIndex)
+  editAnswersOptionLabels.value = optionLabels
+  editAnswersList.value = Array.from({ length: total }, (_, idx) => String(answerMap[String(idx + 1)] || '').toUpperCase())
+  editAnswersAnswerKeyId.value = selectedKeyId > 0 ? selectedKeyId : null
+  editAnswersError.value = ''
+  editingResult.value = item
+  showEditAnswersModal.value = true
+}
+
+function closeEditAnswersModal() {
+  showEditAnswersModal.value = false
+  editingResult.value = null
+  editAnswersList.value = []
+  editAnswersError.value = ''
+}
+
+async function saveEditedAnswers() {
+  const item = editingResult.value
+  if (!item?.id) return
+
+  savingEditedAnswers.value = true
+  editAnswersError.value = ''
+
+  try {
+    const answersMap = editAnswersList.value.reduce((acc, value, idx) => {
+      const normalized = String(value || '').toUpperCase()
+      if (normalized) acc[String(idx + 1)] = normalized
+      return acc
+    }, {})
+
+    const missing = []
+    for (let qn = 1; qn <= editAnswersList.value.length; qn += 1) {
+      if (!answersMap[String(qn)]) missing.push(qn)
+    }
+
+    const raw = parseRawResult(item.raw_result) || {}
+    const preview = editedScorePreview.value
+    const payload = {
+      score: preview.score,
+      correct: preview.correct,
+      wrong: preview.wrong,
+      blank: preview.blank,
+      answer_key_id: editAnswersAnswerKeyId.value,
+      raw_result: {
+        ...raw,
+        optionChoices: normalizeOptionChoices(raw.optionChoices),
+        answers: answersMap,
+        missing,
+        score: {
+          score: preview.score,
+          correct: preview.correct,
+          wrong: preview.wrong,
+          blank: preview.blank,
+        },
+      },
+    }
+
+    await ocrUpdateResultLink(item.id, payload)
+    mappingSuccessMessage.value = `Jawaban hasil #${item.id} berhasil diperbarui.`
+    closeEditAnswersModal()
+    await loadResultLinks(true)
+  } catch (err) {
+    editAnswersError.value = err?.response?.data?.message || 'Gagal menyimpan jawaban'
+  } finally {
+    savingEditedAnswers.value = false
   }
 }
 

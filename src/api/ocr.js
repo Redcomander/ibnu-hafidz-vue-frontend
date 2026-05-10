@@ -36,6 +36,7 @@ export const ocrDeleteResult = (id) => api.delete(`${BASE}/results/${id}`)
 export const ocrGetResultLinks = (params) => api.get('/ocr-result-links/', { params })
 export const ocrCreateResultLink = (data) => api.post('/ocr-result-links/', data)
 export const ocrDeleteResultLink = (id) => api.delete(`/ocr-result-links/${id}`)
+export const ocrUpdateResultLink = (id, data) => api.put(`/ocr-result-links/${id}`, data)
 export const ocrUpdateResultLinkStudent = (id, data) => api.put(`/ocr-result-links/${id}/student`, data)
 
 // Service capabilities
