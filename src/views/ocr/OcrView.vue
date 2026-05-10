@@ -144,6 +144,40 @@
           </div>
         </div>
 
+        <!-- Template Registration -->
+        <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3 space-y-2">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Template Lembar Jawaban</p>
+          <div v-if="templateRegistered" class="flex items-center gap-2 flex-wrap">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-gray-700 truncate">{{ templateRegistered.name }}</p>
+              <p class="text-[10px] text-gray-400">{{ templateRegistered.total }} soal · {{ templateRegistered.optionChoices }}</p>
+            </div>
+            <button
+              type="button"
+              @click="applyRegisteredTemplate"
+              class="shrink-0 text-xs font-semibold rounded-lg bg-primary text-white px-2.5 py-1.5 hover:bg-primary/90"
+            >Terapkan</button>
+            <button
+              type="button"
+              @click="removeTemplate"
+              class="shrink-0 text-xs font-semibold rounded-lg border border-red-200 text-red-500 px-2.5 py-1.5 hover:bg-red-50"
+            >Hapus</button>
+          </div>
+          <div v-else class="flex items-center gap-2">
+            <label class="flex-1 cursor-pointer">
+              <span
+                class="flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                :class="{ 'opacity-60 pointer-events-none': templateLoading }"
+              >
+                <span v-if="templateLoading">Memproses…</span>
+                <span v-else>Daftar Template DOCX</span>
+              </span>
+              <input type="file" accept=".docx" class="sr-only" :disabled="templateLoading" @change="uploadTemplate" />
+            </label>
+          </div>
+          <p v-if="templateError" class="text-[11px] text-red-500">{{ templateError }}</p>
+        </div>
+
         <div class="space-y-3">
           <div class="flex items-center justify-between gap-2">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Manual Blok Jawaban</p>
@@ -1173,6 +1207,7 @@ import {
   ocrHealth, ocrScan, ocrScanBulk, ocrScanHardware,
   ocrScannerDevices, ocrGetAnswerKeys, ocrSaveAnswerKey, ocrDeleteAnswerKey, ocrGetCalibration,
   ocrGetResultLinks, ocrCreateResultLink, ocrDeleteResultLink,
+  ocrTemplateRegister, ocrTemplateCurrent, ocrTemplateDelete,
 } from '@/api/ocr.js'
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -1294,6 +1329,11 @@ const calibrationStep = ref(0.01)
 const calibrationZoom = ref(1.25)
 const calibrationTouchMode = ref('resize')
 const calibrationStageRef = ref(null)
+
+// Template registration state
+const templateRegistered = ref(null) // null | { name, total, optionChoices, registeredAt }
+const templateLoading = ref(false)
+const templateError = ref('')
 const calibrationDrag = reactive({
   active: false,
   index: -1,
@@ -1514,6 +1554,7 @@ onMounted(async () => {
     serviceOffline.value = true
   }
   await loadCalibrationDefaults()
+  await loadCurrentTemplate()
   await loadAnswerKeys()
   await loadAcademicData()
   await loadSavedResultLinks()
@@ -2749,6 +2790,68 @@ async function loadCalibrationDefaults() {
 function resetCalibration() {
   applyCalibration(buildDefaultScanCalibration(questionTotal.value))
   scanRotation.value = 0
+}
+
+async function loadCurrentTemplate() {
+  try {
+    const res = await ocrTemplateCurrent()
+    if (res.data?.registered && res.data.template) {
+      templateRegistered.value = res.data.template
+    } else {
+      templateRegistered.value = null
+    }
+  } catch {
+    templateRegistered.value = null
+  }
+}
+
+async function uploadTemplate(event) {
+  const file = event?.target?.files?.[0]
+  if (!file) return
+  event.target.value = ''
+
+  if (!file.name.toLowerCase().endsWith('.docx')) {
+    templateError.value = 'Hanya file DOCX yang didukung.'
+    return
+  }
+
+  templateLoading.value = true
+  templateError.value = ''
+  try {
+    const fd = new FormData()
+    fd.append('file', file, file.name)
+    const res = await ocrTemplateRegister(fd)
+    const tmpl = res.data?.template
+    if (tmpl) {
+      templateRegistered.value = tmpl
+      // Apply the detected calibration to the live calibration state
+      selectedQuestionTotal.value = tmpl.total
+      selectedOptionChoices.value = tmpl.optionChoices
+      await nextTick()
+      applyCalibration(tmpl.calibration)
+    }
+  } catch (err) {
+    templateError.value = err?.response?.data?.error || err?.message || 'Gagal mendaftarkan template.'
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+async function removeTemplate() {
+  try {
+    await ocrTemplateDelete()
+    templateRegistered.value = null
+  } catch {
+    // ignore
+  }
+}
+
+function applyRegisteredTemplate() {
+  if (!templateRegistered.value?.calibration) return
+  const tmpl = templateRegistered.value
+  selectedQuestionTotal.value = tmpl.total
+  selectedOptionChoices.value = tmpl.optionChoices
+  applyCalibration(tmpl.calibration)
 }
 
 function toNumberOrNull(value) {

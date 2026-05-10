@@ -41,3 +41,8 @@ export const ocrUpdateResultLinkStudent = (id, data) => api.put(`/ocr-result-lin
 
 // Service capabilities
 export const ocrCapabilities = () => api.get(`${BASE}/capabilities`)
+
+// Template grid registration (DOCX-based calibration)
+export const ocrTemplateRegister = (formData) => api.post(`${BASE}/template/register`, formData)
+export const ocrTemplateCurrent = () => api.get(`${BASE}/template/current`)
+export const ocrTemplateDelete = () => api.delete(`${BASE}/template/current`)
