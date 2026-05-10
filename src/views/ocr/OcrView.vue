@@ -885,6 +885,10 @@
       {{ saveSuccessMessage }}
     </div>
 
+    <div v-if="mappingSuccessMessage" class="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-green-700">
+      {{ mappingSuccessMessage }}
+    </div>
+
     <!-- Scan Result -->
     <transition name="fade-up">
       <div v-if="lastResult" class="space-y-4">
@@ -954,6 +958,30 @@
                 </div>
               </div>
               <p v-else class="text-xs text-gray-400 italic">Belum ada data santri untuk kelas ini.</p>
+
+              <div v-if="getResultContext(lastResult).students.length" class="mt-3 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <select
+                  :value="selectedStudentByResult[getResultBufferKey(lastResult)] ?? ''"
+                  class="sm:col-span-9 w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-xs"
+                  @change="onStudentSelectionChange(getResultBufferKey(lastResult), $event.target.value)"
+                >
+                  <option value="">Pilih santri untuk simpan langsung</option>
+                  <option v-for="student in getResultContext(lastResult).students" :key="student.id" :value="student.id">
+                    {{ studentLabel(student) }}
+                  </option>
+                </select>
+
+                <button
+                  class="sm:col-span-3 px-2.5 py-2 rounded-lg bg-primary text-white text-xs font-medium disabled:opacity-60"
+                  :disabled="!selectedStudentByResult[getResultBufferKey(lastResult)] || mappingLoadingByResult[getResultBufferKey(lastResult)]"
+                  @click="assignStudentToResult(lastResult, 'scan')"
+                >
+                  {{ mappingLoadingByResult[getResultBufferKey(lastResult)] ? 'Menyimpan...' : 'Simpan Santri' }}
+                </button>
+              </div>
+              <p v-if="mappingErrorByResult[getResultBufferKey(lastResult)]" class="mt-2 text-[11px] text-red-500">
+                {{ mappingErrorByResult[getResultBufferKey(lastResult)] }}
+              </p>
             </div>
           </div>
 
@@ -1064,6 +1092,30 @@
                   </div>
                 </div>
                 <p v-else class="text-xs text-gray-400 italic mt-2">Belum ada data santri untuk kelas ini.</p>
+
+                <div v-if="getResultContext(res).students.length" class="mt-3 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  <select
+                    :value="selectedStudentByResult[getResultBufferKey(res, i)] ?? ''"
+                    class="sm:col-span-9 w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-xs"
+                    @change="onStudentSelectionChange(getResultBufferKey(res, i), $event.target.value)"
+                  >
+                    <option value="">Pilih santri untuk simpan langsung</option>
+                    <option v-for="student in getResultContext(res).students" :key="student.id" :value="student.id">
+                      {{ studentLabel(student) }}
+                    </option>
+                  </select>
+
+                  <button
+                    class="sm:col-span-3 px-2.5 py-2 rounded-lg bg-primary text-white text-xs font-medium disabled:opacity-60"
+                    :disabled="!selectedStudentByResult[getResultBufferKey(res, i)] || mappingLoadingByResult[getResultBufferKey(res, i)]"
+                    @click="assignStudentToResult(res, 'scan-bulk', i)"
+                  >
+                    {{ mappingLoadingByResult[getResultBufferKey(res, i)] ? 'Menyimpan...' : 'Simpan Santri' }}
+                  </button>
+                </div>
+                <p v-if="mappingErrorByResult[getResultBufferKey(res, i)]" class="mt-2 text-[11px] text-red-500">
+                  {{ mappingErrorByResult[getResultBufferKey(res, i)] }}
+                </p>
               </details>
             </div>
           </div>
@@ -1265,7 +1317,7 @@ import api from '@/api'
 import {
   ocrHealth, ocrScan, ocrScanBulk, ocrScanHardware,
   ocrScannerDevices, ocrGetAnswerKeys, ocrSaveAnswerKey, ocrDeleteAnswerKey, ocrGetCalibration,
-  ocrGetResultLinks, ocrCreateResultLink, ocrDeleteResultLink,
+  ocrGetResultLinks, ocrCreateResultLink, ocrDeleteResultLink, ocrUpdateResultLinkStudent,
   ocrTemplateRegister, ocrTemplateCurrent, ocrTemplateDelete,
 } from '@/api/ocr.js'
 
@@ -1376,6 +1428,7 @@ const deletingResultLinkId = ref(null)
 const saveFailures = ref([])
 const retryingSaves = ref(false)
 const saveSuccessMessage = ref('')
+const mappingSuccessMessage = ref('')
 const showResultPreviewModal = ref(false)
 const resultPreviewSrc = ref(null)
 const resultPreviewZoom = ref(1)
@@ -1472,6 +1525,10 @@ const selectedLessonId = ref(null)
 const selectedClassId = ref(null)
 const selectedTeacherId = ref(null)
 const selectedClassStudents = ref([])
+const selectedStudentByResult = reactive({})
+const mappingLoadingByResult = reactive({})
+const mappingErrorByResult = reactive({})
+const OCR_SCAN_BUFFER_KEY = 'ocr-scan-buffer-v1'
 
 const selectedLessonObj = computed(() => lessons.value.find(l => Number(l.id) === Number(selectedLessonId.value)) || null)
 const selectedClassObj = computed(() => classes.value.find(k => Number(k.id) === Number(selectedClassId.value)) || null)
@@ -1646,6 +1703,8 @@ function ensureBlockGuideBands(block) {
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
+  const restored = restoreScanBuffer()
+
   if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) {
     calibrationTouchMode.value = 'move'
   }
@@ -1656,7 +1715,9 @@ onMounted(async () => {
   } catch {
     serviceOffline.value = true
   }
-  await loadCalibrationDefaults()
+  if (!restored?.hasCalibration) {
+    await loadCalibrationDefaults()
+  }
   await loadCurrentTemplate()
   await loadAnswerKeys()
   await loadAcademicData()
@@ -1702,6 +1763,27 @@ watch(liveDetectEnabled, (enabled) => {
     scheduleLiveDetect(250)
   }
 })
+
+watch(
+  [
+    selectedQuestionTotal,
+    selectedOptionChoices,
+    scanRotation,
+    selectedAnswerKeyId,
+    lessonType,
+    selectedLessonId,
+    selectedClassId,
+    selectedTeacherId,
+    lastResult,
+    bulkResults,
+    saveFailures,
+    scanCalibration,
+  ],
+  () => {
+    persistScanBuffer()
+  },
+  { deep: true }
+)
 
 // ─── File Handling ────────────────────────────────────────────────────────────
 
@@ -2445,6 +2527,9 @@ async function doScan() {
     const res = await ocrScan(fd)
     lastResult.value = addResultContext(res.data)
     const persisted = await saveResultLink(lastResult.value, 'scan')
+    if (persisted.ok && persisted.resultLinkId) {
+      lastResult.value.resultLinkId = persisted.resultLinkId
+    }
     if (!persisted.ok) {
       enqueueSaveFailure(lastResult.value, 'scan')
     }
@@ -2489,6 +2574,9 @@ async function doScanBulk() {
       3,
     )
     persisted.forEach((status, idx) => {
+      if (status.ok && status.resultLinkId) {
+        savable[idx].resultLinkId = status.resultLinkId
+      }
       if (!status.ok) {
         enqueueSaveFailure(savable[idx], 'scan-bulk')
       }
@@ -2523,6 +2611,9 @@ async function doHardwareScan() {
     const res = await ocrScanHardware(fd)
     lastResult.value = addResultContext(res.data)
     const persisted = await saveResultLink(lastResult.value, 'scan-hardware')
+    if (persisted.ok && persisted.resultLinkId) {
+      lastResult.value.resultLinkId = persisted.resultLinkId
+    }
     if (!persisted.ok) {
       enqueueSaveFailure(lastResult.value, 'scan-hardware')
     }
@@ -2668,8 +2759,11 @@ async function saveResultLink(result, source) {
   }
 
   try {
-    await ocrCreateResultLink(payload)
-    return { ok: true }
+    const res = await ocrCreateResultLink(payload)
+    const resultLinkId = toPositiveIntOrNull(res?.data?.id)
+      || toPositiveIntOrNull(res?.data?.data?.id)
+      || null
+    return { ok: true, resultLinkId }
   } catch (err) {
     const status = err?.response?.status
     const errCode = err?.response?.data?.error
@@ -2681,6 +2775,85 @@ async function saveResultLink(result, source) {
       return { ok: false, authError: true }
     }
     return { ok: false }
+  }
+}
+
+function getResultBufferKey(result, bulkIndex = null) {
+  if (!result || typeof result !== 'object') return `result-${bulkIndex ?? 'single'}`
+  if (result.bufferKey) return result.bufferKey
+  const id = toPositiveIntOrNull(result.resultLinkId)
+  if (id) {
+    result.bufferKey = `result-link-${id}`
+    return result.bufferKey
+  }
+
+  const fingerprint = hashString(JSON.stringify({
+    filename: result.filename || result.fileName || null,
+    score: result.score ?? null,
+    correct: result.correct ?? null,
+    wrong: result.wrong ?? null,
+    blank: result.blank ?? null,
+    source: result.source || null,
+    lessonId: result?.metaContext?.lessonId || null,
+    classId: result?.metaContext?.classId || null,
+    teacherId: result?.metaContext?.teacherId || null,
+    index: bulkIndex,
+  }))
+
+  result.bufferKey = `result-${fingerprint}`
+  return result.bufferKey
+}
+
+function onStudentSelectionChange(key, value) {
+  const parsed = Number(value || 0)
+  selectedStudentByResult[key] = Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  if (mappingErrorByResult[key]) {
+    mappingErrorByResult[key] = ''
+  }
+}
+
+async function assignStudentToResult(result, source = 'scan', bulkIndex = null) {
+  const key = getResultBufferKey(result, bulkIndex)
+  const studentId = Number(selectedStudentByResult[key] || 0)
+  if (!studentId || !result) return
+
+  mappingLoadingByResult[key] = true
+  mappingErrorByResult[key] = ''
+
+  try {
+    let resultLinkId = toPositiveIntOrNull(result.resultLinkId)
+    if (!resultLinkId) {
+      const persisted = await saveResultLink(result, source)
+      if (!persisted.ok) {
+        mappingErrorByResult[key] = 'Gagal menyimpan hasil scan sebelum mapping santri.'
+        enqueueSaveFailure(result, source)
+        return
+      }
+      resultLinkId = persisted.resultLinkId
+      if (resultLinkId) {
+        result.resultLinkId = resultLinkId
+      }
+    }
+
+    if (!resultLinkId) {
+      mappingErrorByResult[key] = 'ID hasil scan tidak ditemukan. Coba refresh lalu simpan lagi.'
+      return
+    }
+
+    await ocrUpdateResultLinkStudent(resultLinkId, { student_id: studentId })
+    mappingSuccessMessage.value = `Santri berhasil dipasangkan ke hasil #${resultLinkId}.`
+    await loadSavedResultLinks()
+    persistScanBuffer()
+
+    if (mappingSuccessMessage.value) {
+      setTimeout(() => {
+        mappingSuccessMessage.value = ''
+      }, 2500)
+    }
+  } catch (err) {
+    mappingErrorByResult[key] = err?.response?.data?.message || 'Gagal menyimpan mapping santri'
+  } finally {
+    mappingLoadingByResult[key] = false
   }
 }
 
@@ -3677,6 +3850,159 @@ function addResultContext(result) {
 
 function getResultContext(result) {
   return result?.metaContext || buildResultContext()
+}
+
+function snapshotResultForBuffer(result) {
+  if (!result || typeof result !== 'object') return null
+
+  return {
+    filename: result.filename || result.fileName || null,
+    fileName: result.fileName || result.filename || null,
+    score: toNumberOrNull(result.score),
+    correct: toNumberOrNull(result.correct),
+    wrong: toNumberOrNull(result.wrong),
+    blank: toNumberOrNull(result.blank),
+    method: result.method || null,
+    source: result.source || null,
+    optionChoices: normalizeOptionChoices(result.optionChoices || selectedOptionChoices.value),
+    sectionInfo: result?.sectionInfo && typeof result.sectionInfo === 'object'
+      ? {
+        section: result.sectionInfo.section || null,
+        visibleBlockCount: toNumberOrNull(result.sectionInfo.visibleBlockCount),
+      }
+      : null,
+    parsedAnswers: result?.parsedAnswers && typeof result.parsedAnswers === 'object' ? result.parsedAnswers : {},
+    answers: Array.isArray(result.answers)
+      ? result.answers.map((item) => ({
+        detected: item?.detected || null,
+        expected: item?.expected || null,
+        correct: typeof item?.correct === 'boolean' ? item.correct : null,
+      }))
+      : [],
+    rawText: result.rawText || null,
+    resultLinkId: toPositiveIntOrNull(result.resultLinkId),
+    bufferKey: result.bufferKey || null,
+    metaContext: result?.metaContext && typeof result.metaContext === 'object'
+      ? {
+        lessonId: toPositiveIntOrNull(result.metaContext.lessonId),
+        lessonName: result.metaContext.lessonName || null,
+        classId: toPositiveIntOrNull(result.metaContext.classId),
+        className: result.metaContext.className || null,
+        teacherId: toPositiveIntOrNull(result.metaContext.teacherId),
+        teacherName: result.metaContext.teacherName || null,
+        students: Array.isArray(result.metaContext.students) ? result.metaContext.students : [],
+      }
+      : buildResultContext(),
+  }
+}
+
+function hydrateResultFromBuffer(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return null
+  const normalized = normalizeScanResult(snapshot)
+  return {
+    ...normalized,
+    source: snapshot.source || normalized.source || null,
+    resultLinkId: toPositiveIntOrNull(snapshot.resultLinkId),
+    bufferKey: snapshot.bufferKey || null,
+    metaContext: snapshot?.metaContext && typeof snapshot.metaContext === 'object'
+      ? snapshot.metaContext
+      : buildResultContext(),
+  }
+}
+
+function persistScanBuffer() {
+  if (typeof window === 'undefined' || !window.localStorage) return
+
+  try {
+    const payload = {
+      version: 1,
+      selectedQuestionTotal: selectedQuestionTotal.value,
+      selectedOptionChoices: selectedOptionChoices.value,
+      scanRotation: scanRotation.value,
+      selectedAnswerKeyId: selectedAnswerKeyId.value,
+      lessonType: lessonType.value,
+      selectedLessonId: selectedLessonId.value,
+      selectedClassId: selectedClassId.value,
+      selectedTeacherId: selectedTeacherId.value,
+      scanCalibration: cloneCalibration(scanCalibration),
+      lastResult: snapshotResultForBuffer(lastResult.value),
+      bulkResults: Array.isArray(bulkResults.value)
+        ? bulkResults.value.slice(0, 30).map(snapshotResultForBuffer).filter(Boolean)
+        : [],
+      saveFailures: Array.isArray(saveFailures.value)
+        ? saveFailures.value.map((item) => ({
+          id: item.id,
+          source: item.source,
+          result: snapshotResultForBuffer(item.result),
+        })).filter((item) => item.result)
+        : [],
+      selectedStudentByResult: { ...selectedStudentByResult },
+      lastUpdatedAt: Date.now(),
+    }
+
+    window.localStorage.setItem(OCR_SCAN_BUFFER_KEY, JSON.stringify(payload))
+  } catch {
+    // Ignore storage quota and serialization failures.
+  }
+}
+
+function restoreScanBuffer() {
+  if (typeof window === 'undefined' || !window.localStorage) return { hasCalibration: false }
+
+  try {
+    const raw = window.localStorage.getItem(OCR_SCAN_BUFFER_KEY)
+    if (!raw) return { hasCalibration: false }
+
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return { hasCalibration: false }
+
+    if (Number.isFinite(Number(parsed.selectedQuestionTotal))) {
+      selectedQuestionTotal.value = Number(parsed.selectedQuestionTotal)
+    }
+    if (parsed.selectedOptionChoices) {
+      selectedOptionChoices.value = normalizeOptionChoices(parsed.selectedOptionChoices)
+    }
+    if (Number.isFinite(Number(parsed.scanRotation))) {
+      scanRotation.value = Number(parsed.scanRotation)
+    }
+
+    selectedAnswerKeyId.value = parsed.selectedAnswerKeyId || null
+    lessonType.value = parsed.lessonType || lessonType.value
+    selectedLessonId.value = parsed.selectedLessonId || null
+    selectedClassId.value = parsed.selectedClassId || null
+    selectedTeacherId.value = parsed.selectedTeacherId || null
+
+    const hasCalibration = !!(parsed.scanCalibration && typeof parsed.scanCalibration === 'object')
+    if (hasCalibration) {
+      applyCalibration(parsed.scanCalibration)
+    }
+
+    lastResult.value = hydrateResultFromBuffer(parsed.lastResult)
+    bulkResults.value = Array.isArray(parsed.bulkResults)
+      ? parsed.bulkResults.map(hydrateResultFromBuffer).filter(Boolean)
+      : []
+
+    saveFailures.value = Array.isArray(parsed.saveFailures)
+      ? parsed.saveFailures
+        .map((item) => ({
+          id: item?.id || `recover-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          source: item?.source || 'scan',
+          result: hydrateResultFromBuffer(item?.result),
+        }))
+        .filter((item) => item.result)
+      : []
+
+    if (parsed.selectedStudentByResult && typeof parsed.selectedStudentByResult === 'object') {
+      Object.entries(parsed.selectedStudentByResult).forEach(([key, value]) => {
+        const studentId = Number(value || 0)
+        selectedStudentByResult[key] = Number.isFinite(studentId) && studentId > 0 ? studentId : null
+      })
+    }
+
+    return { hasCalibration }
+  } catch {
+    return { hasCalibration: false }
+  }
 }
 
 const savedResultGroups = computed(() => {
