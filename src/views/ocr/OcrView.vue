@@ -9,10 +9,16 @@
       </div>
       <button @click="showAnswerKeyModal = true"
         class="btn-secondary flex items-center gap-2 text-sm shrink-0">
+      import { nextTick, onUnmounted } from 'vue'
         <SvgIcon name="document" :size="16" />
         <span class="hidden sm:inline">Kunci Jawaban</span>
       </button>
     </div>
+      const liveCameraVideoRef = ref(null)
+      const liveCameraStream = ref(null)
+      const liveCameraActive = ref(false)
+      const liveCameraLoading = ref(false)
+      const liveCameraError = ref('')
 
     <!-- Service Offline Banner -->
     <div v-if="serviceOffline" class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -105,11 +111,21 @@
     <!-- Scan Calibration -->
     <details class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4" open>
       <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm font-semibold text-gray-700">
+      watch(activeScanMode, (mode) => {
+        if (mode !== 'camera') stopLiveCamera()
+      })
+
+      watch(previewSrc, (value) => {
+        if (value) stopLiveCamera()
+      })
         Penyesuaian Posisi Blok Scan
       </summary>
       <div class="mt-3 space-y-3">
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
           <div>
+      onUnmounted(() => {
+        stopLiveCamera()
+      })
             <label class="text-[11px] uppercase tracking-wide text-gray-400">Layout Soal</label>
             <select v-model.number="selectedQuestionTotal" class="mt-1 w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5">
               <option v-for="total in QUESTION_LAYOUTS" :key="total" :value="total">{{ total }} Soal</option>
@@ -473,25 +489,75 @@
       <div class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
         
         <!-- Camera Preview / Drop Zone -->
-        <div v-if="!previewSrc"
-          @click="triggerCamera"
-          @dragover.prevent="dragOver = true"
-          @dragleave="dragOver = false"
-          @drop.prevent="onDrop"
-          :class="[
-            'relative flex flex-col items-center justify-center gap-4 cursor-pointer transition-all',
-            'min-h-[260px] sm:min-h-[320px]',
-            dragOver ? 'bg-primary/5 border-2 border-dashed border-primary' : 'bg-gray-50'
-          ]">
-          <div class="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center border border-gray-100">
-            <SvgIcon name="photo" :size="28" class="text-primary" />
+        <div v-if="!previewSrc" class="p-4 space-y-3 bg-gray-50">
+          <div
+            v-if="!liveCameraActive"
+            @click="triggerCamera"
+            @dragover.prevent="dragOver = true"
+            @dragleave="dragOver = false"
+            @drop.prevent="onDrop"
+            :class="[
+              'relative flex flex-col items-center justify-center gap-4 cursor-pointer transition-all rounded-xl',
+              'min-h-[220px] sm:min-h-[260px]',
+              dragOver ? 'bg-primary/5 border-2 border-dashed border-primary' : 'bg-white border border-gray-100'
+            ]"
+          >
+            <div class="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center border border-gray-100">
+              <SvgIcon name="photo" :size="28" class="text-primary" />
+            </div>
+            <div class="text-center px-6">
+              <p class="font-semibold text-gray-800">Ambil Foto Lembar Jawab</p>
+              <p class="text-sm text-gray-400 mt-1">Tap untuk kamera file atau drag-drop gambar</p>
+            </div>
           </div>
-          <div class="text-center px-6">
-            <p class="font-semibold text-gray-800">Ambil Foto Lembar Jawab</p>
-            <p class="text-sm text-gray-400 mt-1">Tap untuk kamera · atau drag & drop gambar</p>
+
+          <div v-else class="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
+            <video ref="liveCameraVideoRef" autoplay playsinline muted class="w-full max-h-[420px] object-contain"></video>
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div class="w-[82%] h-[70%] border-2 border-dashed border-emerald-300/90 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.22)]"></div>
+            </div>
+            <div class="absolute left-2 right-2 bottom-2 bg-black/55 text-white text-xs rounded-md px-2 py-1 text-center">
+              Posisikan area jawaban di dalam kotak lalu tekan Capture
+            </div>
           </div>
-          <input ref="cameraInput" type="file" accept="image/*" capture="environment"
-            class="hidden" @change="onFileSelected" />
+
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              @click="startLiveCamera"
+              :disabled="liveCameraLoading || liveCameraActive"
+              class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {{ liveCameraLoading ? 'Membuka kamera...' : 'Buka Kamera Live' }}
+            </button>
+            <button
+              v-if="liveCameraActive"
+              type="button"
+              @click="captureLiveCameraFrame"
+              class="px-3 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
+            >
+              Capture Untuk Scan
+            </button>
+            <button
+              v-if="liveCameraActive"
+              type="button"
+              @click="stopLiveCamera"
+              class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Tutup Kamera Live
+            </button>
+            <button
+              type="button"
+              @click="triggerCamera"
+              class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Pilih Dari Kamera/File
+            </button>
+          </div>
+
+          <p v-if="liveCameraError" class="text-xs text-red-500">{{ liveCameraError }}</p>
+
+          <input ref="cameraInput" type="file" accept="image/*" capture="environment" class="hidden" @change="onFileSelected" />
         </div>
 
         <!-- Image Preview -->
