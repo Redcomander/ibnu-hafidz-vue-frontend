@@ -1313,6 +1313,7 @@ const liveDetectError = ref('')
 const liveDetectSnapshot = ref(null)
 const liveAutoFrameRect = ref(null)
 const liveAutoFrameConfidence = ref(0)
+const liveAutoCalibration = ref(null)
 const liveLightingQuality = ref(null)
 let liveDetectTimer = null
 const previewSrc = ref(null)
@@ -1450,7 +1451,9 @@ const liveFrameGuideStyle = computed(() => {
 })
 const liveOverlayBlocks = computed(() => {
   const rect = liveAutoAlignEnabled.value ? liveAutoFrameRect.value : null
-  const activeCalibration = projectCalibrationToFrame(scanCalibration, rect)
+  const activeCalibration = liveAutoAlignEnabled.value && liveAutoCalibration.value
+    ? liveAutoCalibration.value
+    : projectCalibrationToFrame(scanCalibration, rect)
   const marksByQn = new Map(liveDetectQuestionMarks.value.map((mark) => [Number(mark.qn), mark]))
   return (Array.isArray(activeCalibration.blocks) ? activeCalibration.blocks : []).map((block, idx) => {
     const startQ = Number(block?.startQ || 1)
@@ -1657,6 +1660,7 @@ function clearLiveDetectLoop(clearSnapshot = false) {
     liveDetectSnapshot.value = null
     liveAutoFrameRect.value = null
     liveAutoFrameConfidence.value = 0
+    liveAutoCalibration.value = null
     liveLightingQuality.value = null
   }
 }
@@ -1779,6 +1783,130 @@ function buildLightingFilter(metrics) {
   }
 
   return `brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`
+}
+
+function smooth1D(values, radius = 2) {
+  if (!Array.isArray(values) || values.length === 0) return []
+  const out = new Array(values.length)
+  for (let i = 0; i < values.length; i += 1) {
+    let sum = 0
+    let count = 0
+    for (let k = -radius; k <= radius; k += 1) {
+      const idx = i + k
+      if (idx < 0 || idx >= values.length) continue
+      sum += values[idx]
+      count += 1
+    }
+    out[i] = count > 0 ? sum / count : values[i]
+  }
+  return out
+}
+
+function detectCentersFromProfile(profile, segmentCount) {
+  const safeCount = Math.max(1, Number(segmentCount) || 1)
+  if (!Array.isArray(profile) || profile.length < safeCount * 2) {
+    return Array.from({ length: safeCount }, (_, i) => (i + 0.5) * (profile.length / safeCount))
+  }
+
+  const centers = []
+  const size = profile.length
+  const window = Math.max(2, Math.floor(size / (safeCount * 2.5)))
+
+  for (let i = 0; i < safeCount; i += 1) {
+    const expected = (i + 0.5) * (size / safeCount)
+    const start = Math.max(0, Math.floor(expected - window))
+    const end = Math.min(size - 1, Math.ceil(expected + window))
+
+    let bestIdx = Math.round(expected)
+    let bestVal = -Infinity
+    for (let p = start; p <= end; p += 1) {
+      if (profile[p] > bestVal) {
+        bestVal = profile[p]
+        bestIdx = p
+      }
+    }
+    centers.push(bestIdx)
+  }
+
+  for (let i = 1; i < centers.length; i += 1) {
+    if (centers[i] <= centers[i - 1]) {
+      centers[i] = centers[i - 1] + 1
+    }
+  }
+
+  return centers
+}
+
+function centersToBands(centers, extent) {
+  const size = Math.max(1, Number(extent) || 1)
+  if (!Array.isArray(centers) || centers.length === 0) {
+    return [0, 1]
+  }
+
+  const bands = [0]
+  for (let i = 0; i < centers.length - 1; i += 1) {
+    bands.push((centers[i] + centers[i + 1]) / 2 / size)
+  }
+  bands.push(1)
+  return bands.map((v, idx) => {
+    if (idx === 0) return 0
+    if (idx === bands.length - 1) return 1
+    return Number(clamp(v, 0.02, 0.98).toFixed(4))
+  })
+}
+
+function estimateBlockBandsFromProbe(grayData, probeW, probeH, block, optionChoices) {
+  const x1 = Math.max(0, Math.floor(Number(block.x || 0) * probeW))
+  const y1 = Math.max(0, Math.floor(Number(block.y || 0) * probeH))
+  const x2 = Math.min(probeW - 1, Math.ceil((Number(block.x || 0) + Number(block.w || 0)) * probeW))
+  const y2 = Math.min(probeH - 1, Math.ceil((Number(block.y || 0) + Number(block.h || 0)) * probeH))
+  const bw = Math.max(12, x2 - x1 + 1)
+  const bh = Math.max(12, y2 - y1 + 1)
+
+  const split = clamp(Number(block.questionColW || 0.1), 0.05, 0.35)
+  const ox1 = Math.min(x2, Math.max(x1, Math.floor(x1 + bw * split)))
+  const ow = Math.max(8, x2 - ox1 + 1)
+
+  const rowProfile = new Array(bh).fill(0)
+  const colProfile = new Array(ow).fill(0)
+
+  for (let yy = 0; yy < bh; yy += 1) {
+    const py = y1 + yy
+    for (let xx = 0; xx < ow; xx += 1) {
+      const px = ox1 + xx
+      const lum = grayData[py * probeW + px]
+      const darkness = 255 - lum
+      rowProfile[yy] += darkness
+      colProfile[xx] += darkness
+    }
+  }
+
+  const smoothedRows = smooth1D(rowProfile, 2)
+  const smoothedCols = smooth1D(colProfile, 2)
+  const rowCenters = detectCentersFromProfile(smoothedRows, Number(block.count || 1))
+  const colCenters = detectCentersFromProfile(smoothedCols, getOptionLabels(optionChoices).length)
+  const rowBands = sanitizeGuideBands(centersToBands(rowCenters, bh), Number(block.count || 1), 0.02)
+  const optionBands = sanitizeGuideBands(centersToBands(colCenters, ow), getOptionLabels(optionChoices).length, 0.04)
+
+  return {
+    ...block,
+    rowBands,
+    optionBands,
+  }
+}
+
+function buildAdaptiveCalibrationFromProbe(baseCalibration, frameRect, imageData, probeW, probeH, optionChoices) {
+  const projected = projectCalibrationToFrame(baseCalibration, frameRect)
+  if (!imageData?.data || !projected?.blocks?.length) return projected
+
+  const grayData = new Uint8Array(probeW * probeH)
+  for (let i = 0, p = 0; i < imageData.data.length; i += 4, p += 1) {
+    grayData[p] = Math.round((imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3)
+  }
+
+  const calibrated = cloneCalibration(projected)
+  calibrated.blocks = calibrated.blocks.map((block) => estimateBlockBandsFromProbe(grayData, probeW, probeH, block, optionChoices))
+  return calibrated
 }
 
 function detectAnswerSheetRect(imageData, width, height) {
@@ -1908,6 +2036,7 @@ async function captureLiveFrameData() {
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
   let lightingMetrics = null
+  let adaptiveCalibration = null
   if (liveAutoAlignEnabled.value) {
     const probeW = 420
     const probeH = Math.max(240, Math.round((canvas.height / canvas.width) * probeW))
@@ -1922,6 +2051,17 @@ async function captureLiveFrameData() {
       liveLightingQuality.value = lightingMetrics
       const rect = detectAnswerSheetRect(imageData, probeW, probeH)
       updateLiveAutoFrameRect(rect)
+      if (liveAutoFrameRect.value) {
+        adaptiveCalibration = buildAdaptiveCalibrationFromProbe(
+          { ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) },
+          liveAutoFrameRect.value,
+          imageData,
+          probeW,
+          probeH,
+          normalizeOptionChoices(selectedOptionChoices.value),
+        )
+        liveAutoCalibration.value = adaptiveCalibration
+      }
     }
   }
 
@@ -1945,6 +2085,7 @@ async function captureLiveFrameData() {
   return {
     blob,
     frameRect: liveAutoFrameRect.value,
+    adaptiveCalibration,
     lighting: lightingMetrics || liveLightingQuality.value,
   }
 }
@@ -2001,10 +2142,12 @@ async function runLiveDetectOnce() {
     fd.append('total', String(questionTotal.value))
     fd.append('optionChoices', normalizeOptionChoices(selectedOptionChoices.value))
     fd.append('rotation', String(scanRotation.value || 0))
-    const liveCalibration = projectCalibrationToFrame(
-      { ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) },
-      liveAutoAlignEnabled.value ? frame.frameRect : null,
-    )
+    const liveCalibration = liveAutoAlignEnabled.value && frame.adaptiveCalibration
+      ? frame.adaptiveCalibration
+      : projectCalibrationToFrame(
+        { ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) },
+        liveAutoAlignEnabled.value ? frame.frameRect : null,
+      )
     fd.append('calibration', JSON.stringify(liveCalibration))
     if (selectedAnswerKeyId.value) fd.append('answerKeyId', selectedAnswerKeyId.value)
 
@@ -2095,6 +2238,7 @@ function stopLiveCamera() {
   clearLiveDetectLoop(false)
   liveAutoFrameRect.value = null
   liveAutoFrameConfidence.value = 0
+  liveAutoCalibration.value = null
   liveLightingQuality.value = null
   liveCameraStream.value = null
   liveCameraActive.value = false
