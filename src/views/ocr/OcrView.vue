@@ -444,7 +444,32 @@
           <div v-if="selectedCalibrationBlock" class="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-3">
             <p class="text-xs font-semibold text-gray-700">Atur Blok {{ selectedCalibrationBlockIndex + 1 }} · Q{{ selectedCalibrationBlock.startQ }}-{{ selectedCalibrationBlock.startQ + selectedCalibrationBlock.count - 1 }}</p>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-3">
+              <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Baris</p>
+                  <div class="flex items-center gap-2">
+                    <label class="text-[10px] text-gray-500 flex items-center gap-1">
+                      <input v-model="calibrationAspectLocked" type="checkbox" class="rounded" />
+                      Lock Aspect
+                    </label>
+                    <button @click="handleContextMenuAction('autofit')" class="rounded px-2 py-1 text-[10px] bg-primary/10 text-primary hover:bg-primary/20">Auto-fit</button>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-[10px] text-gray-500 block mb-1">Top: {{ (selectedCalibrationBlock?.rowTop * 100).toFixed(1) }}%</label>
+                  <input v-model.number="selectedCalibrationBlock.rowTop" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowTop', e.target.value)" type="range" step="0.005" min="0" max="0.9" class="w-full" />
+                </div>
+                <div>
+                  <label class="text-[10px] text-gray-500 block mb-1">Bottom: {{ (selectedCalibrationBlock?.rowBottom * 100).toFixed(1) }}%</label>
+                  <input v-model.number="selectedCalibrationBlock.rowBottom" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowBottom', e.target.value)" type="range" step="0.005" min="0.1" max="1" class="w-full" />
+                </div>
+                <div>
+                  <label class="text-[10px] text-gray-500 block mb-1">Height: {{ (selectedCalibrationBlock?.h * 100).toFixed(1) }}%</label>
+                  <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="w-full" />
+                </div>
+              </div>
+
               <div class="grid grid-cols-1 gap-3">
                 <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
                   <div class="flex items-center justify-between">
@@ -480,31 +505,6 @@
                     <label class="text-[10px] text-gray-500 block mb-1">Vertikal: {{ (scanCalibration.centerPadY * 100).toFixed(1) }}%</label>
                     <input v-model.number="scanCalibration.centerPadY" @input="(e) => { scanCalibration.centerPadY = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" class="w-full" />
                   </div>
-                </div>
-              </div>
-
-              <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
-                <div class="flex items-center justify-between mb-2">
-                  <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Baris</p>
-                  <div class="flex items-center gap-2">
-                    <label class="text-[10px] text-gray-500 flex items-center gap-1">
-                      <input v-model="calibrationAspectLocked" type="checkbox" class="rounded" />
-                      Lock Aspect
-                    </label>
-                    <button @click="handleContextMenuAction('autofit')" class="rounded px-2 py-1 text-[10px] bg-primary/10 text-primary hover:bg-primary/20">Auto-fit</button>
-                  </div>
-                </div>
-                <div>
-                  <label class="text-[10px] text-gray-500 block mb-1">Top: {{ (selectedCalibrationBlock?.rowTop * 100).toFixed(1) }}%</label>
-                  <input v-model.number="selectedCalibrationBlock.rowTop" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowTop', e.target.value)" type="range" step="0.005" min="0" max="0.9" class="w-full" />
-                </div>
-                <div>
-                  <label class="text-[10px] text-gray-500 block mb-1">Bottom: {{ (selectedCalibrationBlock?.rowBottom * 100).toFixed(1) }}%</label>
-                  <input v-model.number="selectedCalibrationBlock.rowBottom" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowBottom', e.target.value)" type="range" step="0.005" min="0.1" max="1" class="w-full" />
-                </div>
-                <div>
-                  <label class="text-[10px] text-gray-500 block mb-1">Height: {{ (selectedCalibrationBlock?.h * 100).toFixed(1) }}%</label>
-                  <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="w-full" />
                 </div>
               </div>
             </div>
