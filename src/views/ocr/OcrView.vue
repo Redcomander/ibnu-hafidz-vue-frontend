@@ -181,36 +181,6 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between gap-2">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Manual Blok Jawaban</p>
-            <div class="flex items-center gap-2 flex-wrap justify-end">
-              <div class="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
-                <button
-                  type="button"
-                  @click="calibrationTouchMode = 'move'"
-                  :class="[
-                    'px-2 py-1 text-[11px] font-semibold rounded transition-colors',
-                    calibrationTouchMode === 'move' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
-                  ]"
-                >
-                  Move
-                </button>
-                <button
-                  type="button"
-                  @click="calibrationTouchMode = 'resize'"
-                  :class="[
-                    'px-2 py-1 text-[11px] font-semibold rounded transition-colors',
-                    calibrationTouchMode === 'resize' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
-                  ]"
-                >
-                  Resize
-                </button>
-              </div>
-              <span class="text-[11px] text-gray-400">Step</span>
-              <select v-model.number="calibrationStep" class="text-xs border border-gray-200 rounded-md px-2 py-1">
-                <option :value="0.005">0.005</option>
-                <option :value="0.01">0.01</option>
-                <option :value="0.02">0.02</option>
-              </select>
-            </div>
           </div>
 
           <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -271,8 +241,41 @@
               Cara kalibrasi cepat: pilih mode Move/Resize. Gunakan tombol Drag pada rail atas untuk geser blok. Pada mode Resize, pakai titik merah untuk ubah ukuran, lalu handle guide di rail atas untuk atur kolom/baris/split tanpa menyentuh area dalam blok (lebih nyaman di touchscreen).
             </p>
 
+            <div class="flex items-center gap-2 flex-wrap justify-between">
+              <div class="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
+                <button
+                  type="button"
+                  @click="calibrationTouchMode = 'move'"
+                  :class="[
+                    'px-2 py-1 text-[11px] font-semibold rounded transition-colors',
+                    calibrationTouchMode === 'move' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+                  ]"
+                >
+                  Move
+                </button>
+                <button
+                  type="button"
+                  @click="calibrationTouchMode = 'resize'"
+                  :class="[
+                    'px-2 py-1 text-[11px] font-semibold rounded transition-colors',
+                    calibrationTouchMode === 'resize' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+                  ]"
+                >
+                  Resize
+                </button>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-400">Step</span>
+                <select v-model.number="calibrationStep" class="text-xs border border-gray-200 rounded-md px-2 py-1">
+                  <option :value="0.005">0.005</option>
+                  <option :value="0.01">0.01</option>
+                  <option :value="0.02">0.02</option>
+                </select>
+              </div>
+            </div>
+
             <div v-if="calibrationImageSrc" class="rounded-lg border border-gray-200 bg-white overflow-auto max-h-[78vh] lg:max-h-[82vh]">
-              <div ref="calibrationStageRef" class="relative" :style="calibrationStageStyle" @pointermove="onCalibrationPointerMove" @pointerup="onCalibrationPointerUp" @pointercancel="onCalibrationPointerUp">
+              <div ref="calibrationStageRef" class="relative" :style="calibrationStageStyle" @pointermove="onCalibrationPointerMove" @pointerup="onCalibrationPointerUp" @pointercancel="onCalibrationPointerUp" @click="() => { calibrationContextMenu.visible = false }">
                 <img :src="calibrationImageSrc" alt="Calibration" class="block w-full h-auto select-none" draggable="false" />
 
                 <!-- Grid Overlay SVG -->
@@ -341,6 +344,12 @@
                   :key="`overlay-${idx}`"
                   :style="calibrationBlockStyle(block, idx)"
                   class="calibration-block absolute rounded border-2 touch-none"
+                  @dblclick="handleCalibrationBlockDoubleClick(idx)"
+                  @pointerdown="handleCalibrationBlockLongPress(idx, $event)"
+                  @pointerup="clearLongPressTimer"
+                  @pointercancel="clearLongPressTimer"
+                  @touchmove.passive="handlePinchMove($event, idx)"
+                  @touchstart="handlePinchStart($event)"
                 >
                   <div class="top-guide-rail">
                     <button
@@ -416,6 +425,18 @@
                   </template>
                 </div>
               </div>
+
+              <!-- Dimension Tooltip -->
+              <div v-if="calibrationDimensionTooltip.visible" class="dimension-tooltip" :style="{ left: `${calibrationDimensionTooltip.x}px`, top: `${calibrationDimensionTooltip.y}px` }">
+                {{ calibrationDimensionTooltip.text }}
+              </div>
+
+              <!-- Context Menu -->
+              <div v-if="calibrationContextMenu.visible" class="calibration-context-menu" :style="{ left: `${calibrationContextMenu.x}px`, top: `${calibrationContextMenu.y}px` }">
+                <button @click="handleContextMenuAction('reset')">Reset ke Default</button>
+                <button @click="handleContextMenuAction('autofit')">Auto-Fit Ukuran</button>
+                <button @click="handleContextMenuAction('lockAspect')">{{ calibrationAspectLocked ? '🔒 Unlock Aspect' : '🔓 Lock Aspect' }}</button>
+              </div>
             </div>
             <p v-else class="text-xs text-gray-400 italic">Pilih foto lembar jawab dulu agar overlay bisa digeser langsung.</p>
           </div>
@@ -423,99 +444,98 @@
           <div v-if="selectedCalibrationBlock" class="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-3">
             <p class="text-xs font-semibold text-gray-700">Atur Blok {{ selectedCalibrationBlockIndex + 1 }} · Q{{ selectedCalibrationBlock.startQ }}-{{ selectedCalibrationBlock.startQ + selectedCalibrationBlock.count - 1 }}</p>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
-                <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Kolom</p>
-                <div class="grid grid-cols-2 gap-2">
-                  <button @click="nudgeBlock('questionColW', -1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">ColW-</button>
-                  <button @click="nudgeBlock('questionColW', 1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">ColW+</button>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 gap-3">
+                <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Lebar Kolom</p>
+                    <div class="flex gap-1">
+                      <button @click="quickAdjustBlock('questionColW', -5)" class="rounded px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200">-5%</button>
+                      <button @click="quickAdjustBlock('questionColW', 5)" class="rounded px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200">+5%</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-gray-500 block mb-1">Blok: {{ (selectedCalibrationBlock?.questionColW * 100).toFixed(1) }}%</label>
+                    <input v-model.number="selectedCalibrationBlock.questionColW" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'questionColW', e.target.value)" type="range" step="0.005" min="0.02" max="0.3" class="w-full" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-gray-500 block mb-1">Global: {{ (scanCalibration.questionColW * 100).toFixed(1) }}%</label>
+                    <input v-model.number="scanCalibration.questionColW" @input="(e) => { scanCalibration.questionColW = Number(clamp(Number(e.target.value), 0.02, 0.3).toFixed(4)) }" type="range" step="0.005" min="0.02" max="0.3" class="w-full" />
+                  </div>
                 </div>
-                <div>
-                  <label class="text-[10px] text-gray-400">Lebar kolom blok aktif</label>
-                  <input v-model.number="selectedCalibrationBlock.questionColW" type="number" step="0.005" min="0.02" max="0.3" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-                </div>
-                <div>
-                  <label class="text-[10px] text-gray-400">Lebar kolom global</label>
-                  <input v-model.number="scanCalibration.questionColW" type="number" step="0.005" min="0.02" max="0.3" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
+
+                <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Gap (Jarak)</p>
+                    <div class="flex gap-1">
+                      <button @click="quickAdjustBlock('centerPadX', -10)" class="rounded px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200">-10%</button>
+                      <button @click="quickAdjustBlock('centerPadX', 10)" class="rounded px-1.5 py-0.5 text-[10px] bg-gray-100 hover:bg-gray-200">+10%</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-gray-500 block mb-1">Horizontal: {{ (scanCalibration.centerPadX * 100).toFixed(1) }}%</label>
+                    <input v-model.number="scanCalibration.centerPadX" @input="(e) => { scanCalibration.centerPadX = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" class="w-full" />
+                  </div>
+                  <div>
+                    <label class="text-[10px] text-gray-500 block mb-1">Vertikal: {{ (scanCalibration.centerPadY * 100).toFixed(1) }}%</label>
+                    <input v-model.number="scanCalibration.centerPadY" @input="(e) => { scanCalibration.centerPadY = Number(clamp(Number(e.target.value), 0, 0.5).toFixed(4)) }" type="range" step="0.005" min="0" max="0.5" class="w-full" />
+                  </div>
                 </div>
               </div>
 
               <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
-                <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Baris</p>
-                <div class="grid grid-cols-2 gap-2">
-                  <button @click="nudgeBlock('rowTop', -1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">Top-</button>
-                  <button @click="nudgeBlock('rowTop', 1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">Top+</button>
-                  <button @click="nudgeBlock('rowBottom', -1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">Bottom-</button>
-                  <button @click="nudgeBlock('rowBottom', 1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">Bottom+</button>
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Baris</p>
+                  <div class="flex items-center gap-2">
+                    <label class="text-[10px] text-gray-500 flex items-center gap-1">
+                      <input v-model="calibrationAspectLocked" type="checkbox" class="rounded" />
+                      Lock Aspect
+                    </label>
+                    <button @click="handleContextMenuAction('autofit')" class="rounded px-2 py-1 text-[10px] bg-primary/10 text-primary hover:bg-primary/20">Auto-fit</button>
+                  </div>
                 </div>
                 <div>
-                  <label class="text-[10px] text-gray-400">Baris atas</label>
-                  <input v-model.number="selectedCalibrationBlock.rowTop" type="number" step="0.005" min="0" max="0.9" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
+                  <label class="text-[10px] text-gray-500 block mb-1">Top: {{ (selectedCalibrationBlock?.rowTop * 100).toFixed(1) }}%</label>
+                  <input v-model.number="selectedCalibrationBlock.rowTop" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowTop', e.target.value)" type="range" step="0.005" min="0" max="0.9" class="w-full" />
                 </div>
                 <div>
-                  <label class="text-[10px] text-gray-400">Baris bawah</label>
-                  <input v-model.number="selectedCalibrationBlock.rowBottom" type="number" step="0.005" min="0.1" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-                </div>
-              </div>
-
-              <div class="rounded-lg border border-gray-200 bg-white p-2.5 space-y-2">
-                <p class="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Gap</p>
-                <div class="grid grid-cols-2 gap-2">
-                  <button @click="nudgeGlobalCalibration('centerPadX', -1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">GapX-</button>
-                  <button @click="nudgeGlobalCalibration('centerPadX', 1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">GapX+</button>
-                  <button @click="nudgeGlobalCalibration('centerPadY', -1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">GapY-</button>
-                  <button @click="nudgeGlobalCalibration('centerPadY', 1)" class="rounded-lg border border-gray-200 bg-gray-50 py-1.5 text-xs font-semibold">GapY+</button>
+                  <label class="text-[10px] text-gray-500 block mb-1">Bottom: {{ (selectedCalibrationBlock?.rowBottom * 100).toFixed(1) }}%</label>
+                  <input v-model.number="selectedCalibrationBlock.rowBottom" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowBottom', e.target.value)" type="range" step="0.005" min="0.1" max="1" class="w-full" />
                 </div>
                 <div>
-                  <label class="text-[10px] text-gray-400">Gap horizontal</label>
-                  <input v-model.number="scanCalibration.centerPadX" type="number" step="0.005" min="0" max="0.5" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-                </div>
-                <div>
-                  <label class="text-[10px] text-gray-400">Gap vertikal</label>
-                  <input v-model.number="scanCalibration.centerPadY" type="number" step="0.005" min="0" max="0.5" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
+                  <label class="text-[10px] text-gray-500 block mb-1">Height: {{ (selectedCalibrationBlock?.h * 100).toFixed(1) }}%</label>
+                  <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="w-full" />
                 </div>
               </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
-              <button @click="nudgeBlock('x', -1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">X-</button>
-              <button @click="nudgeBlock('y', -1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">Y-</button>
-              <button @click="nudgeBlock('w', -1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">W-</button>
-              <button @click="nudgeBlock('x', 1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">X+</button>
-              <button @click="nudgeBlock('y', 1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">Y+</button>
-              <button @click="nudgeBlock('w', 1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">W+</button>
-              <button @click="nudgeBlock('h', -1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">H-</button>
-              <button @click="nudgeBlock('rowTop', -1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">Top-</button>
-              <button @click="nudgeBlock('rowBottom', -1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">Bot-</button>
-              <button @click="nudgeBlock('h', 1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">H+</button>
-              <button @click="nudgeBlock('rowTop', 1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">Top+</button>
-              <button @click="nudgeBlock('rowBottom', 1)" class="rounded-lg border border-gray-200 bg-white py-2 text-sm font-semibold">Bot+</button>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div>
+                <label class="text-[10px] text-gray-400">X: {{ (selectedCalibrationBlock?.x * 100).toFixed(1) }}%</label>
+                <input v-model.number="selectedCalibrationBlock.x" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'x', e.target.value)" type="range" step="0.01" min="0" max="1" class="mt-0.5 w-full" />
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400">Y: {{ (selectedCalibrationBlock?.y * 100).toFixed(1) }}%</label>
+                <input v-model.number="selectedCalibrationBlock.y" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'y', e.target.value)" type="range" step="0.01" min="0" max="1" class="mt-0.5 w-full" />
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400">W: {{ (selectedCalibrationBlock?.w * 100).toFixed(1) }}%</label>
+                <input v-model.number="selectedCalibrationBlock.w" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'w', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="mt-0.5 w-full" />
+              </div>
+              <div>
+                <label class="text-[10px] text-gray-400">H: {{ (selectedCalibrationBlock?.h * 100).toFixed(1) }}%</label>
+                <input v-model.number="selectedCalibrationBlock.h" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'h', e.target.value)" type="range" step="0.01" min="0.01" max="1" class="mt-0.5 w-full" />
+              </div>
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div>
-                <label class="text-[10px] text-gray-400">x</label>
-                <input v-model.number="selectedCalibrationBlock.x" type="number" step="0.01" min="0" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
-                <label class="text-[10px] text-gray-400">y</label>
-                <input v-model.number="selectedCalibrationBlock.y" type="number" step="0.01" min="0" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
-                <label class="text-[10px] text-gray-400">w</label>
-                <input v-model.number="selectedCalibrationBlock.w" type="number" step="0.01" min="0.01" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
-                <label class="text-[10px] text-gray-400">h</label>
-                <input v-model.number="selectedCalibrationBlock.h" type="number" step="0.01" min="0.01" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
-              </div>
-              <div>
                 <label class="text-[10px] text-gray-400">rowTop</label>
-                <input v-model.number="selectedCalibrationBlock.rowTop" type="number" step="0.01" min="0" max="0.9" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
+                <input v-model.number="selectedCalibrationBlock.rowTop" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowTop', e.target.value)" type="number" step="0.01" min="0" max="0.9" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
               </div>
               <div>
                 <label class="text-[10px] text-gray-400">rowBottom</label>
-                <input v-model.number="selectedCalibrationBlock.rowBottom" type="number" step="0.01" min="0.1" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
+                <input v-model.number="selectedCalibrationBlock.rowBottom" @input="(e) => adjustBlockSlider(selectedCalibrationBlock, 'rowBottom', e.target.value)" type="number" step="0.01" min="0.1" max="1" class="mt-0.5 w-full text-xs border border-gray-200 rounded px-2 py-1" />
               </div>
             </div>
           </div>
@@ -1325,6 +1345,7 @@ const liveDetectError = ref('')
 const liveDetectSnapshot = ref(null)
 const liveAutoFrameRect = ref(null)
 const liveAutoFrameConfidence = ref(0)
+const liveAutoFrameMissCount = ref(0)
 const liveAutoCalibration = ref(null)
 const liveLightingQuality = ref(null)
 let liveDetectTimer = null
@@ -1364,6 +1385,22 @@ const calibrationStep = ref(0.01)
 const calibrationZoom = ref(1.25)
 const calibrationTouchMode = ref('resize')
 const calibrationStageRef = ref(null)
+const calibrationDimensionTooltip = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  text: '',
+})
+const calibrationAspectLocked = ref(false)
+const calibrationPinchStartDistance = ref(0)
+const calibrationLongPressTimer = ref(null)
+const calibrationContextMenu = reactive({
+  visible: false,
+  x: 0,
+  y: 0,
+  blockIndex: -1,
+})
+const calibrationIsLandscape = ref(false)
 
 // Template registration state
 const templateRegistered = ref(null) // null | { name, total, optionChoices, registeredAt }
@@ -1969,7 +2006,9 @@ function detectAnswerSheetRect(imageData, width, height) {
 
   const colSegment = longestSegmentAroundCenter(colRatio, 0.42, 3)
   const rowSegment = longestSegmentAroundCenter(rowRatio, 0.4, 3)
-  if (!colSegment || !rowSegment) return null
+  if (!colSegment || !rowSegment) {
+    return trackAnswerSheetRectFromPrevious(colRatio, rowRatio, liveAutoFrameRect.value)
+  }
 
   const nx = colSegment.start / width
   const ny = rowSegment.start / height
@@ -1993,15 +2032,19 @@ function detectAnswerSheetRect(imageData, width, height) {
 
 function updateLiveAutoFrameRect(nextRect) {
   if (!nextRect) {
-    liveAutoFrameConfidence.value = Math.max(0, liveAutoFrameConfidence.value - 0.12)
-    if (liveAutoFrameConfidence.value < 0.1) {
+    liveAutoFrameMissCount.value += 1
+    liveAutoFrameConfidence.value = Math.max(0, liveAutoFrameConfidence.value - 0.04)
+    if (liveAutoFrameMissCount.value >= 14 && liveAutoFrameConfidence.value < 0.08) {
       liveAutoFrameRect.value = null
+      liveAutoCalibration.value = null
     }
     return
   }
 
   const normalized = normalizeFrameRect(nextRect)
   if (!normalized) return
+
+  liveAutoFrameMissCount.value = 0
 
   const prev = liveAutoFrameRect.value
   if (!prev) {
@@ -2010,14 +2053,65 @@ function updateLiveAutoFrameRect(nextRect) {
     return
   }
 
-  const alpha = 0.48
+  const alpha = 0.62
   liveAutoFrameRect.value = {
     x: Number((prev.x + (normalized.x - prev.x) * alpha).toFixed(4)),
     y: Number((prev.y + (normalized.y - prev.y) * alpha).toFixed(4)),
     w: Number((prev.w + (normalized.w - prev.w) * alpha).toFixed(4)),
     h: Number((prev.h + (normalized.h - prev.h) * alpha).toFixed(4)),
   }
-  liveAutoFrameConfidence.value = Math.min(1, liveAutoFrameConfidence.value + 0.16)
+  liveAutoFrameConfidence.value = Math.min(1, liveAutoFrameConfidence.value + 0.1)
+}
+
+function framePaperScore(colRatio, rowRatio, rect) {
+  if (!rect) return -1
+
+  const x1 = Math.max(0, Math.floor(rect.x * colRatio.length))
+  const x2 = Math.min(colRatio.length - 1, Math.ceil((rect.x + rect.w) * colRatio.length) - 1)
+  const y1 = Math.max(0, Math.floor(rect.y * rowRatio.length))
+  const y2 = Math.min(rowRatio.length - 1, Math.ceil((rect.y + rect.h) * rowRatio.length) - 1)
+  if (x2 <= x1 || y2 <= y1) return -1
+
+  let colSum = 0
+  for (let x = x1; x <= x2; x += 1) colSum += Number(colRatio[x] || 0)
+  let rowSum = 0
+  for (let y = y1; y <= y2; y += 1) rowSum += Number(rowRatio[y] || 0)
+
+  const colAvg = colSum / Math.max(1, x2 - x1 + 1)
+  const rowAvg = rowSum / Math.max(1, y2 - y1 + 1)
+  return (colAvg + rowAvg) / 2
+}
+
+function trackAnswerSheetRectFromPrevious(colRatio, rowRatio, prevRect) {
+  if (!prevRect) return null
+
+  let best = null
+  let bestScore = -1
+
+  const dxs = [-0.02, -0.01, 0, 0.01, 0.02]
+  const dys = [-0.02, -0.01, 0, 0.01, 0.02]
+  const dss = [-0.02, 0, 0.02]
+
+  for (const dx of dxs) {
+    for (const dy of dys) {
+      for (const ds of dss) {
+        const candidate = normalizeFrameRect({
+          x: prevRect.x + dx,
+          y: prevRect.y + dy,
+          w: prevRect.w * (1 + ds),
+          h: prevRect.h * (1 + ds),
+        })
+        if (!candidate) continue
+        const score = framePaperScore(colRatio, rowRatio, candidate)
+        if (score > bestScore) {
+          bestScore = score
+          best = candidate
+        }
+      }
+    }
+  }
+
+  return bestScore >= 0.42 ? best : null
 }
 
 function projectCalibrationToFrame(calibration, frameRect) {
@@ -2155,8 +2249,8 @@ async function runLiveDetectOnce() {
     fd.append('total', String(questionTotal.value))
     fd.append('optionChoices', normalizeOptionChoices(selectedOptionChoices.value))
     fd.append('rotation', String(scanRotation.value || 0))
-    const liveCalibration = liveAutoAlignEnabled.value && frame.adaptiveCalibration
-      ? frame.adaptiveCalibration
+    const liveCalibration = liveAutoAlignEnabled.value && (frame.adaptiveCalibration || liveAutoCalibration.value)
+      ? (frame.adaptiveCalibration || liveAutoCalibration.value)
       : projectCalibrationToFrame(
         { ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) },
         liveAutoAlignEnabled.value ? frame.frameRect : null,
@@ -2196,7 +2290,7 @@ function scheduleLiveDetect(delayMs = 550) {
   clearTimeout(liveDetectTimer)
   liveDetectTimer = setTimeout(async () => {
     await runLiveDetectOnce()
-    scheduleLiveDetect(900)
+    scheduleLiveDetect(520)
   }, Math.max(250, Number(delayMs) || 550))
 }
 
@@ -3283,6 +3377,143 @@ function nudgeBlock(field, direction) {
   }
 }
 
+function hapticFeedback() {
+  if (typeof navigator?.vibrate === 'function') {
+    navigator.vibrate(10)
+  }
+}
+
+function showDimensionTooltip(block, x, y) {
+  if (!block) return
+  calibrationDimensionTooltip.text = `W: ${(block.w * 100).toFixed(1)}% · H: ${(block.h * 100).toFixed(1)}%`
+  calibrationDimensionTooltip.x = x
+  calibrationDimensionTooltip.y = y
+  calibrationDimensionTooltip.visible = true
+}
+
+function hideDimensionTooltip() {
+  calibrationDimensionTooltip.visible = false
+}
+
+function handleCalibrationBlockDoubleClick(idx) {
+  selectedCalibrationBlockIndex.value = idx
+  hapticFeedback()
+}
+
+function handleCalibrationBlockLongPress(idx, event) {
+  if (calibrationLongPressTimer.value) clearTimeout(calibrationLongPressTimer.value)
+  
+  calibrationLongPressTimer.value = setTimeout(() => {
+    hapticFeedback()
+    calibrationContextMenu.blockIndex = idx
+    calibrationContextMenu.x = event.clientX || event.touches?.[0]?.clientX || 0
+    calibrationContextMenu.y = event.clientY || event.touches?.[0]?.clientY || 0
+    calibrationContextMenu.visible = true
+  }, 500)
+}
+
+function clearLongPressTimer() {
+  if (calibrationLongPressTimer.value) {
+    clearTimeout(calibrationLongPressTimer.value)
+    calibrationLongPressTimer.value = null
+  }
+}
+
+function handleContextMenuAction(action) {
+  const block = scanCalibration.blocks?.[calibrationContextMenu.blockIndex]
+  if (!block) return
+
+  if (action === 'reset') {
+    const template = buildDefaultScanCalibration(questionTotal.value)
+    const defaultBlock = template.blocks?.[calibrationContextMenu.blockIndex]
+    if (defaultBlock) {
+      Object.assign(block, defaultBlock)
+    }
+  } else if (action === 'lockAspect') {
+    calibrationAspectLocked.value = !calibrationAspectLocked.value
+  } else if (action === 'autofit') {
+    block.w = Number((0.25 / Math.max(1, block.count)).toFixed(4))
+    block.h = Number((0.3 / Math.max(1, Math.ceil(block.count / 10))).toFixed(4))
+  }
+
+  calibrationContextMenu.visible = false
+}
+
+function adjustBlockSlider(block, field, value) {
+  if (!block) return
+  const numValue = Number(value)
+  
+  if (field === 'w' || field === 'h') {
+    const oldValue = block[field]
+    block[field] = Number(clamp(numValue, 0.01, 1).toFixed(4))
+    
+    if (calibrationAspectLocked.value && oldValue) {
+      const ratio = block[field] / oldValue
+      const otherField = field === 'w' ? 'h' : 'w'
+      block[otherField] = Number(clamp(block[otherField] * ratio, 0.01, 1).toFixed(4))
+    }
+  } else if (field === 'x' || field === 'y') {
+    block[field] = Number(clamp(numValue, 0, 1).toFixed(4))
+  } else if (field === 'rowTop' || field === 'rowBottom') {
+    block[field] = Number(clamp(numValue, 0, 1).toFixed(4))
+    if (block.rowTop >= block.rowBottom) {
+      block.rowBottom = Number(clamp(block.rowTop + 0.05, 0.1, 1).toFixed(4))
+    }
+  }
+}
+
+function quickAdjustBlock(field, percentDelta) {
+  const block = selectedCalibrationBlock.value
+  if (!block) return
+  
+  const delta = Number(block[field] || 0) * (percentDelta / 100)
+  adjustBlockSlider(block, field, Number(block[field] || 0) + delta)
+}
+
+function handlePinchStart(event) {
+  if (event.touches && event.touches.length === 2) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX
+    const dy = event.touches[0].clientY - event.touches[1].clientY
+    calibrationPinchStartDistance.value = Math.sqrt(dx * dx + dy * dy)
+  }
+}
+
+function handlePinchMove(event, blockIndex) {
+  if (event.touches && event.touches.length === 2 && calibrationPinchStartDistance.value > 0) {
+    const dx = event.touches[0].clientX - event.touches[1].clientX
+    const dy = event.touches[0].clientY - event.touches[1].clientY
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    const ratio = distance / calibrationPinchStartDistance.value
+
+    const block = scanCalibration.blocks?.[blockIndex]
+    if (block && calibrationTouchMode.value === 'resize') {
+      const delta = (ratio - 1) * 0.1
+      block.w = Number(clamp(Number(block.w || 0) * (1 + delta), 0.01, 1).toFixed(4))
+      if (!calibrationAspectLocked.value) {
+        block.h = Number(clamp(Number(block.h || 0) * (1 + delta), 0.01, 1).toFixed(4))
+      }
+    }
+  }
+}
+
+function handleSwipeBlock(direction, blockIndex) {
+  if (direction === 'left') {
+    const nextIdx = (blockIndex + 1) % scanCalibration.blocks.length
+    selectedCalibrationBlockIndex.value = nextIdx
+  } else if (direction === 'right') {
+    const prevIdx = (blockIndex - 1 + scanCalibration.blocks.length) % scanCalibration.blocks.length
+    selectedCalibrationBlockIndex.value = prevIdx
+  }
+  hapticFeedback()
+}
+
+onMounted(() => {
+  calibrationIsLandscape.value = window.innerWidth > window.innerHeight
+  window.addEventListener('orientationchange', () => {
+    calibrationIsLandscape.value = window.innerWidth > window.innerHeight
+  })
+})
+
 async function loadCalibrationDefaults() {
   try {
     const optionChoices = normalizeOptionChoices(selectedOptionChoices.value)
@@ -3787,5 +4018,150 @@ const savedResultGroups = computed(() => {
   .guide-handle.row.top::after {
     height: 22px;
   }
+}
+
+/* Mobile Touch Optimization */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets on mobile */
+  .move-handle {
+    height: 28px;
+    padding: 0 12px;
+    min-width: 32px;
+    font-size: 12px;
+  }
+
+  .resize-handle.corner {
+    width: 32px;
+    height: 32px;
+    margin: -16px;
+  }
+
+  .resize-handle.n,
+  .resize-handle.s {
+    height: 24px;
+  }
+
+  .resize-handle.w,
+  .resize-handle.e {
+    width: 24px;
+  }
+
+  .guide-handle {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .guide-handle.col,
+  .guide-handle.row,
+  .guide-handle.split {
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  input[type="range"] {
+    height: 28px;
+    cursor: pointer;
+  }
+
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Landscape mode optimizations */
+@media (orientation: landscape) {
+  .calibration-container {
+    gap: 12px;
+  }
+
+  .calibration-controls {
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+}
+
+/* Dimension tooltip */
+.dimension-tooltip {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Context menu */
+.calibration-context-menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  min-width: 140px;
+}
+
+.calibration-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.calibration-context-menu button:hover {
+  background: #f3f4f6;
+}
+
+.calibration-context-menu button:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.calibration-context-menu button:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.calibration-context-menu button + button {
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Slider styling for better mobile UX */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 5px;
+  background: #e5e7eb;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>
