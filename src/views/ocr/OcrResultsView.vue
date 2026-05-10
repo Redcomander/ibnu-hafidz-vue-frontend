@@ -131,6 +131,13 @@
                   <button
                     class="text-[11px] px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
                     :disabled="mappingLoadingByResult[row.latestResultId] || deletingByResult[row.latestResultId]"
+                    @click="openEditAnswers(row.latestResult)"
+                  >
+                    Lihat/Edit Jawaban
+                  </button>
+                  <button
+                    class="text-[11px] px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                    :disabled="mappingLoadingByResult[row.latestResultId] || deletingByResult[row.latestResultId]"
                     @click="unassignStudent(row.latestResultId)"
                   >
                     {{ mappingLoadingByResult[row.latestResultId] ? 'Memproses...' : 'Lepas Mapping' }}
@@ -254,23 +261,35 @@
               </div>
 
               <div class="max-h-80 overflow-y-auto space-y-2 pr-1">
-                <div v-for="(value, idx) in editAnswersList" :key="idx" class="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                  <span class="text-xs font-semibold text-gray-500 w-8">{{ idx + 1 }}</span>
+                <div v-for="row in editedAnswerRows" :key="row.qn" class="space-y-1 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold text-gray-500 w-8">{{ row.qn }}</span>
+                    <div class="text-[11px]">
+                      <span v-if="row.correctness === 'correct'" class="text-green-600 font-semibold">Benar</span>
+                      <span v-else-if="row.correctness === 'wrong'" class="text-red-600 font-semibold">Salah</span>
+                      <span v-else-if="row.correctness === 'blank'" class="text-amber-600 font-semibold">Kosong</span>
+                      <span v-else class="text-gray-400">Tanpa kunci</span>
+                    </div>
+                  </div>
                   <div class="flex items-center gap-1.5">
                     <button
                       v-for="label in editAnswersOptionLabels"
-                      :key="`${idx}-${label}`"
+                      :key="`${row.qn}-${label}`"
                       type="button"
-                      @click="editAnswersList[idx] = (editAnswersList[idx] === label ? '' : label)"
+                      @click="editAnswersList[row.qn - 1] = (editAnswersList[row.qn - 1] === label ? '' : label)"
                       :class="[
                         'w-8 h-8 rounded-full text-xs font-bold border transition-colors',
-                        editAnswersList[idx] === label
+                        editAnswersList[row.qn - 1] === label
                           ? 'bg-primary text-white border-primary'
                           : 'bg-white text-gray-500 border-gray-200 hover:border-primary hover:text-primary'
                       ]"
                     >
                       {{ label }}
                     </button>
+                  </div>
+                  <div v-if="row.expected" class="text-[11px] text-gray-500">
+                    Kunci: <span class="font-semibold text-gray-700">{{ row.expected }}</span>
+                    · Jawaban: <span class="font-semibold text-gray-700">{{ row.detected || '-' }}</span>
                   </div>
                 </div>
               </div>
@@ -599,7 +618,30 @@ const editedScorePreview = computed(() => {
   }
 })
 
+const editedAnswerRows = computed(() => {
+  const keyMap = getActiveAnswerKeyMap()
+  return editAnswersList.value.map((ans, idx) => {
+    const qn = idx + 1
+    const detected = String(ans || '').toUpperCase()
+    const expected = keyMap ? String(keyMap[String(qn)] || '').toUpperCase() : ''
+    let correctness = null
+
+    if (expected) {
+      if (!detected) correctness = 'blank'
+      else correctness = detected === expected ? 'correct' : 'wrong'
+    }
+
+    return {
+      qn,
+      detected,
+      expected,
+      correctness,
+    }
+  })
+})
+
 function openEditAnswers(item) {
+  if (!item) return
   const raw = parseRawResult(item?.raw_result)
   const answerMap = normalizeAnswerKeyMap(raw?.answers)
   const optionLabels = getOptionLabels(raw?.optionChoices)
@@ -744,6 +786,7 @@ const resultGroups = computed(() => {
         latestScore: latest?.score ?? '-',
         latestTime: formatDateTime(latest?.created_at),
         latestResultId: latest?.id || null,
+          latestResult: latest || null,
       }
     })
 
