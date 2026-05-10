@@ -127,13 +127,22 @@
                 {{ row.latestTime }}
               </div>
               <div class="col-span-12" v-if="row.latestResultId && row.scanCount > 0">
-                <button
-                  class="text-[11px] px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
-                  :disabled="mappingLoadingByResult[row.latestResultId]"
-                  @click="unassignStudent(row.latestResultId)"
-                >
-                  {{ mappingLoadingByResult[row.latestResultId] ? 'Memproses...' : 'Lepas Mapping' }}
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    class="text-[11px] px-2 py-1 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                    :disabled="mappingLoadingByResult[row.latestResultId] || deletingByResult[row.latestResultId]"
+                    @click="unassignStudent(row.latestResultId)"
+                  >
+                    {{ mappingLoadingByResult[row.latestResultId] ? 'Memproses...' : 'Lepas Mapping' }}
+                  </button>
+                  <button
+                    class="text-[11px] px-2 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                    :disabled="mappingLoadingByResult[row.latestResultId] || deletingByResult[row.latestResultId]"
+                    @click="deleteResult({ id: row.latestResultId })"
+                  >
+                    {{ deletingByResult[row.latestResultId] ? 'Menghapus...' : 'Hapus Scan' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -151,7 +160,16 @@
             >
               <div class="flex items-center justify-between gap-2">
                 <span class="truncate text-gray-700">{{ item.filename || `${item.source || 'scan'} #${item.id}` }}</span>
-                <span class="font-semibold text-gray-800">{{ item.score ?? '-' }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-gray-800">{{ item.score ?? '-' }}</span>
+                  <button
+                    class="text-[11px] px-2 py-1 rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                    :disabled="mappingLoadingByResult[item.id] || deletingByResult[item.id]"
+                    @click="deleteResult(item)"
+                  >
+                    {{ deletingByResult[item.id] ? 'Menghapus...' : 'Hapus' }}
+                  </button>
+                </div>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
@@ -201,7 +219,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/api'
-import { ocrGetResultLinks, ocrUpdateResultLinkStudent } from '@/api/ocr'
+import { ocrDeleteResultLink, ocrGetResultLinks, ocrUpdateResultLinkStudent } from '@/api/ocr'
 
 const loading = ref(false)
 const loadingMore = ref(false)
@@ -220,6 +238,7 @@ const selectedClassId = ref(null)
 const selectedTeacherId = ref(null)
 const selectedStudentByResult = reactive({})
 const mappingLoadingByResult = reactive({})
+const deletingByResult = reactive({})
 const mappingErrorByResult = reactive({})
 const mappingSuccessMessage = ref('')
 
@@ -374,6 +393,32 @@ async function unassignStudent(resultId) {
     mappingErrorByResult[resultId] = err?.response?.data?.message || 'Gagal melepas mapping santri'
   } finally {
     mappingLoadingByResult[resultId] = false
+    if (mappingSuccessMessage.value) {
+      setTimeout(() => {
+        mappingSuccessMessage.value = ''
+      }, 2500)
+    }
+  }
+}
+
+async function deleteResult(item) {
+  const resultId = Number(item?.id || 0)
+  if (!resultId) return
+
+  const ok = window.confirm(`Hapus hasil OCR #${resultId}?`)
+  if (!ok) return
+
+  deletingByResult[resultId] = true
+  mappingErrorByResult[resultId] = ''
+
+  try {
+    await ocrDeleteResultLink(resultId)
+    mappingSuccessMessage.value = `Hasil OCR #${resultId} berhasil dihapus.`
+    await loadResultLinks(true)
+  } catch (err) {
+    mappingErrorByResult[resultId] = err?.response?.data?.message || 'Gagal menghapus hasil OCR'
+  } finally {
+    deletingByResult[resultId] = false
     if (mappingSuccessMessage.value) {
       setTimeout(() => {
         mappingSuccessMessage.value = ''
