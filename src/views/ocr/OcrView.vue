@@ -886,6 +886,18 @@
             </div>
           </div>
 
+          <div class="mb-4 flex flex-wrap items-center gap-2 text-xs">
+            <span class="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
+              Mode: {{ formatScanMethod(lastResult.method) }}
+            </span>
+            <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
+              Section: {{ formatLJKSection(lastResult.sectionInfo?.section) }}
+            </span>
+            <span v-if="lastResult.sectionInfo?.visibleBlockCount" class="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 font-semibold text-gray-600">
+              Blok terlihat: {{ lastResult.sectionInfo.visibleBlockCount }}
+            </span>
+          </div>
+
           <div class="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Integrasi Data</p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
@@ -1435,7 +1447,8 @@ const liveDetectStatusText = computed(() => {
   const qualityLabel = liveLightingQuality.value
     ? ` • light ${liveLightingQuality.value.quality}`
     : ''
-  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}${alignLabel}${qualityLabel}`
+  const sectionLabel = snap.section ? ` • ${formatLJKSection(snap.section)}` : ''
+  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}${sectionLabel}${alignLabel}${qualityLabel}`
 })
 const liveDetectPreview = computed(() => liveDetectSnapshot.value?.previewText || '')
 const liveDetectQuestionMarks = computed(() => Array.isArray(liveDetectSnapshot.value?.answerMarks) ? liveDetectSnapshot.value.answerMarks : [])
@@ -2165,6 +2178,7 @@ async function runLiveDetectOnce() {
       updatedAt: Date.now(),
       previewText,
       answerMarks,
+      section: scanData?.sectionInfo?.section || null,
       autoAligned: !!(liveAutoAlignEnabled.value && liveAutoFrameRect.value),
       alignConfidence: Math.round(liveAutoFrameConfidence.value * 100),
       lighting: frame.lighting || null,
@@ -2510,6 +2524,12 @@ function stripResultImages(result) {
   return {
     version: 1,
     method: result.method || null,
+    sectionInfo: result?.sectionInfo && typeof result.sectionInfo === 'object'
+      ? {
+        section: result.sectionInfo.section || null,
+        visibleBlockCount: toNumberOrNull(result.sectionInfo.visibleBlockCount),
+      }
+      : null,
     rotation: toNumberOrNull(result.rotation),
     optionChoices: normalizeOptionChoices(result.optionChoices || selectedOptionChoices.value),
     score: {
@@ -2797,6 +2817,22 @@ function formatAnswerPreview(answers) {
   if (!answers || !answers.length) return 'Tidak ada jawaban'
   const arr = Array.isArray(answers) ? answers : Object.values(answers)
   return arr.slice(0, 10).join(' ') + (arr.length > 10 ? ' ...' : '')
+}
+
+function formatScanMethod(method) {
+  if (!method) return 'Tidak diketahui'
+  if (method === 'layout-grid') return 'Layout Grid'
+  if (method === 'text-ocr') return 'OCR Teks'
+  if (method === 'no-reliable-detection') return 'Deteksi Lemah'
+  return String(method)
+}
+
+function formatLJKSection(section) {
+  if (!section) return 'Tidak diketahui'
+  if (section === 'A_pilihan_ganda') return 'A. Pilihan Ganda'
+  if (section === 'B_essay') return 'B. Essay/Uraian'
+  if (section === 'AB_complete') return 'Lembar Lengkap'
+  return String(section)
 }
 
 function classLabel(k) {
