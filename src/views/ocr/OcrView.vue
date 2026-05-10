@@ -704,6 +704,13 @@
             <p v-if="liveDetectPreview" class="mt-1 text-emerald-700 break-words">{{ liveDetectPreview }}</p>
           </div>
 
+          <div
+            v-if="liveCameraActive && liveLightingQuality && liveLightingQuality.quality !== 'good'"
+            class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          >
+            Cahaya kurang merata/gelap terdeteksi. Sistem sudah auto-enhance, tetapi hasil terbaik tetap dengan lampu lebih terang dan hindari bayangan tangan.
+          </div>
+
           <p v-if="liveDetectError" class="text-xs text-amber-600">{{ liveDetectError }}</p>
 
           <p v-if="liveCameraError" class="text-xs text-red-500">{{ liveCameraError }}</p>
@@ -1306,6 +1313,7 @@ const liveDetectError = ref('')
 const liveDetectSnapshot = ref(null)
 const liveAutoFrameRect = ref(null)
 const liveAutoFrameConfidence = ref(0)
+const liveLightingQuality = ref(null)
 let liveDetectTimer = null
 const previewSrc = ref(null)
 const previewFile = ref(null)
@@ -1423,7 +1431,10 @@ const liveDetectStatusText = computed(() => {
   const alignLabel = liveAutoAlignEnabled.value
     ? ` • auto-align ${Math.round(liveAutoFrameConfidence.value * 100)}%`
     : ''
-  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}${alignLabel}`
+  const qualityLabel = liveLightingQuality.value
+    ? ` • light ${liveLightingQuality.value.quality}`
+    : ''
+  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}${alignLabel}${qualityLabel}`
 })
 const liveDetectPreview = computed(() => liveDetectSnapshot.value?.previewText || '')
 const liveDetectQuestionMarks = computed(() => Array.isArray(liveDetectSnapshot.value?.answerMarks) ? liveDetectSnapshot.value.answerMarks : [])
@@ -1646,6 +1657,7 @@ function clearLiveDetectLoop(clearSnapshot = false) {
     liveDetectSnapshot.value = null
     liveAutoFrameRect.value = null
     liveAutoFrameConfidence.value = 0
+    liveLightingQuality.value = null
   }
 }
 
@@ -1664,6 +1676,63 @@ function normalizeFrameRect(rect) {
   if (w < 0.2 || h < 0.2) return null
   if (x + w > 1 || y + h > 1) return null
   return { x, y, w, h }
+}
+
+function analyzeFrameLighting(imageData, width, height) {
+  if (!imageData?.data || !width || !height) return null
+
+  let sum = 0
+  let sumSq = 0
+  let dark = 0
+  let bright = 0
+  const total = width * height
+  const data = imageData.data
+
+  for (let i = 0; i < data.length; i += 4) {
+    const lum = (data[i] + data[i + 1] + data[i + 2]) / 3
+    sum += lum
+    sumSq += lum * lum
+    if (lum < 70) dark += 1
+    if (lum > 200) bright += 1
+  }
+
+  const mean = sum / Math.max(1, total)
+  const variance = Math.max(0, sumSq / Math.max(1, total) - mean * mean)
+  const stdDev = Math.sqrt(variance)
+  const darkRatio = dark / Math.max(1, total)
+  const brightRatio = bright / Math.max(1, total)
+
+  let quality = 'good'
+  if (mean < 110 || darkRatio > 0.42 || stdDev < 34) {
+    quality = 'low'
+  } else if (mean < 130 || darkRatio > 0.3 || stdDev < 42) {
+    quality = 'medium'
+  }
+
+  return {
+    mean: Number(mean.toFixed(2)),
+    stdDev: Number(stdDev.toFixed(2)),
+    darkRatio: Number(darkRatio.toFixed(4)),
+    brightRatio: Number(brightRatio.toFixed(4)),
+    quality,
+  }
+}
+
+function buildLightingFilter(metrics) {
+  if (!metrics) return ''
+  if (metrics.quality === 'good') return ''
+
+  let brightness = 1.12
+  let contrast = 1.18
+  let saturate = 0.9
+
+  if (metrics.quality === 'low') {
+    brightness = metrics.mean < 95 ? 1.28 : 1.2
+    contrast = metrics.stdDev < 28 ? 1.36 : 1.26
+    saturate = 0.84
+  }
+
+  return `brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`
 }
 
 function detectAnswerSheetRect(imageData, width, height) {
@@ -1778,6 +1847,7 @@ async function captureLiveFrameData() {
 
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
 
+  let lightingMetrics = null
   if (liveAutoAlignEnabled.value) {
     const probeW = 320
     const probeH = Math.max(200, Math.round((canvas.height / canvas.width) * probeW))
@@ -1788,8 +1858,25 @@ async function captureLiveFrameData() {
     if (probeCtx) {
       probeCtx.drawImage(canvas, 0, 0, probeW, probeH)
       const imageData = probeCtx.getImageData(0, 0, probeW, probeH)
+      lightingMetrics = analyzeFrameLighting(imageData, probeW, probeH)
+      liveLightingQuality.value = lightingMetrics
       const rect = detectAnswerSheetRect(imageData, probeW, probeH)
       updateLiveAutoFrameRect(rect)
+    }
+  }
+
+  const filter = buildLightingFilter(liveLightingQuality.value)
+  if (filter) {
+    const enhancedCanvas = document.createElement('canvas')
+    enhancedCanvas.width = canvas.width
+    enhancedCanvas.height = canvas.height
+    const enhancedCtx = enhancedCanvas.getContext('2d')
+    if (enhancedCtx) {
+      enhancedCtx.filter = filter
+      enhancedCtx.drawImage(canvas, 0, 0)
+      enhancedCtx.filter = 'none'
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(enhancedCanvas, 0, 0)
     }
   }
 
@@ -1798,6 +1885,7 @@ async function captureLiveFrameData() {
   return {
     blob,
     frameRect: liveAutoFrameRect.value,
+    lighting: lightingMetrics || liveLightingQuality.value,
   }
 }
 
@@ -1876,6 +1964,7 @@ async function runLiveDetectOnce() {
       answerMarks,
       autoAligned: !!(liveAutoAlignEnabled.value && liveAutoFrameRect.value),
       alignConfidence: Math.round(liveAutoFrameConfidence.value * 100),
+      lighting: frame.lighting || null,
     }
   } catch (err) {
     liveDetectError.value = err?.response?.data?.message || err?.message || 'Live detect gagal pada frame ini'
@@ -1946,6 +2035,7 @@ function stopLiveCamera() {
   clearLiveDetectLoop(false)
   liveAutoFrameRect.value = null
   liveAutoFrameConfidence.value = 0
+  liveLightingQuality.value = null
   liveCameraStream.value = null
   liveCameraActive.value = false
 }
