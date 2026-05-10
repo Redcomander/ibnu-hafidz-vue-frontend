@@ -568,7 +568,11 @@
           <div v-else class="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
             <video ref="liveCameraVideoRef" autoplay playsinline muted class="w-full max-h-[420px] object-contain"></video>
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div class="w-[82%] h-[70%] border-2 border-dashed border-emerald-300/90 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.22)]"></div>
+              <div class="absolute border-2 border-dashed border-emerald-300/90 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.22)] transition-all duration-150" :style="liveFrameGuideStyle"></div>
+            </div>
+            <div class="absolute top-2 left-2 rounded-md bg-black/55 px-2 py-1 text-[10px] text-white border border-white/15">
+              Auto Align {{ liveAutoAlignEnabled ? 'ON' : 'OFF' }}
+              <span v-if="liveAutoAlignEnabled" class="text-emerald-200"> · {{ Math.round(liveAutoFrameConfidence * 100) }}%</span>
             </div>
             <div v-if="liveOverlayBlocks.length" class="absolute inset-0 pointer-events-none">
               <div
@@ -685,6 +689,13 @@
             >
               <input v-model="liveDetectEnabled" type="checkbox" class="accent-primary" />
               Live Detect
+            </label>
+            <label
+              v-if="liveCameraActive"
+              class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700"
+            >
+              <input v-model="liveAutoAlignEnabled" type="checkbox" class="accent-primary" />
+              Auto Align Zoom
             </label>
           </div>
 
@@ -1289,9 +1300,12 @@ const liveCameraActive = ref(false)
 const liveCameraLoading = ref(false)
 const liveCameraError = ref('')
 const liveDetectEnabled = ref(true)
+const liveAutoAlignEnabled = ref(true)
 const liveDetectBusy = ref(false)
 const liveDetectError = ref('')
 const liveDetectSnapshot = ref(null)
+const liveAutoFrameRect = ref(null)
+const liveAutoFrameConfidence = ref(0)
 let liveDetectTimer = null
 const previewSrc = ref(null)
 const previewFile = ref(null)
@@ -1406,13 +1420,28 @@ const liveDetectStatusText = computed(() => {
   const updatedLabel = snap.updatedAt
     ? new Date(snap.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : '-'
-  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}`
+  const alignLabel = liveAutoAlignEnabled.value
+    ? ` • auto-align ${Math.round(liveAutoFrameConfidence.value * 100)}%`
+    : ''
+  return `Terdeteksi ${snap.detectedCount}/${snap.totalQuestions} jawaban (blank ${snap.blankCount}) • update ${updatedLabel}${alignLabel}`
 })
 const liveDetectPreview = computed(() => liveDetectSnapshot.value?.previewText || '')
 const liveDetectQuestionMarks = computed(() => Array.isArray(liveDetectSnapshot.value?.answerMarks) ? liveDetectSnapshot.value.answerMarks : [])
+const liveFrameGuideStyle = computed(() => {
+  const fallback = { x: 0.09, y: 0.15, w: 0.82, h: 0.7 }
+  const rect = liveAutoAlignEnabled.value && liveAutoFrameRect.value ? liveAutoFrameRect.value : fallback
+  return {
+    left: `${rect.x * 100}%`,
+    top: `${rect.y * 100}%`,
+    width: `${rect.w * 100}%`,
+    height: `${rect.h * 100}%`,
+  }
+})
 const liveOverlayBlocks = computed(() => {
+  const rect = liveAutoAlignEnabled.value ? liveAutoFrameRect.value : null
+  const activeCalibration = projectCalibrationToFrame(scanCalibration, rect)
   const marksByQn = new Map(liveDetectQuestionMarks.value.map((mark) => [Number(mark.qn), mark]))
-  return (Array.isArray(scanCalibration.blocks) ? scanCalibration.blocks : []).map((block, idx) => {
+  return (Array.isArray(activeCalibration.blocks) ? activeCalibration.blocks : []).map((block, idx) => {
     const startQ = Number(block?.startQ || 1)
     const count = Number(block?.count || 0)
     const rows = Array.from({ length: count }, (_, rowIndex) => {
@@ -1615,10 +1644,129 @@ function clearLiveDetectLoop(clearSnapshot = false) {
   liveDetectError.value = ''
   if (clearSnapshot) {
     liveDetectSnapshot.value = null
+    liveAutoFrameRect.value = null
+    liveAutoFrameConfidence.value = 0
   }
 }
 
-async function captureLiveFrameBlob() {
+function clampUnit(value, fallback = 0) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.max(0, Math.min(1, n))
+}
+
+function normalizeFrameRect(rect) {
+  if (!rect) return null
+  const x = clampUnit(rect.x)
+  const y = clampUnit(rect.y)
+  const w = clampUnit(rect.w)
+  const h = clampUnit(rect.h)
+  if (w < 0.2 || h < 0.2) return null
+  if (x + w > 1 || y + h > 1) return null
+  return { x, y, w, h }
+}
+
+function detectAnswerSheetRect(imageData, width, height) {
+  if (!imageData?.data || !width || !height) return null
+
+  let minX = width
+  let minY = height
+  let maxX = -1
+  let maxY = -1
+  let count = 0
+  const data = imageData.data
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+      const lum = (r + g + b) / 3
+      const maxRgb = Math.max(r, g, b)
+      const minRgb = Math.min(r, g, b)
+      const chroma = maxRgb - minRgb
+
+      // White-ish paper pixels tend to be bright and low-chroma.
+      if (lum >= 168 && chroma <= 44) {
+        count += 1
+        if (x < minX) minX = x
+        if (y < minY) minY = y
+        if (x > maxX) maxX = x
+        if (y > maxY) maxY = y
+      }
+    }
+  }
+
+  if (count < width * height * 0.07 || maxX <= minX || maxY <= minY) {
+    return null
+  }
+
+  const nx = minX / width
+  const ny = minY / height
+  const nw = (maxX - minX + 1) / width
+  const nh = (maxY - minY + 1) / height
+  const ratio = nw / Math.max(0.001, nh)
+
+  if (nw < 0.35 || nh < 0.35 || nw > 0.98 || nh > 0.98) return null
+  if (ratio < 0.45 || ratio > 0.95) return null
+
+  const padX = 0.01
+  const padY = 0.01
+  return normalizeFrameRect({
+    x: Math.max(0, nx - padX),
+    y: Math.max(0, ny - padY),
+    w: Math.min(1, nw + padX * 2),
+    h: Math.min(1, nh + padY * 2),
+  })
+}
+
+function updateLiveAutoFrameRect(nextRect) {
+  if (!nextRect) {
+    liveAutoFrameConfidence.value = Math.max(0, liveAutoFrameConfidence.value - 0.08)
+    if (liveAutoFrameConfidence.value < 0.12) {
+      liveAutoFrameRect.value = null
+    }
+    return
+  }
+
+  const normalized = normalizeFrameRect(nextRect)
+  if (!normalized) return
+
+  const prev = liveAutoFrameRect.value
+  if (!prev) {
+    liveAutoFrameRect.value = normalized
+    liveAutoFrameConfidence.value = 0.5
+    return
+  }
+
+  const alpha = 0.35
+  liveAutoFrameRect.value = {
+    x: Number((prev.x + (normalized.x - prev.x) * alpha).toFixed(4)),
+    y: Number((prev.y + (normalized.y - prev.y) * alpha).toFixed(4)),
+    w: Number((prev.w + (normalized.w - prev.w) * alpha).toFixed(4)),
+    h: Number((prev.h + (normalized.h - prev.h) * alpha).toFixed(4)),
+  }
+  liveAutoFrameConfidence.value = Math.min(1, liveAutoFrameConfidence.value + 0.12)
+}
+
+function projectCalibrationToFrame(calibration, frameRect) {
+  const base = cloneCalibration(calibration)
+  const rect = normalizeFrameRect(frameRect)
+  if (!rect) return base
+
+  base.blocks = (Array.isArray(base.blocks) ? base.blocks : []).map((block) => ({
+    ...block,
+    x: Number((rect.x + Number(block.x || 0) * rect.w).toFixed(4)),
+    y: Number((rect.y + Number(block.y || 0) * rect.h).toFixed(4)),
+    w: Number((Number(block.w || 0) * rect.w).toFixed(4)),
+    h: Number((Number(block.h || 0) * rect.h).toFixed(4)),
+  }))
+
+  return base
+}
+
+async function captureLiveFrameData() {
   const video = liveCameraVideoRef.value
   if (!video || !video.videoWidth || !video.videoHeight) return null
 
@@ -1629,7 +1777,28 @@ async function captureLiveFrameBlob() {
   if (!ctx) return null
 
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-  return await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+
+  if (liveAutoAlignEnabled.value) {
+    const probeW = 320
+    const probeH = Math.max(200, Math.round((canvas.height / canvas.width) * probeW))
+    const probe = document.createElement('canvas')
+    probe.width = probeW
+    probe.height = probeH
+    const probeCtx = probe.getContext('2d', { willReadFrequently: true })
+    if (probeCtx) {
+      probeCtx.drawImage(canvas, 0, 0, probeW, probeH)
+      const imageData = probeCtx.getImageData(0, 0, probeW, probeH)
+      const rect = detectAnswerSheetRect(imageData, probeW, probeH)
+      updateLiveAutoFrameRect(rect)
+    }
+  }
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.82))
+  if (!blob) return null
+  return {
+    blob,
+    frameRect: liveAutoFrameRect.value,
+  }
 }
 
 function collectDetectedAnswers(scanData) {
@@ -1671,20 +1840,24 @@ function buildAnswerMarks(scanData) {
 async function runLiveDetectOnce() {
   if (!liveCameraActive.value || !liveDetectEnabled.value || liveDetectBusy.value || scanning.value) return
 
-  const blob = await captureLiveFrameBlob()
-  if (!blob) return
+  const frame = await captureLiveFrameData()
+  if (!frame?.blob) return
 
   liveDetectBusy.value = true
   liveDetectError.value = ''
 
   try {
     const fd = new FormData()
-    const frameFile = new File([blob], `live-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    const frameFile = new File([frame.blob], `live-${Date.now()}.jpg`, { type: 'image/jpeg' })
     fd.append('file', frameFile)
     fd.append('total', String(questionTotal.value))
     fd.append('optionChoices', normalizeOptionChoices(selectedOptionChoices.value))
     fd.append('rotation', String(scanRotation.value || 0))
-    fd.append('calibration', JSON.stringify({ ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) }))
+    const liveCalibration = projectCalibrationToFrame(
+      { ...scanCalibration, optionChoices: normalizeOptionChoices(selectedOptionChoices.value) },
+      liveAutoAlignEnabled.value ? frame.frameRect : null,
+    )
+    fd.append('calibration', JSON.stringify(liveCalibration))
     if (selectedAnswerKeyId.value) fd.append('answerKeyId', selectedAnswerKeyId.value)
 
     const res = await ocrScan(fd)
@@ -1701,6 +1874,8 @@ async function runLiveDetectOnce() {
       updatedAt: Date.now(),
       previewText,
       answerMarks,
+      autoAligned: !!(liveAutoAlignEnabled.value && liveAutoFrameRect.value),
+      alignConfidence: Math.round(liveAutoFrameConfidence.value * 100),
     }
   } catch (err) {
     liveDetectError.value = err?.response?.data?.message || err?.message || 'Live detect gagal pada frame ini'
@@ -1769,18 +1944,20 @@ function stopLiveCamera() {
   }
 
   clearLiveDetectLoop(false)
+  liveAutoFrameRect.value = null
+  liveAutoFrameConfidence.value = 0
   liveCameraStream.value = null
   liveCameraActive.value = false
 }
 
 async function captureLiveCameraFrame() {
-  const blob = await captureLiveFrameBlob()
-  if (!blob) {
+  const frame = await captureLiveFrameData()
+  if (!frame?.blob) {
     liveCameraError.value = 'Kamera belum siap untuk capture'
     return
   }
 
-  const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
+  const file = new File([frame.blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' })
   stopLiveCamera()
   loadPreview(file)
 }
