@@ -147,7 +147,29 @@
         <div class="space-y-3">
           <div class="flex items-center justify-between gap-2">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Manual Blok Jawaban</p>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap justify-end">
+              <div class="inline-flex rounded-md border border-gray-200 bg-white p-0.5">
+                <button
+                  type="button"
+                  @click="calibrationTouchMode = 'move'"
+                  :class="[
+                    'px-2 py-1 text-[11px] font-semibold rounded transition-colors',
+                    calibrationTouchMode === 'move' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+                  ]"
+                >
+                  Move
+                </button>
+                <button
+                  type="button"
+                  @click="calibrationTouchMode = 'resize'"
+                  :class="[
+                    'px-2 py-1 text-[11px] font-semibold rounded transition-colors',
+                    calibrationTouchMode === 'resize' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
+                  ]"
+                >
+                  Resize
+                </button>
+              </div>
               <span class="text-[11px] text-gray-400">Step</span>
               <select v-model.number="calibrationStep" class="text-xs border border-gray-200 rounded-md px-2 py-1">
                 <option :value="0.005">0.005</option>
@@ -212,7 +234,7 @@
               </div>
             </div>
             <p class="text-[11px] text-gray-500">
-              Cara kalibrasi cepat: drag blok untuk geser area, titik merah untuk resize, garis teal vertikal untuk atur kolom jawaban, garis teal horizontal untuk atur baris soal, dan garis split kuning untuk atur batas nomor soal vs opsi {{ selectedOptionLabels.join('/') }}.
+              Cara kalibrasi cepat: pilih mode Move/Resize. Gunakan tombol Drag pada rail atas untuk geser blok. Pada mode Resize, pakai titik merah untuk ubah ukuran, lalu handle guide di rail atas untuk atur kolom/baris/split tanpa menyentuh area dalam blok (lebih nyaman di touchscreen).
             </p>
 
             <div v-if="calibrationImageSrc" class="rounded-lg border border-gray-200 bg-white overflow-auto max-h-[78vh] lg:max-h-[82vh]">
@@ -285,8 +307,45 @@
                   :key="`overlay-${idx}`"
                   :style="calibrationBlockStyle(block, idx)"
                   class="calibration-block absolute rounded border-2 touch-none"
-                  @pointerdown="onCalibrationBlockPointerDown(idx, $event)"
                 >
+                  <div class="top-guide-rail">
+                    <button
+                      type="button"
+                      class="move-handle"
+                      @pointerdown.stop.prevent="onMoveHandlePointerDown(idx, $event)"
+                    >
+                      Drag B{{ idx + 1 }}
+                    </button>
+
+                    <button
+                      v-if="calibrationTouchMode === 'resize'"
+                      type="button"
+                      class="guide-handle split top"
+                      :style="{ left: `${getBlockSplitRatio(block) * 100}%` }"
+                      @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'split', 0, $event)"
+                    ></button>
+
+                    <button
+                      v-if="calibrationTouchMode === 'resize'"
+                      v-for="guide in getColGuideRatios(block)"
+                      :key="`col-guide-handle-top-${idx}-${guide.bandIndex}`"
+                      type="button"
+                      class="guide-handle col top"
+                      :style="{ left: `${guide.ratio * 100}%` }"
+                      @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'col', guide.bandIndex, $event)"
+                    ></button>
+
+                    <button
+                      v-if="calibrationTouchMode === 'resize'"
+                      v-for="guide in getRowGuideRatios(block)"
+                      :key="`row-guide-handle-top-${idx}-${guide.bandIndex}`"
+                      type="button"
+                      class="guide-handle row top"
+                      :style="{ left: `${guide.ratio * 100}%` }"
+                      @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'row', guide.bandIndex, $event)"
+                    ></button>
+                  </div>
+
                   <div class="pointer-events-none absolute inset-0">
                     <div
                       v-for="col in getBlockColLabelCenters(block)"
@@ -310,40 +369,17 @@
                     B{{ idx + 1 }}
                   </div>
 
-                  <button type="button" class="resize-handle corner nw" @pointerdown="onResizeHandlePointerDown(idx, 'nw', $event)"></button>
-                  <button type="button" class="resize-handle corner ne" @pointerdown="onResizeHandlePointerDown(idx, 'ne', $event)"></button>
-                  <button type="button" class="resize-handle corner sw" @pointerdown="onResizeHandlePointerDown(idx, 'sw', $event)"></button>
-                  <button type="button" class="resize-handle corner se" @pointerdown="onResizeHandlePointerDown(idx, 'se', $event)"></button>
+                  <template v-if="calibrationTouchMode === 'resize'">
+                    <button type="button" class="resize-handle corner nw" @pointerdown="onResizeHandlePointerDown(idx, 'nw', $event)"></button>
+                    <button type="button" class="resize-handle corner ne" @pointerdown="onResizeHandlePointerDown(idx, 'ne', $event)"></button>
+                    <button type="button" class="resize-handle corner sw" @pointerdown="onResizeHandlePointerDown(idx, 'sw', $event)"></button>
+                    <button type="button" class="resize-handle corner se" @pointerdown="onResizeHandlePointerDown(idx, 'se', $event)"></button>
 
-                  <button type="button" class="resize-handle edge n" @pointerdown="onResizeHandlePointerDown(idx, 'n', $event)"></button>
-                  <button type="button" class="resize-handle edge e" @pointerdown="onResizeHandlePointerDown(idx, 'e', $event)"></button>
-                  <button type="button" class="resize-handle edge s" @pointerdown="onResizeHandlePointerDown(idx, 's', $event)"></button>
-                  <button type="button" class="resize-handle edge w" @pointerdown="onResizeHandlePointerDown(idx, 'w', $event)"></button>
-
-                  <button
-                    type="button"
-                    class="guide-handle split"
-                    :style="{ left: `${getBlockSplitRatio(block) * 100}%` }"
-                    @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'split', 0, $event)"
-                  ></button>
-
-                  <button
-                    v-for="guide in getColGuideRatios(block)"
-                    :key="`col-guide-handle-${idx}-${guide.bandIndex}`"
-                    type="button"
-                    class="guide-handle col"
-                    :style="{ left: `${guide.ratio * 100}%` }"
-                    @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'col', guide.bandIndex, $event)"
-                  ></button>
-
-                  <button
-                    v-for="guide in getRowGuideRatios(block)"
-                    :key="`row-guide-handle-${idx}-${guide.bandIndex}`"
-                    type="button"
-                    class="guide-handle row"
-                    :style="{ top: `${guide.ratio * 100}%` }"
-                    @pointerdown.stop.prevent="onGuideHandlePointerDown(idx, 'row', guide.bandIndex, $event)"
-                  ></button>
+                    <button type="button" class="resize-handle edge n" @pointerdown="onResizeHandlePointerDown(idx, 'n', $event)"></button>
+                    <button type="button" class="resize-handle edge e" @pointerdown="onResizeHandlePointerDown(idx, 'e', $event)"></button>
+                    <button type="button" class="resize-handle edge s" @pointerdown="onResizeHandlePointerDown(idx, 's', $event)"></button>
+                    <button type="button" class="resize-handle edge w" @pointerdown="onResizeHandlePointerDown(idx, 'w', $event)"></button>
+                  </template>
                 </div>
               </div>
             </div>
@@ -499,6 +535,38 @@
             <video ref="liveCameraVideoRef" autoplay playsinline muted class="w-full max-h-[420px] object-contain"></video>
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
               <div class="w-[82%] h-[70%] border-2 border-dashed border-emerald-300/90 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.22)]"></div>
+            </div>
+            <div v-if="liveOverlayBlocks.length" class="absolute inset-0 pointer-events-none">
+              <div
+                v-for="block in liveOverlayBlocks"
+                :key="block.idx"
+                class="absolute rounded-lg border border-white/20 bg-white/5 backdrop-blur-[1px] overflow-hidden"
+                :style="block.style"
+              >
+                <div class="flex items-center justify-between gap-2 px-2 py-1 text-[9px] font-semibold text-white bg-black/35 border-b border-white/10">
+                  <span>Q{{ block.startQ }}-{{ block.startQ + block.count - 1 }}</span>
+                  <span>{{ block.rows.filter((row) => row.state !== 'blank' && row.state !== 'pending').length }}/{{ block.rows.length }}</span>
+                </div>
+                <div class="h-[calc(100%-1.4rem)] grid grid-cols-1 gap-px bg-white/10 overflow-hidden">
+                  <div
+                    v-for="row in block.rows"
+                    :key="row.qn"
+                    :class="[
+                      'min-h-0 px-1 py-0.5 text-[9px] leading-tight flex items-center justify-between gap-1',
+                      row.state === 'correct'
+                        ? 'bg-emerald-500/60 text-white'
+                        : row.state === 'wrong'
+                          ? 'bg-rose-500/65 text-white'
+                          : row.state === 'blank'
+                            ? 'bg-black/35 text-white/70'
+                            : 'bg-amber-500/65 text-white'
+                    ]"
+                  >
+                    <span>Q{{ row.qn }}</span>
+                    <span class="font-semibold">{{ row.detected }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div v-if="liveDetectQuestionMarks.length" class="absolute top-2 right-2 bottom-2 w-[34%] min-w-[160px] max-w-[220px] pointer-events-none">
               <div class="h-full rounded-xl border border-white/20 bg-black/45 backdrop-blur-sm overflow-hidden shadow-lg">
@@ -1224,6 +1292,7 @@ const scanCalibration = reactive(cloneCalibration(buildDefaultScanCalibration(qu
 const selectedCalibrationBlockIndex = ref(0)
 const calibrationStep = ref(0.01)
 const calibrationZoom = ref(1.25)
+const calibrationTouchMode = ref('resize')
 const calibrationStageRef = ref(null)
 const calibrationDrag = reactive({
   active: false,
@@ -1301,6 +1370,35 @@ const liveDetectStatusText = computed(() => {
 })
 const liveDetectPreview = computed(() => liveDetectSnapshot.value?.previewText || '')
 const liveDetectQuestionMarks = computed(() => Array.isArray(liveDetectSnapshot.value?.answerMarks) ? liveDetectSnapshot.value.answerMarks : [])
+const liveOverlayBlocks = computed(() => {
+  const marksByQn = new Map(liveDetectQuestionMarks.value.map((mark) => [Number(mark.qn), mark]))
+  return (Array.isArray(scanCalibration.blocks) ? scanCalibration.blocks : []).map((block, idx) => {
+    const startQ = Number(block?.startQ || 1)
+    const count = Number(block?.count || 0)
+    const rows = Array.from({ length: count }, (_, rowIndex) => {
+      const qn = startQ + rowIndex
+      const mark = marksByQn.get(qn) || null
+      return {
+        qn,
+        detected: mark?.detected || '-',
+        state: mark?.state || 'pending',
+      }
+    })
+
+    return {
+      idx,
+      startQ,
+      count,
+      style: {
+        left: `${Number(block?.x || 0) * 100}%`,
+        top: `${Number(block?.y || 0) * 100}%`,
+        width: `${Number(block?.w || 0) * 100}%`,
+        height: `${Number(block?.h || 0) * 100}%`,
+      },
+      rows,
+    }
+  })
+})
 const selectedCalibrationBlock = computed(() => scanCalibration.blocks?.[selectedCalibrationBlockIndex.value] || null)
 const calibrationImageSrc = computed(() => previewSrc.value || lastResult?.value?.debug?.sourceImage || lastResultPreview.value || lastResult?.value?.previewUrl || null)
 const calibrationStageStyle = computed(() => ({ width: `${Math.max(1, Number(calibrationZoom.value) || 1) * 100}%`, minWidth: '100%' }))
@@ -1405,6 +1503,10 @@ function ensureBlockGuideBands(block) {
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
+  if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) {
+    calibrationTouchMode.value = 'move'
+  }
+
   try {
     await ocrHealth()
     serviceOffline.value = false
@@ -1507,7 +1609,9 @@ function collectDetectedAnswers(scanData) {
 
 function buildAnswerMarks(scanData) {
   const answers = Array.isArray(scanData?.answers) ? scanData.answers : []
-  return answers.slice(0, 20).map((item, idx) => {
+  const total = Math.max(questionTotal.value, answers.length)
+  return Array.from({ length: total }, (_, idx) => {
+    const item = answers[idx] || {}
     const detected = String(item?.detected || item?.actual || '').toUpperCase()
     const expected = String(item?.expected || '').toUpperCase()
     const correct = typeof item?.correct === 'boolean' ? item.correct : null
@@ -2348,7 +2452,7 @@ function calibrationBlockStyle(block, idx) {
 }
 
 function onCalibrationBlockPointerDown(idx, event) {
-  if (calibrationResize.active) return
+  if (calibrationResize.active || calibrationTouchMode.value !== 'move') return
   const block = scanCalibration.blocks?.[idx]
   if (!block) return
 
@@ -2360,6 +2464,10 @@ function onCalibrationBlockPointerDown(idx, event) {
   calibrationDrag.originX = Number(block.x || 0)
   calibrationDrag.originY = Number(block.y || 0)
   event.currentTarget?.setPointerCapture?.(event.pointerId)
+}
+
+function onMoveHandlePointerDown(idx, event) {
+  onCalibrationBlockPointerDown(idx, event)
 }
 
 function onCalibrationPointerMove(event) {
@@ -2771,6 +2879,32 @@ const savedResultGroups = computed(() => {
   background: transparent;
 }
 
+.top-guide-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -28px;
+  height: 24px;
+  pointer-events: none;
+}
+
+.move-handle {
+  position: absolute;
+  left: 6px;
+  top: 0;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: rgba(15, 23, 42, 0.8);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  pointer-events: auto;
+  touch-action: none;
+}
+
 .resize-handle {
   position: absolute;
   border: none;
@@ -2928,6 +3062,42 @@ const savedResultGroups = computed(() => {
   background: rgba(245, 158, 11, 0.95);
 }
 
+.guide-handle.top {
+  top: 0;
+  bottom: auto;
+  height: 22px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.guide-handle.col.top,
+.guide-handle.split.top {
+  width: 18px;
+}
+
+.guide-handle.col.top::after,
+.guide-handle.split.top::after {
+  top: 3px;
+  bottom: 2px;
+}
+
+.guide-handle.row.top {
+  left: auto;
+  right: auto;
+  top: 0;
+  height: 22px;
+  width: 14px;
+  transform: translateX(-50%);
+}
+
+.guide-handle.row.top::after {
+  left: 50%;
+  right: auto;
+  width: 2px;
+  height: 16px;
+  transform: translateX(-50%);
+}
+
 .calib-col-badge {
   position: absolute;
   top: 4px;
@@ -2956,5 +3126,56 @@ const savedResultGroups = computed(() => {
   border-radius: 6px;
   line-height: 1;
   padding: 2px 4px;
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .top-guide-rail {
+    top: -36px;
+    height: 32px;
+  }
+
+  .move-handle {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .resize-handle.corner {
+    width: 30px;
+    height: 30px;
+    margin: -15px;
+  }
+
+  .resize-handle.corner::after {
+    width: 14px;
+    height: 14px;
+  }
+
+  .resize-handle.n,
+  .resize-handle.s {
+    height: 24px;
+  }
+
+  .resize-handle.w,
+  .resize-handle.e {
+    width: 24px;
+  }
+
+  .guide-handle.top {
+    height: 30px;
+  }
+
+  .guide-handle.col.top,
+  .guide-handle.split.top {
+    width: 24px;
+  }
+
+  .guide-handle.row.top {
+    width: 22px;
+  }
+
+  .guide-handle.row.top::after {
+    height: 22px;
+  }
 }
 </style>
