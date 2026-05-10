@@ -1413,6 +1413,9 @@ let liveDetectTimer = null
 const previewSrc = ref(null)
 const previewFile = ref(null)
 const uploadFiles = ref([])
+const previewDraft = ref(null)
+const uploadFileDrafts = ref([])
+const OCR_UPLOAD_DRAFT_LIMIT = 8
 const dragOver = ref(false)
 const lastResultPreview = ref(null)
 
@@ -1766,6 +1769,7 @@ watch(liveDetectEnabled, (enabled) => {
 
 watch(
   [
+    activeScanMode,
     selectedQuestionTotal,
     selectedOptionChoices,
     scanRotation,
@@ -1778,6 +1782,8 @@ watch(
     bulkResults,
     saveFailures,
     scanCalibration,
+    previewDraft,
+    uploadFileDrafts,
   ],
   () => {
     persistScanBuffer()
@@ -2460,6 +2466,57 @@ function triggerUpload() {
   uploadInput.value?.click()
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (event) => resolve(String(event?.target?.result || ''))
+    reader.onerror = () => reject(new Error('Gagal membaca file'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function buildFileDraft(file) {
+  if (!(file instanceof File)) return null
+  try {
+    const dataUrl = await fileToDataUrl(file)
+    if (!dataUrl) return null
+    return {
+      name: file.name || `upload-${Date.now()}.jpg`,
+      type: file.type || 'image/jpeg',
+      dataUrl,
+    }
+  } catch {
+    return null
+  }
+}
+
+function fileFromDraft(draft) {
+  if (!draft || typeof draft !== 'object') return null
+  const dataUrl = String(draft.dataUrl || '')
+  if (!dataUrl.includes(',')) return null
+
+  try {
+    const [meta, payload] = dataUrl.split(',', 2)
+    const mimeMatch = meta.match(/data:(.*?);base64/)
+    const mime = mimeMatch?.[1] || draft.type || 'image/jpeg'
+    const binary = atob(payload)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i)
+    }
+    return new File([bytes], String(draft.name || `upload-${Date.now()}.jpg`), { type: mime })
+  } catch {
+    return null
+  }
+}
+
+async function setUploadDraftsFromFiles(files) {
+  const safeFiles = Array.isArray(files) ? files : []
+  const limited = safeFiles.slice(0, OCR_UPLOAD_DRAFT_LIMIT)
+  const drafts = await Promise.all(limited.map((file) => buildFileDraft(file)))
+  uploadFileDrafts.value = drafts.filter(Boolean)
+}
+
 function onFileSelected(e) {
   const file = e.target.files[0]
   if (!file) return
@@ -2472,14 +2529,18 @@ function onDrop(e) {
   if (file && file.type.startsWith('image/')) loadPreview(file)
 }
 
-function onDropMultiple(e) {
+async function onDropMultiple(e) {
   dragOver.value = false
   const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'))
-  if (files.length) uploadFiles.value = files
+  if (!files.length) return
+  uploadFiles.value = files
+  await setUploadDraftsFromFiles(files)
 }
 
-function onMultipleFilesSelected(e) {
-  uploadFiles.value = Array.from(e.target.files)
+async function onMultipleFilesSelected(e) {
+  const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'))
+  uploadFiles.value = files
+  await setUploadDraftsFromFiles(files)
 }
 
 function loadPreview(file) {
@@ -2487,6 +2548,11 @@ function loadPreview(file) {
   const reader = new FileReader()
   reader.onload = ev => { previewSrc.value = ev.target.result }
   reader.readAsDataURL(file)
+  buildFileDraft(file).then((draft) => {
+    previewDraft.value = draft
+  }).catch(() => {
+    previewDraft.value = null
+  })
   lastResult.value = null
   scanError.value = null
 }
@@ -2494,12 +2560,14 @@ function loadPreview(file) {
 function clearPreview() {
   previewSrc.value = null
   previewFile.value = null
+  previewDraft.value = null
   lastResult.value = null
   if (cameraInput.value) cameraInput.value.value = ''
 }
 
 function clearUploadFiles() {
   uploadFiles.value = []
+  uploadFileDrafts.value = []
   bulkResults.value = []
   if (uploadInput.value) uploadInput.value.value = ''
 }
@@ -3916,6 +3984,7 @@ function persistScanBuffer() {
   try {
     const payload = {
       version: 1,
+      activeScanMode: activeScanMode.value,
       selectedQuestionTotal: selectedQuestionTotal.value,
       selectedOptionChoices: selectedOptionChoices.value,
       scanRotation: scanRotation.value,
@@ -3935,6 +4004,10 @@ function persistScanBuffer() {
           source: item.source,
           result: snapshotResultForBuffer(item.result),
         })).filter((item) => item.result)
+        : [],
+      previewDraft: previewDraft.value,
+      uploadFileDrafts: Array.isArray(uploadFileDrafts.value)
+        ? uploadFileDrafts.value.slice(0, OCR_UPLOAD_DRAFT_LIMIT)
         : [],
       selectedStudentByResult: { ...selectedStudentByResult },
       lastUpdatedAt: Date.now(),
@@ -3965,6 +4038,9 @@ function restoreScanBuffer() {
     if (Number.isFinite(Number(parsed.scanRotation))) {
       scanRotation.value = Number(parsed.scanRotation)
     }
+    if (parsed.activeScanMode === 'camera' || parsed.activeScanMode === 'upload' || parsed.activeScanMode === 'scanner') {
+      activeScanMode.value = parsed.activeScanMode
+    }
 
     selectedAnswerKeyId.value = parsed.selectedAnswerKeyId || null
     lessonType.value = parsed.lessonType || lessonType.value
@@ -3991,6 +4067,19 @@ function restoreScanBuffer() {
         }))
         .filter((item) => item.result)
       : []
+
+    previewDraft.value = parsed.previewDraft && typeof parsed.previewDraft === 'object'
+      ? parsed.previewDraft
+      : null
+    if (previewDraft.value?.dataUrl) {
+      previewSrc.value = previewDraft.value.dataUrl
+      previewFile.value = fileFromDraft(previewDraft.value)
+    }
+
+    uploadFileDrafts.value = Array.isArray(parsed.uploadFileDrafts)
+      ? parsed.uploadFileDrafts.filter((item) => item && typeof item === 'object' && item.dataUrl)
+      : []
+    uploadFiles.value = uploadFileDrafts.value.map((draft) => fileFromDraft(draft)).filter(Boolean)
 
     if (parsed.selectedStudentByResult && typeof parsed.selectedStudentByResult === 'object') {
       Object.entries(parsed.selectedStudentByResult).forEach(([key, value]) => {
