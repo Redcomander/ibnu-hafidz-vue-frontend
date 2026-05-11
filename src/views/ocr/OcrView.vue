@@ -24,34 +24,43 @@
     </div>
 
     <!-- Answer Key Selector -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4">
-      <div class="flex items-center justify-between gap-3 mb-3">
-        <span class="text-sm font-semibold text-gray-700">Kunci Jawaban Aktif</span>
-        <button @click="loadAnswerKeys" class="text-xs text-primary hover:underline">Refresh</button>
+    <details class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4">
+      <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm font-semibold text-gray-700">
+        Kunci Jawaban Aktif
+      </summary>
+      <div class="mt-3">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <span class="text-xs text-gray-500">Pilih kunci jawaban yang dipakai untuk scan</span>
+          <button @click="loadAnswerKeys" class="text-xs text-primary hover:underline">Refresh</button>
+        </div>
+        <div v-if="answerKeys.length === 0" class="text-sm text-gray-400 italic">
+          Belum ada kunci jawaban. Buat terlebih dahulu.
+        </div>
+        <div v-else class="flex flex-wrap gap-2">
+          <button v-for="ak in answerKeys" :key="ak.id"
+            @click="selectedAnswerKeyId = ak.id"
+            :class="[
+              'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
+              selectedAnswerKeyId === ak.id
+                ? 'bg-primary text-white border-primary shadow-sm'
+                : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-primary/50'
+            ]">
+            {{ ak.name || `Kunci #${ak.id}` }}
+          </button>
+        </div>
       </div>
-      <div v-if="answerKeys.length === 0" class="text-sm text-gray-400 italic">
-        Belum ada kunci jawaban. Buat terlebih dahulu.
-      </div>
-      <div v-else class="flex flex-wrap gap-2">
-        <button v-for="ak in answerKeys" :key="ak.id"
-          @click="selectedAnswerKeyId = ak.id"
-          :class="[
-            'px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
-            selectedAnswerKeyId === ak.id
-              ? 'bg-primary text-white border-primary shadow-sm'
-              : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-primary/50'
-          ]">
-          {{ ak.name || `Kunci #${ak.id}` }}
-        </button>
-      </div>
-    </div>
+    </details>
 
     <!-- Academic Integration -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4 space-y-3">
-      <div class="flex items-center justify-between gap-3">
-        <span class="text-sm font-semibold text-gray-700">Integrasi Akademik</span>
-        <button @click="loadAcademicData" class="text-xs text-primary hover:underline">Refresh</button>
-      </div>
+    <details class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4">
+      <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm font-semibold text-gray-700">
+        Integrasi Akademik
+      </summary>
+      <div class="mt-3 space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-xs text-gray-500">Opsional: isi data pelajaran, kelas, dan guru</span>
+          <button @click="loadAcademicData" class="text-xs text-primary hover:underline">Refresh</button>
+        </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -91,19 +100,20 @@
         </div>
       </div>
 
-      <div class="rounded-xl border border-gray-100 bg-gray-50 p-3">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ringkasan Integrasi</p>
-        <div class="mt-2 text-sm text-gray-700 space-y-1">
-          <p><span class="text-gray-400">Pelajaran:</span> {{ selectedLessonObj?.name || 'Belum dipilih' }}</p>
-          <p><span class="text-gray-400">Kelas:</span> {{ selectedClassObj ? classLabel(selectedClassObj) : 'Belum dipilih' }}</p>
-          <p><span class="text-gray-400">Guru:</span> {{ selectedTeacherObj?.name || 'Belum dipilih' }}</p>
-          <p><span class="text-gray-400">Santri Kelas:</span> {{ selectedClassStudents.length }}</p>
+        <div class="rounded-xl border border-gray-100 bg-gray-50 p-3">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ringkasan Integrasi</p>
+          <div class="mt-2 text-sm text-gray-700 space-y-1">
+            <p><span class="text-gray-400">Pelajaran:</span> {{ selectedLessonObj?.name || 'Belum dipilih' }}</p>
+            <p><span class="text-gray-400">Kelas:</span> {{ selectedClassObj ? classLabel(selectedClassObj) : 'Belum dipilih' }}</p>
+            <p><span class="text-gray-400">Guru:</span> {{ selectedTeacherObj?.name || 'Belum dipilih' }}</p>
+            <p><span class="text-gray-400">Santri Kelas:</span> {{ selectedClassStudents.length }}</p>
+          </div>
         </div>
       </div>
-    </div>
+    </details>
 
     <!-- Scan Calibration -->
-    <details class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4" open>
+    <details class="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-4">
       <summary class="cursor-pointer flex items-center justify-between gap-3 text-sm font-semibold text-gray-700">
         Penyesuaian Posisi Blok Scan
       </summary>
@@ -144,8 +154,13 @@
           </div>
         </div>
 
+        <details class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Pengaturan Kalibrasi Lanjutan
+          </summary>
+          <div class="mt-3 space-y-3">
         <!-- Template Registration -->
-        <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3 space-y-2">
+        <div class="rounded-xl border border-dashed border-gray-200 bg-white p-3 space-y-2">
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Template Lembar Jawaban</p>
           <div v-if="templateRegistered" class="flex items-center gap-2 flex-wrap">
             <div class="flex-1 min-w-0">
@@ -549,6 +564,8 @@
             </div>
           </div>
         </div>
+          </div>
+        </details>
       </div>
     </details>
 
