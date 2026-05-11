@@ -1458,6 +1458,7 @@ const calibrationDimensionTooltip = reactive({
 })
 const calibrationAspectLocked = ref(false)
 const calibrationPinchStartDistance = ref(0)
+const calibrationZoomAtPinchStart = ref(1)
 const calibrationSlidersEnabled = ref(false)
 const calibrationLongPressTimer = ref(null)
 const calibrationContextMenu = reactive({
@@ -3726,26 +3727,18 @@ function handlePinchStart(event) {
     const dx = event.touches[0].clientX - event.touches[1].clientX
     const dy = event.touches[0].clientY - event.touches[1].clientY
     calibrationPinchStartDistance.value = Math.sqrt(dx * dx + dy * dy)
+    calibrationZoomAtPinchStart.value = calibrationZoom.value
   }
 }
 
-function handlePinchMove(event, blockIndex) {
+function handlePinchMove(event) {
   if (event.touches && event.touches.length === 2 && calibrationPinchStartDistance.value > 0) {
     event.preventDefault()
     const dx = event.touches[0].clientX - event.touches[1].clientX
     const dy = event.touches[0].clientY - event.touches[1].clientY
     const distance = Math.sqrt(dx * dx + dy * dy)
     const ratio = distance / calibrationPinchStartDistance.value
-
-    const idx = blockIndex ?? selectedCalibrationBlockIndex.value
-    const block = scanCalibration.blocks?.[idx]
-    if (block && calibrationTouchMode.value === 'resize') {
-      const delta = (ratio - 1) * 0.1
-      block.w = Number(clamp(Number(block.w || 0) * (1 + delta), 0.01, 1).toFixed(4))
-      if (!calibrationAspectLocked.value) {
-        block.h = Number(clamp(Number(block.h || 0) * (1 + delta), 0.01, 1).toFixed(4))
-      }
-    }
+    calibrationZoom.value = Number(clamp(calibrationZoomAtPinchStart.value * ratio, 1, 5).toFixed(2))
   }
 }
 
