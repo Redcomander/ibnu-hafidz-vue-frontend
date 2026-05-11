@@ -275,7 +275,7 @@
             </div>
 
             <div v-if="calibrationImageSrc" class="rounded-lg border border-gray-200 bg-white overflow-auto max-h-[78vh] lg:max-h-[82vh]">
-              <div ref="calibrationStageRef" class="relative touch-none" :style="calibrationStageStyle" @pointermove="onCalibrationPointerMove" @pointerup="onCalibrationPointerUp" @pointercancel="onCalibrationPointerUp" @click="() => { calibrationContextMenu.visible = false }">
+              <div ref="calibrationStageRef" class="relative touch-auto" :style="calibrationStageStyle" @pointermove="onCalibrationPointerMove" @pointerup="onCalibrationPointerUp" @pointercancel="onCalibrationPointerUp" @click="() => { calibrationContextMenu.visible = false }">
                 <img :src="calibrationImageSrc" alt="Calibration" class="block w-full h-auto select-none" draggable="false" />
 
                 <!-- Grid Overlay SVG -->
@@ -343,7 +343,7 @@
                   v-for="(block, idx) in scanCalibration.blocks"
                   :key="`overlay-${idx}`"
                   :style="calibrationBlockStyle(block, idx)"
-                  class="calibration-block absolute rounded border-2 touch-none"
+                  class="calibration-block absolute rounded border-2 touch-auto"
                   @dblclick="handleCalibrationBlockDoubleClick(idx)"
                   @pointerdown="handleCalibrationBlockLongPress(idx, $event)"
                   @pointerup="clearLongPressTimer"
