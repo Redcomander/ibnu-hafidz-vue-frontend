@@ -3742,6 +3742,29 @@ function handlePinchMove(event) {
   }
 }
 
+function handlePinchEnd() {
+  calibrationPinchStartDistance.value = 0
+}
+
+function detachCalibrationPinchListeners(stage = calibrationStageRef.value) {
+  if (!stage) return
+  stage.removeEventListener('touchstart', handlePinchStart)
+  stage.removeEventListener('touchmove', handlePinchMove)
+  stage.removeEventListener('touchend', handlePinchEnd)
+  stage.removeEventListener('touchcancel', handlePinchEnd)
+}
+
+function attachCalibrationPinchListeners() {
+  const stage = calibrationStageRef.value
+  if (!stage) return
+
+  detachCalibrationPinchListeners(stage)
+  stage.addEventListener('touchstart', handlePinchStart, { passive: false })
+  stage.addEventListener('touchmove', handlePinchMove, { passive: false })
+  stage.addEventListener('touchend', handlePinchEnd, { passive: true })
+  stage.addEventListener('touchcancel', handlePinchEnd, { passive: true })
+}
+
 function handleSwipeBlock(direction, blockIndex) {
   if (direction === 'left') {
     const nextIdx = (blockIndex + 1) % scanCalibration.blocks.length
@@ -3759,15 +3782,29 @@ onMounted(() => {
     calibrationIsLandscape.value = window.innerWidth > window.innerHeight
   })
 
-  // Attach non-passive touch listeners to the calibration stage so we can call
-  // preventDefault() inside pinch handling and prevent the browser from zooming.
+  // The preview stage is rendered with v-if and can be recreated, so make sure
+  // pinch listeners are (re)attached after each mount/update of the stage node.
   nextTick(() => {
-    const stage = calibrationStageRef.value
-    if (stage) {
-      stage.addEventListener('touchstart', handlePinchStart, { passive: false })
-      stage.addEventListener('touchmove', (e) => handlePinchMove(e), { passive: false })
-    }
+    attachCalibrationPinchListeners()
   })
+})
+
+watch(
+  () => calibrationStageRef.value,
+  (stage, previousStage) => {
+    if (previousStage) {
+      detachCalibrationPinchListeners(previousStage)
+    }
+    if (stage) {
+      nextTick(() => {
+        attachCalibrationPinchListeners()
+      })
+    }
+  }
+)
+
+onUnmounted(() => {
+  detachCalibrationPinchListeners()
 })
 
 async function loadCalibrationDefaults() {
