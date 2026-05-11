@@ -156,7 +156,7 @@
 
         <details class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
           <summary class="cursor-pointer text-xs font-semibold text-gray-600 uppercase tracking-wide">
-            Pengaturan Kalibrasi Lanjutan
+            Detail Slider Blok
           </summary>
           <div class="mt-3 space-y-3">
         <!-- Template Registration -->
@@ -239,6 +239,10 @@
               Rescan pakai foto aktif + kalibrasi terbaru
             </div>
           </div>
+
+        </div>
+          </div>
+        </details>
 
           <div class="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-2">
             <div class="flex items-center justify-between gap-2">
@@ -457,6 +461,12 @@
             <p v-else class="text-xs text-gray-400 italic">Pilih foto lembar jawab dulu agar overlay bisa digeser langsung.</p>
           </div>
 
+        <details class="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-xs font-semibold text-gray-600 uppercase tracking-wide">
+            Pengaturan Kalibrasi Lanjutan
+          </summary>
+          <div class="mt-3 space-y-3">
+
           <div v-if="selectedCalibrationBlock" class="rounded-xl border border-gray-100 bg-gray-50 p-3 space-y-3">
             <div class="flex items-center justify-between">
               <p class="text-xs font-semibold text-gray-700">Atur Blok {{ selectedCalibrationBlockIndex + 1 }} · Q{{ selectedCalibrationBlock.startQ }}-{{ selectedCalibrationBlock.startQ + selectedCalibrationBlock.count - 1 }}</p>
@@ -563,7 +573,6 @@
               </div>
             </div>
           </div>
-        </div>
           </div>
         </details>
       </div>
