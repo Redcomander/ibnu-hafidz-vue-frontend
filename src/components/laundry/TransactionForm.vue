@@ -228,12 +228,8 @@ async function saveTransaction() {
       tanggal: new Date().toISOString().split('T')[0], // Defaults to today
       harga_per_kg: 4500 // Can be fetched from settings later, hardcode for now based on Laravel
     };
-    const res = await api.post("/laundry/transactions", payload);
-    if (res.data && res.data.warning) {
-      toast.show(res.data.warning, 'info', 6000);
-    } else {
-      toast.success("Transaksi berhasil ditambahkan");
-    }
+    await api.post("/laundry/transactions", payload);
+    toast.success("Transaksi berhasil ditambahkan");
     emit("saved");
     closeModal();
   } catch (err) {
