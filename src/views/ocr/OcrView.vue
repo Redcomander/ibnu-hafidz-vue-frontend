@@ -851,7 +851,11 @@
             {{ loadingDevices ? 'Memuat...' : 'Refresh' }}
           </button>
         </div>
-        <div v-if="scannerDevices.length === 0" class="text-sm text-gray-400 italic">
+        <div v-if="!scannerSupported" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p class="font-semibold">Hardware scanner tidak tersedia di deployment ini.</p>
+          <p class="mt-1 text-xs text-amber-700">{{ scannerSupportReason || 'Fitur scanner hardware hanya berjalan pada server Windows yang mendukung WIA. Beta saat ini tidak menjalankan layanan OCR pada host Windows.' }}</p>
+        </div>
+        <div v-else-if="scannerDevices.length === 0" class="text-sm text-gray-400 italic">
           Tidak ada scanner terdeteksi. Pastikan driver terpasang.
         </div>
         <div v-else class="space-y-2">
@@ -1342,7 +1346,7 @@ import SvgIcon from '@/components/ui/SvgIcon.vue'
 import api from '@/api'
 import {
   ocrHealth, ocrScan, ocrScanBulk, ocrScanHardware,
-  ocrScannerDevices, ocrGetAnswerKeys, ocrSaveAnswerKey, ocrDeleteAnswerKey, ocrGetCalibration,
+  ocrScannerDevices, ocrCapabilities, ocrGetAnswerKeys, ocrSaveAnswerKey, ocrDeleteAnswerKey, ocrGetCalibration,
   ocrGetResultLinks, ocrCreateResultLink, ocrDeleteResultLink, ocrUpdateResultLinkStudent,
   ocrTemplateRegister, ocrTemplateCurrent, ocrTemplateDelete,
 } from '@/api/ocr.js'
@@ -1534,6 +1538,8 @@ const calibrationGuideDrag = reactive({
 const scannerDevices = ref([])
 const selectedScannerId = ref(null)
 const loadingDevices = ref(false)
+const scannerSupported = ref(true)
+const scannerSupportReason = ref(null)
 
 // Answer keys
 const answerKeys = ref([])
@@ -1752,6 +1758,7 @@ onMounted(async () => {
   await loadAnswerKeys()
   await loadAcademicData()
   await loadSavedResultLinks()
+  await loadScannerCapabilities()
 })
 
 onUnmounted(() => {
@@ -2724,13 +2731,31 @@ async function doHardwareScan() {
 
 async function loadScannerDevices() {
   loadingDevices.value = true
+  scannerSupportReason.value = null
   try {
     const res = await ocrScannerDevices()
     scannerDevices.value = res.data?.devices || []
-  } catch {
+  } catch (err) {
     scannerDevices.value = []
+    const status = err?.response?.status
+    const message = err?.response?.data?.error || err?.message || 'Gagal memuat daftar scanner.'
+    if (status === 501) {
+      scannerSupported.value = false
+      scannerSupportReason.value = message
+    }
   } finally {
     loadingDevices.value = false
+  }
+}
+
+async function loadScannerCapabilities() {
+  try {
+    const res = await ocrCapabilities()
+    scannerSupported.value = Boolean(res.data?.hardwareScanner?.supported)
+    scannerSupportReason.value = res.data?.hardwareScanner?.reason || null
+  } catch {
+    scannerSupported.value = true
+    scannerSupportReason.value = null
   }
 }
 

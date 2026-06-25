@@ -14,6 +14,7 @@ export const ocrScanBulk = (formData) => api.post(`${BASE}/scan-bulk`, formData)
 // Hardware scanner endpoints
 export const ocrScannerDevices = () => api.get(`${BASE}/scanner/devices`)
 export const ocrScanHardware = (formData) => api.post(`${BASE}/scan-hardware`, formData)
+export const ocrCapabilities = () => api.get(`${BASE}/capabilities`)
 
 // Calibration
 export const ocrGetCalibration = (params) => api.get(`${BASE}/calibration/default`, { params })
