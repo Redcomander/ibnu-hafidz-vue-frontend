@@ -1375,11 +1375,8 @@ const scanModes = computed(() => {
   const modes = [
     { key: 'camera', label: 'Scanner Online', icon: 'photo' },
     { key: 'upload', label: 'Upload', icon: 'download' },
+    { key: 'scanner', label: 'Scanner Hardware', icon: 'document' },
   ]
-
-  if (scannerSupported.value) {
-    modes.push({ key: 'scanner', label: 'Scanner Hardware', icon: 'document' })
-  }
 
   return modes
 })
@@ -1807,12 +1804,6 @@ watch(activeScanMode, (mode) => {
   if (mode !== 'camera') {
     stopLiveCamera()
     clearLiveDetectLoop(true)
-  }
-})
-
-watch(scannerSupported, (supported) => {
-  if (!supported && activeScanMode.value === 'scanner') {
-    activeScanMode.value = 'camera'
   }
 })
 
