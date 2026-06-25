@@ -854,6 +854,22 @@
         <div v-if="!scannerSupported" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p class="font-semibold">Hardware scanner tidak tersedia di deployment ini.</p>
           <p class="mt-1 text-xs text-amber-700">{{ scannerSupportReason || 'Fitur scanner hardware hanya berjalan pada server Windows yang mendukung WIA. Beta saat ini tidak menjalankan layanan OCR pada host Windows.' }}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:brightness-95"
+              @click="activeScanMode = 'camera'"
+            >
+              Pakai Kamera Online
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-semibold hover:bg-amber-100"
+              @click="activeScanMode = 'upload'"
+            >
+              Upload Gambar
+            </button>
+          </div>
         </div>
         <div v-else-if="scannerDevices.length === 0" class="text-sm text-gray-400 italic">
           Tidak ada scanner terdeteksi. Pastikan driver terpasang.
@@ -1355,11 +1371,18 @@ import {
 
 const serviceOffline = ref(false)
 const activeScanMode = ref('camera')
-const scanModes = [
-  { key: 'camera', label: 'Kamera', icon: 'photo' },
-  { key: 'upload', label: 'Upload', icon: 'download' },
-  { key: 'scanner', label: 'Scanner', icon: 'document' },
-]
+const scanModes = computed(() => {
+  const modes = [
+    { key: 'camera', label: 'Scanner Online', icon: 'photo' },
+    { key: 'upload', label: 'Upload', icon: 'download' },
+  ]
+
+  if (scannerSupported.value) {
+    modes.push({ key: 'scanner', label: 'Scanner Hardware', icon: 'document' })
+  }
+
+  return modes
+})
 const QUESTION_LAYOUTS = [30, 35, 50]
 const selectedQuestionTotal = ref(50)
 const questionTotal = computed(() => selectedQuestionTotal.value)
@@ -1538,7 +1561,7 @@ const calibrationGuideDrag = reactive({
 const scannerDevices = ref([])
 const selectedScannerId = ref(null)
 const loadingDevices = ref(false)
-const scannerSupported = ref(true)
+const scannerSupported = ref(false)
 const scannerSupportReason = ref(null)
 
 // Answer keys
@@ -1784,6 +1807,12 @@ watch(activeScanMode, (mode) => {
   if (mode !== 'camera') {
     stopLiveCamera()
     clearLiveDetectLoop(true)
+  }
+})
+
+watch(scannerSupported, (supported) => {
+  if (!supported && activeScanMode.value === 'scanner') {
+    activeScanMode.value = 'camera'
   }
 })
 
@@ -2700,7 +2729,7 @@ async function doHardwareScan() {
 
   try {
     const fd = new FormData()
-    fd.append('deviceId', selectedScannerId.value)
+    fd.append('scannerDeviceId', selectedScannerId.value)
     fd.append('total', String(questionTotal.value))
     fd.append('optionChoices', normalizeOptionChoices(selectedOptionChoices.value))
     fd.append('rotation', String(scanRotation.value || 0))
@@ -2754,8 +2783,8 @@ async function loadScannerCapabilities() {
     scannerSupported.value = Boolean(res.data?.hardwareScanner?.supported)
     scannerSupportReason.value = res.data?.hardwareScanner?.reason || null
   } catch {
-    scannerSupported.value = true
-    scannerSupportReason.value = null
+    scannerSupported.value = false
+    scannerSupportReason.value = 'Mode scanner hardware tidak dapat diverifikasi. Gunakan mode Kamera atau Upload untuk OCR online.'
   }
 }
 
