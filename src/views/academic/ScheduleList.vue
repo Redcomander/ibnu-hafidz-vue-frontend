@@ -419,6 +419,11 @@ const dc = (d) => dayColors[d] || dayColors['Senin'];
                                 <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Alpha <strong class="ml-auto text-red-700 dark:text-red-300">{{ item.attendance_counts?.alpa || 0 }}</strong></span>
                             </div>
 
+                            <div v-if="item.materi_today && activeTab !== 'diniyyah'" class="mb-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2">
+                                <p class="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-1">Jurnal Mengajar</p>
+                                <p class="text-xs text-emerald-900 leading-5 max-h-16 overflow-hidden">{{ item.materi_today }}</p>
+                            </div>
+
                             <!-- Actions -->
                             <div class="flex items-center justify-between pt-2 border-t border-gray-100">
                                 <div class="flex items-center gap-0.5">

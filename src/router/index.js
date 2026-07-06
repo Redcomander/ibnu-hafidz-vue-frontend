@@ -159,6 +159,12 @@ const routes = [
         meta: { permission: 'absensi.view', title: 'Riwayat Absensi Formal' },
       },
       {
+        path: 'jurnal-mengajar',
+        name: 'teaching-journal-formal',
+        component: () => import('@/views/attendance/TeachingJournalView.vue'),
+        meta: { permission: 'absensi.view', title: 'Jurnal Mengajar' },
+      },
+      {
         path: 'absensi-ramadhan/statistik',
         name: 'attendance-ramadhan',
         component: () => import('@/views/attendance/AttendanceHistory.vue'),

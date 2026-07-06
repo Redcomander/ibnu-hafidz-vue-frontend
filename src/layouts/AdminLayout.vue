@@ -435,6 +435,14 @@ const navItems = [
     menuKey: 'absensi_formal_history',
   },
   {
+    to: "/dashboard/jurnal-mengajar",
+    icon: "book",
+    label: "Jurnal Mengajar",
+    permission: "absensi.view",
+    activeOn: ["/dashboard/jurnal-mengajar"],
+    menuKey: 'jurnal_mengajar',
+  },
+  {
     to: "/dashboard/absensi-ramadhan/statistik",
     icon: "attendance",
     label: "Absensi Formal Ramadhan",

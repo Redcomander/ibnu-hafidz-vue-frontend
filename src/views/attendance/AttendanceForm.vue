@@ -37,6 +37,18 @@
             </div>
         </div>
 
+        <div v-if="type === 'formal'" class="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+            <label for="materi" class="block text-sm font-semibold text-gray-700">Jurnal Mengajar</label>
+            <textarea
+                id="materi"
+                v-model="materi"
+                rows="3"
+                placeholder="Tulis materi yang diajarkan hari ini"
+                class="input-field w-full"
+            ></textarea>
+            <p class="text-xs text-gray-500">Materi ini disimpan untuk absensi formal pada jadwal dan tanggal yang dipilih.</p>
+        </div>
+
         <!-- Student List (Desktop) -->
         <div class="hidden md:block border rounded-lg overflow-hidden">
             <table class="w-full text-sm text-left">
@@ -172,6 +184,7 @@ const toast = useToastStore();
 const loading = ref(true);
 const submitting = ref(false);
 const students = ref([]);
+const materi = ref('');
 const date = ref(props.date);
 const formError = ref('');
 
@@ -206,6 +219,7 @@ const loadAttendance = async () => {
     formError.value = '';
     try {
         const data = await store.fetchAttendance(props.schedule.id, date.value, props.type);
+        materi.value = data.materi || '';
         // Map response to local state for editing
         students.value = (data.students || []).map(s => ({
             ...s,
@@ -215,6 +229,7 @@ const loadAttendance = async () => {
         }));
     } catch (e) {
         console.error("Failed to load attendance", e);
+        materi.value = '';
     } finally {
         loading.value = false;
     }
@@ -265,6 +280,7 @@ const saveAttendance = async () => {
         const payload = {
             jadwal_id: props.schedule.id,
             date: date.value,
+            materi: props.type === 'formal' ? materi.value.trim() : '',
             type: props.type,
             records: students.value.map(s => ({
                 student_id: s.student_id,
