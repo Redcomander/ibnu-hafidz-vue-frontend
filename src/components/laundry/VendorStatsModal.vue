@@ -115,6 +115,10 @@
 
                 <!-- Export Buttons -->
                 <div class="mt-6 flex flex-wrap justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button v-if="!isGlobal" @click="exportAccountsPdf" class="flex items-center gap-2 px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-medium transition text-sm">
+                    <SvgIcon name="document-download" :size="16" />
+                    Export Akun Vendor (PDF)
+                  </button>
                   <button @click="exportData('excel')" class="flex items-center gap-2 px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-medium transition text-sm">
                     <SvgIcon name="document-text" :size="16" />
                     Export Excel
@@ -253,6 +257,22 @@ function exportData(format) {
     a.href += `&token=${token}`;
   }
   
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function exportAccountsPdf() {
+  if (isGlobal.value) return;
+  const token = auth.accessToken;
+  let url = `${api.defaults.baseURL || 'http://localhost:8080/api'}/laundry/export/vendors/${props.vendor.id}/accounts/pdf`;
+  if (token) {
+    url += `?token=${token}`;
+  }
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
