@@ -14,6 +14,24 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <button
+          v-if="auth.hasPermission('laundry_accounts.edit')"
+          @click="openTransferModal"
+          class="btn-secondary flex items-center gap-1.5 !bg-amber-50 !text-amber-700 !border-amber-200 hover:!bg-amber-100 !py-2 !px-3 text-sm"
+        >
+          <SvgIcon name="swap" :size="14" />
+          <span class="hidden sm:inline">Transfer Akun Acak</span>
+          <span class="sm:hidden">Transfer</span>
+        </button>
+        <button
+          v-if="auth.hasPermission('laundry_accounts.edit')"
+          @click="openEqualizeModal"
+          class="btn-secondary flex items-center gap-1.5 !bg-cyan-50 !text-cyan-700 !border-cyan-200 hover:!bg-cyan-100 !py-2 !px-3 text-sm"
+        >
+          <SvgIcon name="users" :size="14" />
+          <span class="hidden sm:inline">Pemerataan Vendor</span>
+          <span class="sm:hidden">Pemerataan</span>
+        </button>
+        <button
           v-if="auth.hasPermission('laundry_accounts.view')"
           @click="openMergeModal"
           class="btn-secondary flex items-center gap-1.5 !bg-emerald-50 !text-emerald-700 !border-emerald-200 hover:!bg-emerald-100 !py-2 !px-3 text-sm"
@@ -258,6 +276,52 @@
     <!-- Vendor Merge Modal -->
     <VendorMergeModal v-model:show="showMergeModal" :vendors="data" />
 
+    <!-- Transfer / Equalize Accounts Modal -->
+    <ConfirmModal
+      v-model:show="showTransferModal"
+      :title="transferMode === 'equalize' ? 'Pemerataan Akun Vendor' : 'Transfer Akun Acak'"
+      :message="transferPreviewMessage"
+      :confirm-text="transferMode === 'equalize' ? 'Pemerataan' : 'Transfer'"
+      cancel-text="Batal"
+      type="warning"
+      :loading="transferLoading"
+      @confirm="handleTransfer"
+    >
+      <template #default>
+        <div class="space-y-3 text-sm">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Mode</label>
+            <select v-model="transferMode" class="input-field py-2 w-full">
+              <option value="random">Transfer Akun Acak</option>
+              <option value="equalize">Pemerataan (Equalize)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Vendor Tujuan</label>
+            <select v-model.number="transferForm.targetVendorId" class="input-field py-2 w-full" :disabled="transferMode === 'equalize'">
+              <option :value="null">Pilih vendor tujuan</option>
+              <option v-for="v in data" :key="`target-${v.id}`" :value="v.id">{{ v.name }}</option>
+            </select>
+          </div>
+          <div v-if="transferMode === 'random'">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Jumlah akun per vendor sumber</label>
+            <input v-model.number="transferForm.amountPerVendor" type="number" min="1" class="input-field py-2 w-full" />
+          </div>
+          <div>
+            <p class="text-xs font-medium text-gray-500 mb-1">
+              {{ transferMode === 'equalize' ? 'Vendor yang ikut pemerataan (wajib centang minimal 2)' : 'Vendor sumber (opsional, default semua vendor lain dengan kategori sama)' }}
+            </p>
+            <div class="max-h-40 overflow-y-auto rounded border border-gray-200 p-2 space-y-1">
+              <label v-for="v in selectableVendorOptions" :key="`src-${v.id}`" class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" :value="v.id" v-model="transferForm.sourceVendorIds" class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
+                <span>{{ v.name }} ({{ v.accounts_count ?? 0 }} akun)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </template>
+    </ConfirmModal>
+
     <!-- Delete Confirmation Modal -->
     <ConfirmModal
       v-model:show="showDeleteModal"
@@ -273,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
 import api from "@/api";
@@ -297,6 +361,14 @@ const showStatsModal = ref(false);
 const selectedVendorForStats = ref(null);
 
 const showMergeModal = ref(false);
+const showTransferModal = ref(false);
+const transferLoading = ref(false);
+const transferMode = ref("random");
+const transferForm = ref({
+  targetVendorId: null,
+  amountPerVendor: 10,
+  sourceVendorIds: [],
+});
 
 const { data, loading, meta, search, filters, fetchData, setPage } =
   useTable("/laundry/vendors", {
@@ -327,6 +399,105 @@ function openStatsModal() {
 
 function openMergeModal() {
   showMergeModal.value = true;
+}
+
+function openTransferModal() {
+  transferMode.value = "random";
+  transferForm.value = {
+    targetVendorId: null,
+    amountPerVendor: 10,
+    sourceVendorIds: [],
+  };
+  showTransferModal.value = true;
+}
+
+function openEqualizeModal() {
+  transferMode.value = "equalize";
+  transferForm.value = {
+    targetVendorId: null,
+    amountPerVendor: 10,
+    sourceVendorIds: [],
+  };
+  showTransferModal.value = true;
+}
+
+const selectedTargetVendor = computed(() => {
+  return data.value.find(v => v.id === transferForm.value.targetVendorId) || null;
+});
+
+const sourceVendorOptions = computed(() => {
+  if (!selectedTargetVendor.value) return data.value;
+  return data.value.filter(v => v.id !== selectedTargetVendor.value.id && v.gender_type === selectedTargetVendor.value.gender_type);
+});
+
+const selectableVendorOptions = computed(() => {
+  if (transferMode.value === "equalize") {
+    return data.value;
+  }
+  return sourceVendorOptions.value;
+});
+
+const transferPreviewMessage = computed(() => {
+  if (transferMode.value === "equalize") {
+    const selected = transferForm.value.sourceVendorIds.length;
+    return `Pemerataan akun ke ${selected} vendor terpilih secara merata.`;
+  }
+
+  const target = selectedTargetVendor.value;
+  if (!target) return "Pilih vendor tujuan terlebih dahulu.";
+  const sourceCount = transferForm.value.sourceVendorIds.length > 0
+    ? transferForm.value.sourceVendorIds.length
+    : sourceVendorOptions.value.length;
+  return `Transfer acak ${transferForm.value.amountPerVendor} akun/vendor dari ${sourceCount} vendor ke ${target.name}.`;
+});
+
+async function handleTransfer() {
+  if (transferMode.value === "equalize") {
+    if (transferForm.value.sourceVendorIds.length < 2) {
+      toast.error("Pilih minimal 2 vendor untuk pemerataan");
+      return;
+    }
+
+    transferLoading.value = true;
+    try {
+      const { data: response } = await api.post(`/laundry/vendors/equalize`, {
+        vendor_ids: transferForm.value.sourceVendorIds,
+      });
+      toast.success(`${response.total_moved || 0} akun berhasil dipindahkan untuk pemerataan`);
+      showTransferModal.value = false;
+      await fetchData();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || e?.response?.data?.error || "Gagal pemerataan akun");
+    } finally {
+      transferLoading.value = false;
+    }
+    return;
+  }
+
+  if (!transferForm.value.targetVendorId) {
+    toast.error("Pilih vendor tujuan terlebih dahulu");
+    return;
+  }
+  if (!transferForm.value.amountPerVendor || transferForm.value.amountPerVendor < 1) {
+    toast.error("Jumlah akun per vendor minimal 1");
+    return;
+  }
+
+  transferLoading.value = true;
+  try {
+    const payload = {
+      amount_per_vendor: transferForm.value.amountPerVendor,
+      source_vendor_ids: transferForm.value.sourceVendorIds,
+    };
+    const { data: response } = await api.post(`/laundry/vendors/${transferForm.value.targetVendorId}/transfer-random`, payload);
+    toast.success(`${response.total_moved || 0} akun berhasil dipindahkan ke ${response.target_vendor_name}`);
+    showTransferModal.value = false;
+    await fetchData();
+  } catch (e) {
+    toast.error(e?.response?.data?.message || e?.response?.data?.error || "Gagal transfer akun acak");
+  } finally {
+    transferLoading.value = false;
+  }
 }
 
 function confirmDelete(vendor) {
