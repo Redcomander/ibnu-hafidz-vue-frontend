@@ -61,6 +61,7 @@
                 <th class="px-4 py-3">Kelas</th>
                 <th class="px-4 py-3">Pengajar</th>
                 <th class="px-4 py-3">Materi</th>
+                <th class="px-4 py-3">Rangkuman</th>
                 <th class="px-4 py-3 text-center">Jumlah Kehadiran</th>
                 <th class="px-4 py-3 text-right">Aksi</th>
               </tr>
@@ -68,7 +69,7 @@
             <tbody class="divide-y divide-gray-100">
               <template v-for="group in groupedJournals" :key="group.key">
                 <tr class="bg-emerald-50/60">
-                  <td colspan="8" class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                  <td colspan="9" class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
                     {{ group.label }} <span class="text-emerald-700/70">({{ group.rows.length }})</span>
                   </td>
                 </tr>
@@ -82,6 +83,9 @@
                   <td class="px-4 py-3 text-gray-700">{{ row.teacher_name }}</td>
                   <td class="px-4 py-3 text-gray-600">
                     <div class="max-w-md whitespace-pre-line leading-6">{{ row.materi || '-' }}</div>
+                  </td>
+                  <td class="px-4 py-3 text-gray-600">
+                    <div class="max-w-md whitespace-pre-line leading-6">{{ row.rangkuman || '-' }}</div>
                   </td>
                   <td class="px-4 py-3 text-center">
                     <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">{{ row.present_count }} / {{ row.student_count }}</span>
@@ -120,6 +124,7 @@
                 <input type="checkbox" :checked="selectedRows.includes(row.journal_key)" class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelection(row.journal_key)" />
               </div>
               <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs leading-6 text-emerald-900">{{ row.materi || '-' }}</div>
+              <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs leading-6 text-cyan-900 whitespace-pre-line">{{ row.rangkuman || '-' }}</div>
               <div class="flex items-center justify-between gap-3">
                 <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Hadir {{ row.present_count }} / {{ row.student_count }}</span>
                 <div class="flex gap-1.5">
@@ -161,6 +166,10 @@
           <label class="mb-2 block text-sm font-medium text-gray-700">Materi</label>
           <textarea v-model="editMateri" rows="6" class="input-field w-full" placeholder="Tulis materi mengajar"></textarea>
         </div>
+        <div>
+          <label class="mb-2 block text-sm font-medium text-gray-700">Rangkuman (Opsional)</label>
+          <textarea v-model="editRangkuman" rows="8" class="input-field w-full" placeholder="Tulis rangkuman pembelajaran (boleh panjang)"></textarea>
+        </div>
         <div class="flex justify-end gap-3 border-t pt-3">
           <button type="button" class="btn-secondary" @click="closeEdit">Batal</button>
           <button type="submit" class="btn-primary" :disabled="savingEdit">{{ savingEdit ? 'Menyimpan...' : 'Simpan' }}</button>
@@ -198,6 +207,7 @@ const total = ref(0)
 const showEditModal = ref(false)
 const editingRow = ref(null)
 const editMateri = ref('')
+const editRangkuman = ref('')
 const savingEdit = ref(false)
 
 const canManage = computed(() => {
@@ -328,6 +338,7 @@ async function downloadSelected() {
 function openEdit(row) {
   editingRow.value = row
   editMateri.value = row.materi || ''
+  editRangkuman.value = row.rangkuman || ''
   showEditModal.value = true
 }
 
@@ -335,6 +346,7 @@ function closeEdit() {
   showEditModal.value = false
   editingRow.value = null
   editMateri.value = ''
+  editRangkuman.value = ''
 }
 
 async function saveEdit() {
@@ -343,6 +355,7 @@ async function saveEdit() {
   try {
     await api.put(`/attendance/journals/${editingRow.value.jadwal_id}/${editingRow.value.tanggal}`, {
       materi: editMateri.value,
+      rangkuman: editRangkuman.value,
     })
     toast.success('Jurnal mengajar diperbarui')
     closeEdit()

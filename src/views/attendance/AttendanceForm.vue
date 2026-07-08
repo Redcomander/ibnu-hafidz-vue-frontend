@@ -47,6 +47,16 @@
                 class="input-field w-full"
             ></textarea>
             <p class="text-xs text-gray-500">Materi ini disimpan untuk absensi formal pada jadwal dan tanggal yang dipilih.</p>
+
+            <label for="rangkuman" class="block text-sm font-semibold text-gray-700 mt-3">Rangkuman (Opsional)</label>
+            <textarea
+                id="rangkuman"
+                v-model="rangkuman"
+                rows="6"
+                placeholder="Tulis rangkuman pembelajaran (boleh panjang)"
+                class="input-field w-full"
+            ></textarea>
+            <p class="text-xs text-gray-500">Rangkuman mendukung teks panjang/paragraf dan akan tampil di jurnal mengajar.</p>
         </div>
 
         <!-- Student List (Desktop) -->
@@ -185,6 +195,7 @@ const loading = ref(true);
 const submitting = ref(false);
 const students = ref([]);
 const materi = ref('');
+const rangkuman = ref('');
 const date = ref(props.date);
 const formError = ref('');
 
@@ -220,6 +231,7 @@ const loadAttendance = async () => {
     try {
         const data = await store.fetchAttendance(props.schedule.id, date.value, props.type);
         materi.value = data.materi || '';
+        rangkuman.value = data.rangkuman || '';
         // Map response to local state for editing
         students.value = (data.students || []).map(s => ({
             ...s,
@@ -230,6 +242,7 @@ const loadAttendance = async () => {
     } catch (e) {
         console.error("Failed to load attendance", e);
         materi.value = '';
+        rangkuman.value = '';
     } finally {
         loading.value = false;
     }
@@ -281,6 +294,7 @@ const saveAttendance = async () => {
             jadwal_id: props.schedule.id,
             date: date.value,
             materi: props.type === 'formal' ? materi.value.trim() : '',
+            rangkuman: props.type === 'formal' ? rangkuman.value.trim() : '',
             type: props.type,
             records: students.value.map(s => ({
                 student_id: s.student_id,

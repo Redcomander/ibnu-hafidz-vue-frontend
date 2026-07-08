@@ -11,6 +11,10 @@
       <p>{{ message }}</p>
     </div>
 
+    <div v-if="$slots.default" class="pt-2">
+      <slot />
+    </div>
+
     <template #footer>
       <button
         type="button"
@@ -85,7 +89,7 @@ const icon = computed(() => {
     case "danger":
       return "alert-triangle"; // Make sure this icon exists or use generic
     case "warning":
-      return "alert-circle";
+      return "alert-triangle";
     default:
       return "";
   }

@@ -18,7 +18,7 @@
           @click="openTransferModal"
           class="btn-secondary flex items-center gap-1.5 !bg-amber-50 !text-amber-700 !border-amber-200 hover:!bg-amber-100 !py-2 !px-3 text-sm"
         >
-          <SvgIcon name="swap" :size="14" />
+          <SvgIcon name="user-group" :size="14" />
           <span class="hidden sm:inline">Transfer Akun Acak</span>
           <span class="sm:hidden">Transfer</span>
         </button>
@@ -27,7 +27,7 @@
           @click="openEqualizeModal"
           class="btn-secondary flex items-center gap-1.5 !bg-cyan-50 !text-cyan-700 !border-cyan-200 hover:!bg-cyan-100 !py-2 !px-3 text-sm"
         >
-          <SvgIcon name="users" :size="14" />
+          <SvgIcon name="user-group" :size="14" />
           <span class="hidden sm:inline">Pemerataan Vendor</span>
           <span class="sm:hidden">Pemerataan</span>
         </button>
