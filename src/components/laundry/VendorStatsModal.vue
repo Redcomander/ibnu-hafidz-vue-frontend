@@ -161,6 +161,7 @@ import {
 import api from "@/api";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useToastStore } from "@/stores/toast";
 
 const props = defineProps({
   show: Boolean,
@@ -173,6 +174,7 @@ const props = defineProps({
 const emit = defineEmits(["update:show"]);
 
 const auth = useAuthStore();
+const toast = useToastStore();
 
 const isGlobal = computed(() => !props.vendor);
 const loading = ref(false);
@@ -224,7 +226,7 @@ async function fetchStats() {
   }
 }
 
-function exportData(format) {
+async function exportData(format) {
   let endpoint = format;
   if (format === 'weekly') {
     endpoint = isGlobal.value ? 'all-weekly/pdf' : 'weekly/pdf';
@@ -243,39 +245,43 @@ function exportData(format) {
     url += `&vendor_id=${props.vendor.id}`;
   }
 
-  // Use full URL to trigger browser download
-  const fullUrl = `${api.defaults.baseURL || 'http://localhost:8080/api'}${url}`;
-  
-  // Create hidden link and click
-  const a = document.createElement("a");
-  a.href = fullUrl;
-  a.target = "_blank";
-  
-  // Must append auth token if API requires it for downloads
-  const token = auth.accessToken;
-  if (token) {
-    a.href += `&token=${token}`;
-  }
-  
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const fallbackFilename = format === 'excel'
+    ? `statistik_vendor_${new Date().toISOString().slice(0, 10)}.xlsx`
+    : `statistik_vendor_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+  await downloadFile(url, fallbackFilename);
 }
 
-function exportAccountsPdf() {
+async function exportAccountsPdf() {
   if (isGlobal.value) return;
-  const token = auth.accessToken;
-  let url = `${api.defaults.baseURL || 'http://localhost:8080/api'}/laundry/export/vendors/${props.vendor.id}/accounts/pdf`;
-  if (token) {
-    url += `?token=${token}`;
-  }
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const url = `/laundry/export/vendors/${props.vendor.id}/accounts/pdf`;
+  const fallbackFilename = `akun_vendor_${props.vendor?.id || 'laundry'}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  await downloadFile(url, fallbackFilename);
+}
+
+async function downloadFile(url, fallbackFilename) {
+  try {
+    const response = await api.get(url, { responseType: "blob" });
+
+    const contentDisposition = response.headers["content-disposition"] || "";
+    const match = contentDisposition.match(/filename=\"?([^\";]+)\"?/i);
+    const filename = match?.[1] || fallbackFilename;
+
+    const blob = new Blob([response.data], { type: response.headers["content-type"] || "application/octet-stream" });
+    const objectUrl = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    toast.error(error?.response?.data?.message || error?.response?.data?.error || "Gagal mengekspor data");
+  }
 }
 
 function formatRupiah(amount) {
