@@ -92,6 +92,12 @@ const routes = [
         meta: { permission: 'students.view', title: 'Data Santri' },
       },
       {
+        path: 'alumni',
+        name: 'alumni',
+        component: () => import('@/views/students/StudentList.vue'),
+        meta: { permission: 'students.view', title: 'Data Alumni' },
+      },
+      {
         path: 'students/:id',
         name: 'student-detail',
         component: () => import('@/views/students/StudentDetail.vue'),

@@ -6,10 +6,14 @@
     >
       <div>
         <h1 class="text-2xl font-bold text-primary-dark tracking-tight">
-          Data Santri
+          {{ isAlumniPage ? "Data Alumni" : "Data Santri" }}
         </h1>
         <p class="text-gray-500 text-sm mt-1">
-          Kelola data santri pondok pesantren
+          {{
+            isAlumniPage
+              ? "Daftar santri yang telah lulus"
+              : "Kelola data santri pondok pesantren"
+          }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -51,7 +55,7 @@
           class="btn-primary flex items-center gap-2"
         >
           <SvgIcon name="plus" :size="16" />
-          <span>Tambah Santri</span>
+          <span>{{ isAlumniPage ? "Tambah Alumni" : "Tambah Santri" }}</span>
         </button>
       </div>
     </div>
@@ -75,7 +79,9 @@
         v-model="filters.status_periode"
         class="input-field !py-2 !w-auto"
       >
-        <option value="">Semua Status</option>
+        <option :value="isAlumniPage ? 'Lulus' : ''">
+          {{ isAlumniPage ? "Lulus" : "Semua Status" }}
+        </option>
         <option value="Baru">Baru</option>
         <option value="Pindahan">Pindahan</option>
         <option value="Lulus">Lulus</option>
@@ -180,6 +186,14 @@
                   <SvgIcon name="edit" :size="16" />
                 </button>
                 <button
+                  v-if="auth.hasPermission('students.edit') && student.status_periode !== 'Lulus'"
+                  @click="graduateStudent(student)"
+                  class="text-emerald-600 hover:text-emerald-700 transition text-sm px-2 py-1 rounded hover:bg-emerald-50"
+                  title="Luluskan Siswa"
+                >
+                  <SvgIcon name="check" :size="16" />
+                </button>
+                <button
                   v-if="auth.hasPermission('students.delete')"
                   @click="confirmDelete(student)"
                   class="text-red-500 hover:text-red-700 transition text-sm px-2 py-1 rounded hover:bg-red-50"
@@ -264,6 +278,14 @@
               class="p-2 text-blue-600 hover:bg-blue-100 rounded"
             >
               <SvgIcon name="edit" :size="18" />
+            </button>
+            <button
+              v-if="auth.hasPermission('students.edit') && student.status_periode !== 'Lulus'"
+              @click="graduateStudent(student)"
+              class="p-2 text-emerald-600 hover:bg-emerald-100 rounded"
+              title="Luluskan Siswa"
+            >
+              <SvgIcon name="check" :size="18" />
             </button>
             <button
               v-if="auth.hasPermission('students.delete')"
@@ -373,6 +395,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
 import api from "@/api";
@@ -383,7 +406,10 @@ import { useToastStore } from "@/stores/toast";
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const toast = useToastStore();
+
+const isAlumniPage = computed(() => route.name === "alumni");
 
 // Form state
 const showForm = ref(false);
@@ -407,8 +433,21 @@ const {
   fetchData,
 } = useTable("/students", {
   defaultSort: "nama_lengkap",
-  initialFilters: { jenis_kelamin: "", status_periode: "" },
+  initialFilters: {
+    jenis_kelamin: "",
+    status_periode: isAlumniPage.value ? "Lulus" : "",
+  },
 });
+
+watch(
+  () => isAlumniPage.value,
+  (alumniMode) => {
+    filters.status_periode = alumniMode ? "Lulus" : "";
+    selectedIds.value = [];
+    fetchData();
+  },
+  { immediate: true },
+);
 
 // Pagination Logic
 const visiblePages = computed(() => {
@@ -560,6 +599,19 @@ function handleSaved(studentData) {
   // If created, navigate to detail
   if (isCreate && studentData?.id) {
     router.push({ name: "student-detail", params: { id: studentData.id } });
+  }
+}
+
+async function graduateStudent(student) {
+  if (!student?.id) return;
+  if (!window.confirm(`Luluskan santri ${student.nama_lengkap}?`)) return;
+
+  try {
+    await api.put(`/students/${student.id}/graduate`);
+    toast.success(`Santri ${student.nama_lengkap} berhasil diluluskan`);
+    fetchData();
+  } catch (e) {
+    toast.error(e?.response?.data?.message || "Gagal meluluskan santri");
   }
 }
 </script>

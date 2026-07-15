@@ -355,6 +355,13 @@ const navItems = [
     menuKey: 'students',
   },
   {
+    to: "/dashboard/alumni",
+    icon: "students",
+    label: "Alumni",
+    permission: "students.view",
+    menuKey: 'alumni',
+  },
+  {
     to: "/dashboard/users",
     icon: "users",
     label: "Pengajar",
