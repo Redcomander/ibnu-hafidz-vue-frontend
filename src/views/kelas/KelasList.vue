@@ -125,7 +125,7 @@
     <div
       class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
     >
-      <div class="overflow-x-auto">
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full">
           <thead>
             <tr class="bg-gray-50 border-b border-gray-100">

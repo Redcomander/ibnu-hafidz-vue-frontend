@@ -6,7 +6,7 @@
     
     <form v-else class="space-y-4" @submit.prevent="saveAttendance">
         <!-- Header Info -->
-        <div class="bg-blue-50 p-4 rounded-lg flex flex-col md:flex-row justify-between gap-4 text-sm">
+        <div class="bg-blue-50 p-4 rounded-lg flex flex-col md:flex-row justify-between gap-4 text-sm dark:bg-slate-800 dark:border dark:border-slate-700">
             <div>
                 <p class="text-gray-500">Pelajaran</p>
                 <p class="font-bold text-gray-800">{{ scheduleName }}</p>
@@ -37,8 +37,8 @@
             </div>
         </div>
 
-        <div v-if="type === 'formal'" class="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
-            <label for="materi" class="block text-sm font-semibold text-gray-700">Jurnal Mengajar</label>
+        <div v-if="type === 'formal'" class="bg-white border border-gray-200 rounded-xl p-4 space-y-2 dark:bg-slate-900 dark:border-slate-700">
+            <label for="materi" class="block text-sm font-semibold text-gray-700 dark:text-slate-200">Jurnal Mengajar</label>
             <textarea
                 id="materi"
                 v-model="materi"
@@ -46,9 +46,9 @@
                 placeholder="Tulis materi yang diajarkan hari ini"
                 class="input-field w-full"
             ></textarea>
-            <p class="text-xs text-gray-500">Materi ini disimpan untuk absensi formal pada jadwal dan tanggal yang dipilih.</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">Materi ini disimpan untuk absensi formal pada jadwal dan tanggal yang dipilih.</p>
 
-            <label for="rangkuman" class="block text-sm font-semibold text-gray-700 mt-3">Rangkuman (Opsional)</label>
+            <label for="rangkuman" class="block text-sm font-semibold text-gray-700 mt-3 dark:text-slate-200">Rangkuman (Opsional)</label>
             <textarea
                 id="rangkuman"
                 v-model="rangkuman"
@@ -56,7 +56,7 @@
                 placeholder="Tulis rangkuman pembelajaran (boleh panjang)"
                 class="input-field w-full"
             ></textarea>
-            <p class="text-xs text-gray-500">Rangkuman mendukung teks panjang/paragraf dan akan tampil di jurnal mengajar.</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400">Rangkuman mendukung teks panjang/paragraf dan akan tampil di jurnal mengajar.</p>
         </div>
 
         <!-- Student List (Desktop) -->
@@ -152,14 +152,14 @@
         </div>
         
         <!-- Footer -->
-                <div v-if="formError" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                <div v-if="formError" class="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 dark:bg-red-950/40 dark:border-red-900 dark:text-red-300">
                         {{ formError }}
                 </div>
         <div class="flex justify-end gap-3 pt-2 border-t mt-4">
              <button type="button" class="btn-secondary" @click="$emit('close')">Batal</button>
-                         <button type="submit" class="btn-primary" :disabled="submitting || !students.length">
+                         <button type="submit" class="btn-primary" :disabled="submitting || !students.length || isSubmitDisabled">
                 <span v-if="submitting">Menyimpan...</span>
-                <span v-else>Simpan Absensi</span>
+                    <span v-else>{{ isSubmitDisabled ? 'Isi Materi Dulu' : 'Simpan Absensi' }}</span>
              </button>
         </div>
         </form>
@@ -198,6 +198,7 @@ const materi = ref('');
 const rangkuman = ref('');
 const date = ref(props.date);
 const formError = ref('');
+const isSubmitDisabled = computed(() => props.type === 'formal' && !materi.value.trim());
 
 // Derived Info
 const scheduleName = computed(() => {

@@ -1,15 +1,15 @@
 <template>
-  <div class="space-y-5">
+  <div class="space-y-5 text-gray-700 dark:text-slate-200">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800">Jurnal Mengajar</h1>
-        <p class="text-sm text-gray-500 mt-1">Ringkasan materi mengajar formal per jadwal dan tanggal.</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-slate-100">Jurnal Mengajar</h1>
+        <p class="text-sm text-gray-500 mt-1 dark:text-slate-400">Ringkasan materi mengajar formal per jadwal dan tanggal.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button
           @click="downloadSelected"
           :disabled="downloading || !selectedRows.length"
-          class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
         >
           <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4m-9 8h10" /></svg>
           {{ downloading ? 'Mengunduh...' : `Download Terpilih (${selectedRows.length})` }}
@@ -17,41 +17,41 @@
       </div>
     </div>
 
-    <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+    <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Dari Tanggal</label>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">Dari Tanggal</label>
           <input v-model="filters.start_date" type="date" class="input-field text-sm" @change="fetchJournals" />
         </div>
         <div>
-          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Sampai Tanggal</label>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">Sampai Tanggal</label>
           <input v-model="filters.end_date" type="date" class="input-field text-sm" @change="fetchJournals" />
         </div>
         <div class="md:col-span-2">
-          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500">Cari</label>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">Cari</label>
           <div class="relative">
-            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input v-model="search" type="text" placeholder="Pelajaran, kelas, pengajar, materi..." class="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30" @input="debouncedFetch" />
+            <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input v-model="search" type="text" placeholder="Pelajaran, kelas, pengajar, materi..." class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder:text-slate-500" @input="debouncedFetch" />
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="selectedRows.length" class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+    <div v-if="selectedRows.length" class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
       <span>{{ selectedRows.length }} jurnal dipilih</span>
       <button class="font-semibold hover:underline" @click="selectedRows = []">Kosongkan</button>
     </div>
 
-    <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <div v-if="loading" class="py-12 text-center">
         <div class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"></div>
-        <p class="mt-2 text-sm text-gray-500">Memuat jurnal mengajar...</p>
+        <p class="mt-2 text-sm text-gray-500 dark:text-slate-400">Memuat jurnal mengajar...</p>
       </div>
 
       <template v-else-if="journals.length">
         <div class="hidden overflow-x-auto lg:block">
           <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-slate-800 dark:text-slate-400">
               <tr>
                 <th class="px-4 py-3">
                   <input type="checkbox" :checked="allCurrentSelected" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelectAll" />
@@ -68,37 +68,37 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
               <template v-for="group in groupedJournals" :key="group.key">
-                <tr class="bg-emerald-50/60">
-                  <td colspan="9" class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
-                    {{ group.label }} <span class="text-emerald-700/70">({{ group.rows.length }})</span>
+                <tr class="bg-emerald-50/60 dark:bg-emerald-950/30">
+                  <td colspan="9" class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
+                    {{ group.label }} <span class="text-emerald-700/70 dark:text-emerald-400/70">({{ group.rows.length }})</span>
                   </td>
                 </tr>
-                <tr v-for="row in group.rows" :key="row.journal_key" class="align-top hover:bg-gray-50/70">
+                <tr v-for="row in group.rows" :key="row.journal_key" class="align-top hover:bg-gray-50/70 dark:hover:bg-slate-800/60">
                   <td class="px-4 py-3">
                     <input type="checkbox" :checked="selectedRows.includes(row.journal_key)" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelection(row.journal_key)" />
                   </td>
-                  <td class="px-4 py-3 text-gray-600">{{ formatDate(row.tanggal) }}</td>
-                  <td class="px-4 py-3 font-semibold text-gray-800">{{ row.lesson_name }}</td>
-                  <td class="px-4 py-3 text-gray-700">{{ row.kelas_name || '-' }}</td>
-                  <td class="px-4 py-3 text-gray-700">{{ row.teacher_name }}</td>
-                  <td class="px-4 py-3 text-gray-600">
+                  <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ formatDate(row.tanggal) }}</td>
+                  <td class="px-4 py-3 font-semibold text-gray-800 dark:text-slate-100">{{ row.lesson_name }}</td>
+                  <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ row.kelas_name || '-' }}</td>
+                  <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ row.teacher_name }}</td>
+                  <td class="px-4 py-3 text-gray-600 dark:text-slate-300">
                     <div class="max-w-md whitespace-pre-line leading-6">{{ row.materi || '-' }}</div>
                   </td>
-                  <td class="px-4 py-3 text-gray-600">
+                  <td class="px-4 py-3 text-gray-600 dark:text-slate-300">
                     <div class="max-w-md whitespace-pre-line leading-6">{{ row.rangkuman || '-' }}</div>
                   </td>
                   <td class="px-4 py-3 text-center">
-                    <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">{{ row.present_count }} / {{ row.student_count }}</span>
+                    <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">{{ row.present_count }} / {{ row.student_count }}</span>
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex justify-end gap-1.5">
-                      <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50" title="Download" @click="downloadRows([row])">
+                      <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title="Download" @click="downloadRows([row])">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4m-9 8h10" /></svg>
                       </button>
-                      <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50" title="Edit" @click="openEdit(row)">
+                      <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/40" title="Edit" @click="openEdit(row)">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
-                      <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50" title="Hapus" @click="deleteJournal(row)">
+                      <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40" title="Hapus" @click="deleteJournal(row)">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </div>
@@ -111,8 +111,8 @@
 
         <div class="divide-y divide-gray-100 lg:hidden">
           <template v-for="group in groupedJournals" :key="`mobile-${group.key}`">
-            <div class="bg-emerald-50/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
-              {{ group.label }} <span class="text-emerald-700/70">({{ group.rows.length }})</span>
+            <div class="bg-emerald-50/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+              {{ group.label }} <span class="text-emerald-700/70 dark:text-emerald-400/70">({{ group.rows.length }})</span>
             </div>
             <div v-for="row in group.rows" :key="`mobile-${row.journal_key}`" class="space-y-3 p-4">
               <div class="flex items-start justify-between gap-3">
@@ -123,18 +123,18 @@
                 </div>
                 <input type="checkbox" :checked="selectedRows.includes(row.journal_key)" class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelection(row.journal_key)" />
               </div>
-              <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs leading-6 text-emerald-900">{{ row.materi || '-' }}</div>
-              <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs leading-6 text-cyan-900 whitespace-pre-line">{{ row.rangkuman || '-' }}</div>
+              <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs leading-6 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">{{ row.materi || '-' }}</div>
+              <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs leading-6 text-cyan-900 whitespace-pre-line dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-100">{{ row.rangkuman || '-' }}</div>
               <div class="flex items-center justify-between gap-3">
-                <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">Hadir {{ row.present_count }} / {{ row.student_count }}</span>
+                <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">Hadir {{ row.present_count }} / {{ row.student_count }}</span>
                 <div class="flex gap-1.5">
-                  <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50" @click="downloadRows([row])">
+                  <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" @click="downloadRows([row])">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4m-9 8h10" /></svg>
                   </button>
-                  <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50" @click="openEdit(row)">
+                  <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/40" @click="openEdit(row)">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50" @click="deleteJournal(row)">
+                  <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40" @click="deleteJournal(row)">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 </div>
@@ -143,7 +143,7 @@
           </template>
         </div>
 
-        <div class="flex items-center justify-between border-t border-gray-100 bg-gray-50/70 px-4 py-3 text-sm text-gray-500">
+        <div class="flex items-center justify-between border-t border-gray-100 bg-gray-50/70 px-4 py-3 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           <p>{{ paginationLabel }}</p>
           <div class="flex gap-2">
             <button class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40" :disabled="page <= 1" @click="page--; fetchJournals()">Prev</button>
@@ -152,25 +152,25 @@
         </div>
       </template>
 
-      <div v-else class="py-12 text-center text-sm text-gray-500">Belum ada jurnal mengajar pada periode ini.</div>
+      <div v-else class="py-12 text-center text-sm text-gray-500 dark:text-slate-400">Belum ada jurnal mengajar pada periode ini.</div>
     </div>
 
     <Modal :show="showEditModal" title="Edit Jurnal Mengajar" max-width="2xl" @close="closeEdit">
       <form class="space-y-4" @submit.prevent="saveEdit">
-        <div class="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div class="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
           <p><strong>{{ editingRow?.lesson_name }}</strong></p>
           <p>{{ editingRow?.kelas_name || '-' }} · {{ editingRow?.teacher_name || '-' }}</p>
           <p>{{ editingRow ? formatDate(editingRow.tanggal) : '-' }}</p>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">Materi</label>
-          <textarea v-model="editMateri" rows="6" class="input-field w-full" placeholder="Tulis materi mengajar"></textarea>
+          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Materi</label>
+          <textarea v-model="editMateri" rows="6" class="input-field w-full dark:bg-slate-950 dark:text-slate-100 dark:border-slate-700" placeholder="Tulis materi mengajar"></textarea>
         </div>
         <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700">Rangkuman (Opsional)</label>
-          <textarea v-model="editRangkuman" rows="8" class="input-field w-full" placeholder="Tulis rangkuman pembelajaran (boleh panjang)"></textarea>
+          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Rangkuman (Opsional)</label>
+          <textarea v-model="editRangkuman" rows="8" class="input-field w-full dark:bg-slate-950 dark:text-slate-100 dark:border-slate-700" placeholder="Tulis rangkuman pembelajaran (boleh panjang)"></textarea>
         </div>
-        <div class="flex justify-end gap-3 border-t pt-3">
+        <div class="flex justify-end gap-3 border-t border-gray-100 pt-3 dark:border-slate-700">
           <button type="button" class="btn-secondary" @click="closeEdit">Batal</button>
           <button type="submit" class="btn-primary" :disabled="savingEdit">{{ savingEdit ? 'Menyimpan...' : 'Simpan' }}</button>
         </div>

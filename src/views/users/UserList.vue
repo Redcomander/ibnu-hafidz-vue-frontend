@@ -12,14 +12,32 @@
           Kelola data pengguna dan hak akses sistem
         </p>
       </div>
-      <button
-        v-if="auth.hasPermission('users.create')"
-        @click="createUser"
-        class="btn-primary flex items-center gap-2"
-      >
-        <SvgIcon name="plus" :size="16" />
-        <span>Tambah Pengguna</span>
-      </button>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-if="auth.hasPermission('users.view')"
+          @click="exportUsers('excel')"
+          class="btn-secondary flex items-center gap-2"
+        >
+          <SvgIcon name="document-text" :size="16" />
+          <span>Export Excel</span>
+        </button>
+        <button
+          v-if="auth.hasPermission('users.view')"
+          @click="exportUsers('pdf')"
+          class="btn-secondary flex items-center gap-2"
+        >
+          <SvgIcon name="document-download" :size="16" />
+          <span>Export PDF</span>
+        </button>
+        <button
+          v-if="auth.hasPermission('users.create')"
+          @click="createUser"
+          class="btn-primary flex items-center gap-2"
+        >
+          <SvgIcon name="plus" :size="16" />
+          <span>Tambah Pengguna</span>
+        </button>
+      </div>
     </div>
 
     <!-- Filters & Search -->
@@ -405,6 +423,34 @@ async function handleDelete() {
 
 function handleSaved() {
   fetchData();
+}
+
+async function exportUsers(format) {
+  const endpoint = format === "excel" ? "/users/export/excel" : "/users/export/pdf";
+  const fallbackName = format === "excel" ? "user_credentials.xlsx" : "user_credentials.pdf";
+
+  try {
+    const response = await api.get(endpoint, { responseType: "blob" });
+    const disposition = response.headers["content-disposition"] || "";
+    const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+    const filename = match?.[1] || fallbackName;
+
+    const blob = new Blob([response.data], {
+      type: response.headers["content-type"] || "application/octet-stream",
+    });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(url);
+  } catch (e) {
+    toast.error(e?.response?.data?.message || e?.response?.data?.error || "Gagal export pengguna");
+  }
 }
 
 function getAvatarUrl(raw) {
