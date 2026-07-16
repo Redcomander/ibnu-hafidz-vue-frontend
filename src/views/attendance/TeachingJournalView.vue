@@ -37,9 +37,12 @@
       </div>
     </div>
 
-    <div v-if="selectedRows.length" class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+    <div v-if="selectedRows.length" class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
       <span>{{ selectedRows.length }} jurnal dipilih</span>
-      <button class="font-semibold hover:underline" @click="selectedRows = []">Kosongkan</button>
+      <div class="flex flex-wrap gap-2">
+        <button class="font-semibold hover:underline" @click="toggleSelectAll">{{ allCurrentSelected ? 'Batal pilih semua' : 'Pilih semua halaman ini' }}</button>
+        <button class="font-semibold hover:underline" @click="selectedRows = []">Kosongkan</button>
+      </div>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -49,96 +52,49 @@
       </div>
 
       <template v-else-if="journals.length">
-        <div class="hidden overflow-x-auto lg:block">
-          <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-slate-800 dark:text-slate-400">
-              <tr>
-                <th class="px-4 py-3">
-                  <input type="checkbox" :checked="allCurrentSelected" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelectAll" />
-                </th>
-                <th class="px-4 py-3">Tanggal</th>
-                <th class="px-4 py-3">Pelajaran</th>
-                <th class="px-4 py-3">Kelas</th>
-                <th class="px-4 py-3">Pengajar</th>
-                <th class="px-4 py-3">Materi</th>
-                <th class="px-4 py-3">Rangkuman</th>
-                <th class="px-4 py-3 text-center">Jumlah Kehadiran</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <template v-for="group in groupedJournals" :key="group.key">
-                <tr class="bg-emerald-50/60 dark:bg-emerald-950/30">
-                  <td colspan="9" class="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
-                    {{ group.label }} <span class="text-emerald-700/70 dark:text-emerald-400/70">({{ group.rows.length }})</span>
-                  </td>
-                </tr>
-                <tr v-for="row in group.rows" :key="row.journal_key" class="align-top hover:bg-gray-50/70 dark:hover:bg-slate-800/60">
-                  <td class="px-4 py-3">
-                    <input type="checkbox" :checked="selectedRows.includes(row.journal_key)" class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelection(row.journal_key)" />
-                  </td>
-                  <td class="px-4 py-3 text-gray-600 dark:text-slate-300">{{ formatDate(row.tanggal) }}</td>
-                  <td class="px-4 py-3 font-semibold text-gray-800 dark:text-slate-100">{{ row.lesson_name }}</td>
-                  <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ row.kelas_name || '-' }}</td>
-                  <td class="px-4 py-3 text-gray-700 dark:text-slate-300">{{ row.teacher_name }}</td>
-                  <td class="px-4 py-3 text-gray-600 dark:text-slate-300">
-                    <div class="max-w-md whitespace-pre-line leading-6">{{ row.materi || '-' }}</div>
-                  </td>
-                  <td class="px-4 py-3 text-gray-600 dark:text-slate-300">
-                    <div class="max-w-md whitespace-pre-line leading-6">{{ row.rangkuman || '-' }}</div>
-                  </td>
-                  <td class="px-4 py-3 text-center">
-                    <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">{{ row.present_count }} / {{ row.student_count }}</span>
-                  </td>
-                  <td class="px-4 py-3">
-                    <div class="flex justify-end gap-1.5">
-                      <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" title="Download" @click="downloadRows([row])">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4m-9 8h10" /></svg>
-                      </button>
-                      <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/40" title="Edit" @click="openEdit(row)">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      </button>
-                      <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40" title="Hapus" @click="deleteJournal(row)">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="divide-y divide-gray-100 lg:hidden">
+        <div class="space-y-6 p-4">
           <template v-for="group in groupedJournals" :key="`mobile-${group.key}`">
-            <div class="bg-emerald-50/60 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+            <div class="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
               {{ group.label }} <span class="text-emerald-700/70 dark:text-emerald-400/70">({{ group.rows.length }})</span>
+              <button class="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold normal-case tracking-normal text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/50" @click="group.rows.forEach(row => toggleSelection(row.journal_key))">Pilih grup</button>
             </div>
-            <div v-for="row in group.rows" :key="`mobile-${row.journal_key}`" class="space-y-3 p-4">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="text-sm font-semibold text-gray-800">{{ row.lesson_name }}</p>
-                  <p class="text-xs text-gray-500">{{ formatDate(row.tanggal) }} · {{ row.kelas_name || '-' }}</p>
-                  <p class="mt-1 text-xs text-gray-500">{{ row.teacher_name }}</p>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <article v-for="row in group.rows" :key="`mobile-${row.journal_key}`" class="flex flex-col rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-slate-950/50">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">{{ formatDate(row.tanggal) }}</p>
+                    <p class="mt-1 text-sm font-semibold text-gray-800 dark:text-slate-100">{{ row.lesson_name }}</p>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">{{ row.kelas_name || '-' }} · {{ row.teacher_name }}</p>
+                  </div>
+                  <input type="checkbox" :checked="selectedRows.includes(row.journal_key)" class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelection(row.journal_key)" />
                 </div>
-                <input type="checkbox" :checked="selectedRows.includes(row.journal_key)" class="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" @change="toggleSelection(row.journal_key)" />
-              </div>
-              <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs leading-6 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">{{ row.materi || '-' }}</div>
-              <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2 text-xs leading-6 text-cyan-900 whitespace-pre-line dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-100">{{ row.rangkuman || '-' }}</div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">Hadir {{ row.present_count }} / {{ row.student_count }}</span>
-                <div class="flex gap-1.5">
-                  <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" @click="downloadRows([row])">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4m-9 8h10" /></svg>
-                  </button>
-                  <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/40" @click="openEdit(row)">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                  </button>
-                  <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40" @click="deleteJournal(row)">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+
+                <div class="mt-4 space-y-3 text-xs leading-6 text-gray-600 dark:text-slate-300">
+                  <div>
+                    <p class="mb-1 font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Materi</p>
+                    <p class="rounded-xl bg-emerald-50 px-3 py-2 text-gray-800 dark:bg-emerald-950/30 dark:text-emerald-100">{{ row.materi || '-' }}</p>
+                  </div>
+                  <div>
+                    <p class="mb-1 font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">Rangkuman</p>
+                    <p class="rounded-xl bg-cyan-50 px-3 py-2 text-gray-800 dark:bg-cyan-950/30 dark:text-cyan-100">{{ previewRangkuman(row.rangkuman) }}</p>
+                  </div>
                 </div>
-              </div>
+
+                <div class="mt-4 flex items-center justify-between gap-3">
+                  <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">Hadir {{ row.present_count }} / {{ row.student_count }}</span>
+                  <div class="flex gap-1.5">
+                    <button class="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" @click="downloadRows([row])">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v10m0 0l-4-4m4 4l4-4m-9 8h10" /></svg>
+                    </button>
+                    <button v-if="canManage" class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950/40" @click="openEdit(row)">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    </button>
+                    <button v-if="canManage" class="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40" @click="deleteJournal(row)">
+                      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
+                </div>
+              </article>
             </div>
           </template>
         </div>
@@ -146,8 +102,8 @@
         <div class="flex items-center justify-between border-t border-gray-100 bg-gray-50/70 px-4 py-3 text-sm text-gray-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           <p>{{ paginationLabel }}</p>
           <div class="flex gap-2">
-            <button class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40" :disabled="page <= 1" @click="page--; fetchJournals()">Prev</button>
-            <button class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40" :disabled="page * perPage >= total" @click="page++; fetchJournals()">Next</button>
+            <button class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800" :disabled="page <= 1" @click="page--; fetchJournals()">Prev</button>
+            <button class="rounded-lg border border-gray-200 px-3 py-1.5 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:hover:bg-slate-800" :disabled="page * perPage >= total" @click="page++; fetchJournals()">Next</button>
           </div>
         </div>
       </template>
@@ -304,6 +260,13 @@ function toggleSelectAll() {
 
 function selectedPayloadFromRows(rows) {
   return rows.map(row => ({ jadwal_id: row.jadwal_id, tanggal: row.tanggal }))
+}
+
+function previewRangkuman(text) {
+  const clean = (text || '').trim()
+  if (!clean) return '-'
+  const maxLength = 180
+  return clean.length > maxLength ? `${clean.slice(0, maxLength).trimEnd()}...` : clean
 }
 
 async function downloadRows(rows) {
