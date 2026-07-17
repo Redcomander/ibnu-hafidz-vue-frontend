@@ -261,12 +261,28 @@
                 <div class="flex items-center justify-end gap-2">
                   <router-link
                     v-if="auth.hasPermission('kelas.view')"
-                    :to="`/kelas/${item.id}`"
+                    :to="{ name: 'kelas-detail', params: { id: item.id } }"
                     class="text-gray-500 hover:text-gray-700 transition text-sm px-2 py-1 rounded hover:bg-gray-100"
                     title="Detail"
                   >
                     <SvgIcon name="eye" :size="16" />
                   </router-link>
+                  <button
+                    v-if="auth.hasPermission('kelas.view')"
+                    @click="exportKelas(item, 'excel')"
+                    class="text-emerald-600 hover:text-emerald-700 transition text-sm px-2 py-1 rounded hover:bg-emerald-50"
+                    title="Export Excel"
+                  >
+                    <SvgIcon name="download" :size="16" />
+                  </button>
+                  <button
+                    v-if="auth.hasPermission('kelas.view')"
+                    @click="exportKelas(item, 'pdf')"
+                    class="text-rose-600 hover:text-rose-700 transition text-sm px-2 py-1 rounded hover:bg-rose-50"
+                    title="Export PDF"
+                  >
+                    <SvgIcon name="document" :size="16" />
+                  </button>
                   <button
                     v-if="auth.hasPermission('kelas.edit')"
                     @click="openMembersModal(item)"
@@ -355,6 +371,22 @@
             </div>
 
             <div class="flex justify-end gap-2 mt-3">
+              <button
+                v-if="auth.hasPermission('kelas.view')"
+                @click="exportKelas(item, 'excel')"
+                class="text-emerald-600 hover:text-emerald-700 text-sm px-3 py-1.5 bg-emerald-50 rounded-md flex items-center gap-1"
+              >
+                <SvgIcon name="download" :size="14" />
+                Excel
+              </button>
+              <button
+                v-if="auth.hasPermission('kelas.view')"
+                @click="exportKelas(item, 'pdf')"
+                class="text-rose-600 hover:text-rose-700 text-sm px-3 py-1.5 bg-rose-50 rounded-md flex items-center gap-1"
+              >
+                <SvgIcon name="document" :size="14" />
+                PDF
+              </button>
               <button
                 v-if="auth.hasPermission('kelas.edit')"
                 @click="openMembersModal(item)"
@@ -543,5 +575,29 @@ async function handleDelete() {
 
 function handleSaved() {
   fetchData();
+}
+
+function classFileBase(item) {
+  return `${(item?.nama || 'kelas').toString().trim().replace(/\s+/g, '_')}_${(item?.tingkat || '').toString().trim().replace(/\s+/g, '_')}`.replace(/_+$/g, '')
+}
+
+async function exportKelas(item, type) {
+  if (!item?.id) return
+  try {
+    const endpoint = type === 'excel' ? 'export-excel' : 'export-pdf'
+    const fileExt = type === 'excel' ? 'xlsx' : 'pdf'
+    const res = await api.get(`/kelas/${item.id}/${endpoint}`, { responseType: 'blob' })
+    const blobUrl = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = `Daftar_Santri_${classFileBase(item)}.${fileExt}`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(blobUrl)
+  } catch (e) {
+    console.error(e)
+    toast.error('Gagal export data kelas')
+  }
 }
 </script>
