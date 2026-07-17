@@ -323,13 +323,13 @@ async function exportKelas(type) {
   if (!kelas.value?.id) return;
   try {
     const endpoint = type === 'excel' ? 'export-excel' : 'export-pdf';
-    const fileExt = type === 'excel' ? 'csv' : 'txt';
+    const fileExt = type === 'excel' ? 'xlsx' : 'pdf';
     const res = await api.get(`/kelas/${kelas.value.id}/${endpoint}`, { responseType: 'blob' });
     const blob = new Blob([res.data]);
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `kelas-${kelas.value.nama || kelas.value.id}.${fileExt}`;
+    a.download = `Daftar_Santri_${(kelas.value.nama || kelas.value.id).toString().replace(/\s+/g, '_')}.${fileExt}`;
     a.click();
     window.URL.revokeObjectURL(url);
   } catch (e) {
