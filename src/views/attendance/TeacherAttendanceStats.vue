@@ -18,6 +18,10 @@
           <SvgIcon name="download" :size="16" />
           <span class="hidden sm:inline">{{ exporting === 'excel' ? 'Mengunduh...' : 'Export Excel' }}</span>
         </button>
+        <button @click="exportMissingReport()" :disabled="exporting === 'missing'" class="btn-export bg-amber-600 hover:bg-amber-700">
+          <SvgIcon name="download" :size="16" />
+          <span class="hidden sm:inline">{{ exporting === 'missing' ? 'Mengunduh...' : 'Export Belum Isi' }}</span>
+        </button>
       </div>
     </div>
 
@@ -903,6 +907,39 @@ async function exportFile(format) {
   } catch (err) {
     console.error(`Gagal export ${format}:`, err)
     alert(`Gagal mengunduh file ${format.toUpperCase()}`)
+  } finally {
+    exporting.value = null
+  }
+}
+
+async function exportMissingReport() {
+  if (exporting.value) return
+  exporting.value = 'missing'
+
+  try {
+    const params = {
+      type: attendanceType.value,
+      ...filters.value
+    }
+    const query = new URLSearchParams()
+    Object.entries(params).forEach(([k, v]) => {
+      if (v) query.append(k, v)
+    })
+
+    const url = `/attendance/export/teacher/missing/pdf?${query.toString()}`
+    const response = await api.get(url, { responseType: 'blob' })
+
+    const urlBlob = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = urlBlob
+    link.setAttribute('download', `Laporan_Guru_Belum_Isi_Absensi_${params.type}_PDF.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(urlBlob)
+  } catch (err) {
+    console.error('Gagal export laporan belum isi:', err)
+    alert('Gagal mengunduh laporan guru belum isi absensi santri')
   } finally {
     exporting.value = null
   }
