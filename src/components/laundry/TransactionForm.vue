@@ -88,10 +88,10 @@
                   <div class="flex justify-between items-center">
                     <div>
                       <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Harga</p>
-                      <p class="text-xs text-gray-500 mt-1">{{ form.berat_kg }} kg × Rp 4.500/kg</p>
+                      <p class="text-xs text-gray-500 mt-1">{{ form.berat_kg }} kg × Rp 5.000/kg</p>
                     </div>
                     <p class="text-2xl font-bold" :class="selectedAccountDetails?.blocked ? 'text-gray-400' : 'text-green-600'">
-                      Rp {{ (form.berat_kg * 4500).toLocaleString('id-ID') }}
+                      Rp {{ (form.berat_kg * 5000).toLocaleString('id-ID') }}
                     </p>
                   </div>
                 </div>
@@ -226,7 +226,7 @@ async function saveTransaction() {
       berat_kg: parseFloat(form.value.berat_kg),
       catatan: form.value.catatan,
       tanggal: new Date().toISOString().split('T')[0], // Defaults to today
-      harga_per_kg: 4500 // Can be fetched from settings later, hardcode for now based on Laravel
+      harga_per_kg: 5000 // Can be fetched from settings later, hardcode for now based on Laravel
     };
     await api.post("/laundry/transactions", payload);
     toast.success("Transaksi berhasil ditambahkan");
