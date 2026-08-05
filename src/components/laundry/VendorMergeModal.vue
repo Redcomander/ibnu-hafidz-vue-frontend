@@ -217,33 +217,34 @@ function closeModal() {
   emit("update:show", false);
 }
 
-function submitMerge() {
+async function submitMerge() {
   let url = `/laundry/export/vendors/pdf?period=${filters.value.period}`;
-  
+
   if (filters.value.period === "custom") {
     url += `&start_date=${filters.value.start_date}&end_date=${filters.value.end_date}`;
   }
-  
-  // Append merge groups
+
   mergeGroups.value.forEach((group) => {
     if (group.selectedIds.length >= 2) {
       url += `&merge_groups[]=${group.selectedIds.join(',')}`;
     }
   });
 
-  const fullUrl = `${api.defaults.baseURL || 'http://localhost:8080/api'}${url}`;
-  
-  const a = document.createElement("a");
-  a.href = fullUrl;
-  a.target = "_blank";
-  
-  const token = auth.accessToken;
-  if (token) {
-    a.href += `&token=${token}`;
+  try {
+    const response = await api.get(url, { responseType: 'blob' });
+    const contentDisposition = response.headers['content-disposition'] || '';
+    const match = contentDisposition.match(/filename="?([^\";\/]+)"?/i);
+    const filename = match?.[1] || `rekap_vendor_${new Date().toISOString().slice(0, 10)}.pdf`;
+    const objectUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    toast.error(error?.response?.data?.message || error?.response?.data?.error || 'Gagal mengekspor data vendor');
   }
-  
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
 }
 </script>
