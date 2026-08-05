@@ -10,48 +10,93 @@
         leave-from="opacity-100"
         leave-to="opacity-0"
       >
-        <div class="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+        <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" />
       </TransitionChild>
 
-      <div class="fixed inset-0 overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center">
-          <TransitionChild
-            as="template"
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
+      <!-- Bottom-sheet on mobile, centered dialog on sm+ -->
+      <div class="fixed inset-0 flex flex-col justify-end sm:justify-center sm:items-center sm:p-4 overflow-y-auto">
+        <TransitionChild
+          as="template"
+          enter="duration-300 ease-out"
+          enter-from="opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"
+          enter-to="opacity-100 translate-y-0 sm:scale-100"
+          leave="duration-200 ease-in"
+          leave-from="opacity-100 translate-y-0 sm:scale-100"
+          leave-to="opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"
+        >
+          <DialogPanel
+            class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl text-left overflow-hidden"
           >
-            <DialogPanel
-              class="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
-            >
-              <DialogTitle as="h3" class="text-lg font-bold leading-6 text-gray-900 mb-4">
-                Tambah Transaksi Laundry
-              </DialogTitle>
+            <!-- Drag handle (mobile visual cue) -->
+            <div class="flex justify-center pt-3 pb-1 sm:hidden">
+              <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+            </div>
+
+            <div class="px-5 pb-6 pt-3 sm:p-6">
+              <div class="flex items-center justify-between mb-5">
+                <DialogTitle as="h3" class="text-lg font-bold text-gray-900">
+                  Tambah Transaksi Laundry
+                </DialogTitle>
+                <button @click="closeModal" type="button" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition">
+                  <SvgIcon name="x" :size="20" />
+                </button>
+              </div>
 
               <form @submit.prevent="saveTransaction" class="space-y-4">
+                <!-- Account picker -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Akun Laundry (Nomor / Nama) *
+                    Akun Laundry *
                   </label>
                   <SearchableSelect
                     v-model="form.laundry_account_id"
                     :options="accounts"
                     labelKey="displayText"
                     valueKey="id"
-                    placeholder="Ketik nama atau nomor laundry..."
+                    placeholder="Cari nama atau nomor laundry..."
                     required
                   />
-                  <p v-if="selectedAccountDetails" class="mt-1 text-xs" :class="selectedAccountDetails.blocked ? 'text-red-500 font-bold' : 'text-gray-500'">
-                    {{ selectedAccountDetails.blocked ? '⚠️ Akun ini sedang diblokir!' : `Sisa kuota bulan ini: ${Math.max(0, 30 - parseFloat(selectedAccountDetails.monthly_weight)).toFixed(2)} Kg` }}
-                  </p>
                 </div>
 
+                <!-- Selected account card — shows full name without truncation -->
+                <div v-if="selectedAccountDetails" class="rounded-xl border px-4 py-3 transition-colors"
+                  :class="selectedAccountDetails.blocked
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-indigo-50 border-indigo-100'"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-[11px] font-semibold uppercase tracking-wider"
+                        :class="selectedAccountDetails.blocked ? 'text-red-400' : 'text-indigo-400'">
+                        {{ selectedAccountDetails.nomor_laundry }}
+                      </p>
+                      <!-- Full name — wraps naturally, never truncated -->
+                      <p class="text-base font-bold text-gray-900 mt-0.5 leading-snug">
+                        {{ selectedAccountDetails.owner_name }}
+                      </p>
+                      <p class="text-xs text-gray-500 mt-1">
+                        {{ selectedAccountDetails.vendor?.name || '—' }}
+                      </p>
+                    </div>
+                    <div class="shrink-0 text-right">
+                      <span v-if="selectedAccountDetails.blocked"
+                        class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 uppercase tracking-wide">
+                        Diblokir
+                      </span>
+                      <template v-else>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wide">Sisa Kuota</p>
+                        <p class="text-sm font-bold text-indigo-600">
+                          {{ Math.max(0, 30 - parseFloat(selectedAccountDetails.monthly_weight || 0)).toFixed(2) }} Kg
+                        </p>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Weight input -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Berat Laundry (Kg) *
+                    Berat (Kg) *
                   </label>
                   <div class="relative">
                     <input
@@ -69,6 +114,7 @@
                   </div>
                 </div>
 
+                <!-- Notes -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
                     Catatan (Opsional)
@@ -81,43 +127,38 @@
                   ></textarea>
                 </div>
 
-                <!-- Total Harga Calculation -->
-                <div v-if="form.laundry_account_id && form.berat_kg > 0" class="mt-4 p-4 rounded-xl border-2 transition-all duration-300"
-                  :class="selectedAccountDetails?.blocked ? 'bg-gray-50 border-gray-200' : 'bg-green-50/50 border-green-200'"
+                <!-- Total price -->
+                <div v-if="form.laundry_account_id && form.berat_kg > 0"
+                  class="rounded-xl border-2 px-4 py-3 flex items-center justify-between transition-all duration-200"
+                  :class="selectedAccountDetails?.blocked ? 'bg-gray-50 border-gray-200' : 'bg-green-50 border-green-200'"
                 >
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Harga</p>
-                      <p class="text-xs text-gray-500 mt-1">{{ form.berat_kg }} kg × Rp 5.000/kg</p>
-                    </div>
-                    <p class="text-2xl font-bold" :class="selectedAccountDetails?.blocked ? 'text-gray-400' : 'text-green-600'">
-                      Rp {{ (form.berat_kg * 5000).toLocaleString('id-ID') }}
-                    </p>
+                  <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Harga</p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ form.berat_kg }} kg × Rp 5.000</p>
                   </div>
-                </div>
-
-                <!-- Usage Warning -->
-                <div v-if="accountStats && (accountStats.weekly.exceeded || accountStats.monthly.exceeded)" 
-                     class="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <SvgIcon name="warning" :size="20" class="text-red-500 shrink-0 mt-0.5" />
-                  <p class="text-sm text-red-700 font-medium">
-                    <span v-if="accountStats.monthly.exceeded">Kuota bulanan (30kg) telah terlampaui!</span>
-                    <span v-else>Kuota mingguan (7.5kg) telah terlampaui!</span> 
-                    Transaksi tetap bisa dilanjutkan namun akan dicatat sebagai hutang/tagihan tambahan.
+                  <p class="text-2xl font-bold tabular-nums"
+                    :class="selectedAccountDetails?.blocked ? 'text-gray-400' : 'text-green-600'">
+                    Rp {{ (form.berat_kg * 5000).toLocaleString('id-ID') }}
                   </p>
                 </div>
 
-                <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    @click="closeModal"
-                    :disabled="loading"
-                  >
+                <!-- Quota exceeded warning -->
+                <div v-if="accountStats && (accountStats.weekly.exceeded || accountStats.monthly.exceeded)"
+                  class="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <SvgIcon name="warning" :size="18" class="text-red-500 shrink-0 mt-0.5" />
+                  <p class="text-sm text-red-700 font-medium">
+                    <span v-if="accountStats.monthly.exceeded">Kuota bulanan (30kg) terlampaui!</span>
+                    <span v-else>Kuota mingguan (7.5kg) terlampaui!</span>
+                    Akan dicatat sebagai tagihan tambahan.
+                  </p>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                  <button type="button" class="btn-secondary flex-1" @click="closeModal" :disabled="loading">
                     Batal
                   </button>
-                  <button type="submit" class="btn-primary" :disabled="loading || (selectedAccountDetails && selectedAccountDetails.blocked)">
-                    <span v-if="loading" class="flex items-center gap-2">
+                  <button type="submit" class="btn-primary flex-1" :disabled="loading || (selectedAccountDetails && selectedAccountDetails.blocked)">
+                    <span v-if="loading" class="flex items-center justify-center gap-2">
                       <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Menyimpan...
                     </span>
@@ -125,9 +166,9 @@
                   </button>
                 </div>
               </form>
-            </DialogPanel>
-          </TransitionChild>
-        </div>
+            </div>
+          </DialogPanel>
+        </TransitionChild>
       </div>
     </Dialog>
   </TransitionRoot>
@@ -187,7 +228,7 @@ async function fetchAccounts() {
     const acctsData = res.data?.data || res.data || [];
     accounts.value = acctsData.map(a => ({
       ...a,
-      displayText: `${a.nomor_laundry} - ${a.owner_name} (${a.vendor?.name || 'N/A'})`
+      displayText: `${a.nomor_laundry} — ${a.owner_name}`
     }));
   } catch (e) {
     console.error("Failed fetching accounts", e);
