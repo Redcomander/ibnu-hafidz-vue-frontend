@@ -43,19 +43,77 @@
               </div>
 
               <form @submit.prevent="saveTransaction" class="space-y-4">
-                <!-- Account picker -->
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Akun Laundry *
+                <div ref="accountPickerRef" class="relative">
+                  <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                    Nomor Laundry / Pemilik *
                   </label>
-                  <SearchableSelect
-                    v-model="form.laundry_account_id"
-                    :options="accounts"
-                    labelKey="displayText"
-                    valueKey="id"
-                    placeholder="Cari nama atau nomor laundry..."
-                    required
-                  />
+
+                  <div class="relative">
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      class="w-full px-4 py-3.5 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition"
+                      :placeholder="selectedAccountDetails ? `${selectedAccountDetails.nomor_laundry} — ${selectedAccountDetails.owner_name}` : 'Cari nomor laundry atau nama...'"
+                      autocomplete="off"
+                      @focus="showAccountDropdown = true"
+                      @input="showAccountDropdown = true"
+                    />
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <SvgIcon name="search" :size="18" />
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="showAccountDropdown && filteredAccounts.length > 0"
+                    class="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+                  >
+                    <button
+                      v-for="account in filteredAccounts"
+                      :key="account.id"
+                      type="button"
+                      @click="selectAccount(account)"
+                      class="w-full px-4 py-3 text-left hover:bg-green-50 transition border-b border-gray-100 last:border-b-0"
+                      :class="account.blocked ? 'bg-red-50/60' : ''"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="flex items-center flex-wrap gap-1.5">
+                            <span class="font-semibold text-gray-900">{{ account.nomor_laundry }}</span>
+                            <span
+                              v-if="account.owner_type === 'Siswa'"
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700"
+                            >
+                              Siswa
+                            </span>
+                            <span
+                              v-if="account.owner_type === 'Guru'"
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700"
+                            >
+                              Guru
+                            </span>
+                            <span
+                              v-if="account.blocked"
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700"
+                            >
+                              Diblokir
+                            </span>
+                          </div>
+                          <div class="text-sm text-gray-600 mt-0.5 break-words">
+                            {{ account.owner_name }}
+                            <span class="text-gray-400">•</span>
+                            {{ account.vendor?.name || 'Tanpa vendor' }}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div
+                    v-if="showAccountDropdown && searchQuery && filteredAccounts.length === 0"
+                    class="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl p-4 text-center text-gray-500"
+                  >
+                    Tidak ada hasil untuk {{ searchQuery }}
+                  </div>
                 </div>
 
                 <!-- Selected account card — shows full name without truncation -->
@@ -71,7 +129,7 @@
                         {{ selectedAccountDetails.nomor_laundry }}
                       </p>
                       <!-- Full name — wraps naturally, never truncated -->
-                      <p class="text-base font-bold text-gray-900 mt-0.5 leading-snug">
+                      <p class="text-base font-bold text-gray-900 mt-0.5 leading-snug break-words">
                         {{ selectedAccountDetails.owner_name }}
                       </p>
                       <p class="text-xs text-gray-500 mt-1">
@@ -175,7 +233,7 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import {
   TransitionRoot,
   TransitionChild,
@@ -185,7 +243,6 @@ import {
 } from "@headlessui/vue";
 import api from "@/api";
 import { useToastStore } from "@/stores/toast";
-import SearchableSelect from "@/components/ui/SearchableSelect.vue";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 
 const props = defineProps({
@@ -204,10 +261,46 @@ const form = ref({
 
 const accounts = ref([]);
 const accountStats = ref(null);
+const searchQuery = ref("");
+const showAccountDropdown = ref(false);
+const accountPickerRef = ref(null);
 
 const selectedAccountDetails = computed(() => {
   if (!form.value.laundry_account_id) return null;
   return accounts.value.find(a => a.id === form.value.laundry_account_id);
+});
+
+const filteredAccounts = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return accounts.value;
+  return accounts.value.filter((a) => {
+    const nomor = (a.nomor_laundry || "").toLowerCase();
+    const owner = (a.owner_name || "").toLowerCase();
+    const vendor = (a.vendor?.name || "").toLowerCase();
+    return nomor.includes(q) || owner.includes(q) || vendor.includes(q);
+  });
+});
+
+function selectAccount(account) {
+  form.value.laundry_account_id = account.id;
+  searchQuery.value = "";
+  showAccountDropdown.value = false;
+}
+
+function handleOutsideClick(event) {
+  if (!showAccountDropdown.value) return;
+  if (!accountPickerRef.value) return;
+  if (!accountPickerRef.value.contains(event.target)) {
+    showAccountDropdown.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("click", handleOutsideClick);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleOutsideClick);
 });
 
 watch(() => form.value.laundry_account_id, async (newId) => {
@@ -228,7 +321,7 @@ async function fetchAccounts() {
     const acctsData = res.data?.data || res.data || [];
     accounts.value = acctsData.map(a => ({
       ...a,
-      displayText: `${a.nomor_laundry} — ${a.owner_name}`
+      owner_type: a.student ? "Siswa" : (a.user ? "Guru" : "Lainnya")
     }));
   } catch (e) {
     console.error("Failed fetching accounts", e);
@@ -241,6 +334,8 @@ function resetForm() {
     berat_kg: "",
     catatan: "",
   };
+  searchQuery.value = "";
+  showAccountDropdown.value = false;
 }
 
 watch(
