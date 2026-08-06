@@ -42,27 +42,28 @@
         </option>
       </select>
 
-      <select
-        :value="sumberData"
-        @change="$emit('update:sumberData', $event.target.value)"
-        class="input-field !py-2.5 text-sm"
-      >
-        <option value="">Semua Sumber</option>
-        <option value="manual">Manual</option>
-        <option value="excel">Excel</option>
-        <option value="web">Web</option>
-      </select>
+      <SearchableSelect
+        :model-value="sumberData"
+        :options="sumberOptions"
+        label-key="label"
+        value-key="value"
+        placeholder="Semua Sumber"
+        @update:modelValue="$emit('update:sumberData', $event || '')"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
+import SearchableSelect from '@/components/ui/SearchableSelect.vue'
+
 defineProps({
   search: { type: String, default: '' },
   status: { type: String, default: '' },
   handlerId: { type: String, default: '' },
   sumberData: { type: String, default: '' },
   handlers: { type: Array, default: () => [] },
+  sumberOptions: { type: Array, default: () => [] },
 })
 
 defineEmits(['update:search', 'update:status', 'update:handlerId', 'update:sumberData', 'reset'])

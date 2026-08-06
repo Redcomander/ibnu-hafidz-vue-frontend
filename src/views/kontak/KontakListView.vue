@@ -60,6 +60,7 @@
       :handler-id="filters.handler_id"
       :sumber-data="filters.sumber_data"
       :handlers="handlers"
+      :sumber-options="sumberOptions"
       @update:search="search = $event"
       @update:status="filters.status = $event"
       @update:handlerId="filters.handler_id = $event"
@@ -278,6 +279,7 @@ import {
   bulkDeleteKontak,
   deleteKontak,
   exportKontakExcel,
+  fetchKontakSumberOptions,
   fetchKontakSummary,
   fetchRiwayatKontak,
   fetchTemplateList,
@@ -296,6 +298,7 @@ const toast = useToastStore()
 const handlers = ref([])
 const summary = ref(null)
 const templates = ref([])
+const sumberOptions = ref([])
 const selectedTemplateId = ref('')
 const selectedIds = ref([])
 
@@ -347,7 +350,7 @@ const riwayatTarget = ref(null)
 const riwayatRows = ref([])
 
 onMounted(async () => {
-  await Promise.all([loadHandlers(), loadSummary(), loadTemplates()])
+  await Promise.all([loadHandlers(), loadSummary(), loadTemplates(), loadSumberOptions()])
 })
 
 watch(data, (rows) => {
@@ -381,6 +384,16 @@ async function loadTemplates() {
     templates.value = response?.data || []
   } catch {
     templates.value = []
+  }
+}
+
+async function loadSumberOptions() {
+  try {
+    const response = await fetchKontakSumberOptions()
+    const values = Array.isArray(response?.data) ? response.data : []
+    sumberOptions.value = values.map((value) => ({ value, label: value }))
+  } catch {
+    sumberOptions.value = []
   }
 }
 

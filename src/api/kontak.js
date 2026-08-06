@@ -5,6 +5,11 @@ export async function fetchKontakList(params = {}) {
   return data
 }
 
+export async function fetchKontakSumberOptions(params = {}) {
+  const { data } = await api.get('/kontak/sumber/options', { params })
+  return data
+}
+
 export async function fetchKontakDetail(id) {
   const { data } = await api.get(`/kontak/${id}`)
   return data
