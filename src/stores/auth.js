@@ -33,9 +33,24 @@ export const useAuthStore = defineStore('auth', () => {
     return aliases
   }
 
+  function hasRole(roleName) {
+    return userRoles.value.some((role) => role?.name === roleName)
+  }
+
+  function hasKontakRoleFallback(permission) {
+    const kontakPermissions = new Set([
+      'kontak.view', 'kontak.create', 'kontak.edit', 'kontak.delete', 'kontak.import',
+      'template_pesan.view', 'template_pesan.create', 'template_pesan.edit', 'template_pesan.delete',
+      'kontak_riwayat.view', 'kontak_dashboard.view',
+    ])
+
+    if (!kontakPermissions.has(permission)) return false
+    return hasRole('super_admin') || hasRole('admin') || hasRole('panitia_ppdb')
+  }
+
   // Check if user has a specific permission
   function hasPermission(permission) {
-    return getPermissionAliases(permission).some(p => userPermissions.value.has(p))
+    return getPermissionAliases(permission).some((p) => userPermissions.value.has(p) || hasKontakRoleFallback(p))
   }
 
   // Check if user has any of the listed permissions

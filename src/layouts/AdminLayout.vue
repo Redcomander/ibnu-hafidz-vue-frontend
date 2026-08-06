@@ -582,6 +582,31 @@ const navItems = [
     label: "Pengambilan Laundry",
     permission: "laundry_accounts.view",
   },
+  {
+    to: "/dashboard/kontak",
+    icon: "users",
+    label: "Database Kontak",
+    permission: "kontak.view",
+    menuKey: 'kontak_database',
+    activeOn: ["/dashboard/kontak"],
+    activeExcept: ["/dashboard/kontak/import-excel", "/dashboard/kontak/template"],
+  },
+  {
+    to: "/dashboard/kontak/import-excel",
+    icon: "document",
+    label: "Import Kontak Excel",
+    permission: "kontak.import",
+    menuKey: 'kontak_import',
+    activeOn: ["/dashboard/kontak/import-excel"],
+  },
+  {
+    to: "/dashboard/kontak/template",
+    icon: "article",
+    label: "Template WA",
+    permission: "template_pesan.view",
+    menuKey: 'kontak_template',
+    activeOn: ["/dashboard/kontak/template"],
+  },
 
   { header: 'Konten & Galeri' },
   {

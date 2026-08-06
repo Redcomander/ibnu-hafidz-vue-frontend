@@ -295,6 +295,25 @@ const routes = [
         component: () => import('@/views/laundry/PickupList.vue'),
         meta: { permission: 'laundry_accounts.view', title: 'Pengambilan Laundry' },
       },
+      // ---- Kontak Calon Santri ----
+      {
+        path: 'kontak',
+        name: 'kontak-list',
+        component: () => import('@/views/kontak/KontakListView.vue'),
+        meta: { permission: 'kontak.view', title: 'Database Kontak Calon Santri' },
+      },
+      {
+        path: 'kontak/import-excel',
+        name: 'kontak-import-excel',
+        component: () => import('@/views/kontak/ImportExcelView.vue'),
+        meta: { permission: 'kontak.import', title: 'Import Kontak Excel' },
+      },
+      {
+        path: 'kontak/template',
+        name: 'kontak-template',
+        component: () => import('@/views/kontak/TemplateManagerView.vue'),
+        meta: { permission: 'template_pesan.view', title: 'Template Pesan WhatsApp' },
+      },
       // ---- Content & Prestasi ----
       {
         path: 'articles',
