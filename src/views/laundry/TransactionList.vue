@@ -52,6 +52,7 @@
             <tr>
               <th>Tanggal</th>
               <th>Nomor Laundry & Pemilik</th>
+              <th>Vendor</th>
               <th class="text-right">Berat (Kg)</th>
               <th class="text-right">Tagihan Total</th>
               <th class="text-center">Status</th>
@@ -69,6 +70,9 @@
                 <div class="text-xs text-gray-500 truncate max-w-[200px]">
                   {{ item.account?.student?.nama_lengkap || item.account?.user?.name || 'Unknown' }}
                 </div>
+              </td>
+              <td class="text-sm text-gray-600">
+                {{ item.vendor?.name || item.account?.vendor?.name || '-' }}
               </td>
               <td class="text-right font-medium">
                 {{ formatNumber(item.berat_kg) }} Kg
@@ -98,6 +102,14 @@
               <td class="text-right">
                 <div class="flex items-center justify-end gap-2">
                   <button
+                    v-if="auth.hasPermission('laundry_accounts.edit')"
+                    @click="editTransaction(item)"
+                    class="text-indigo-600 hover:text-indigo-800 transition text-sm px-2 py-1 rounded hover:bg-indigo-50"
+                    title="Edit Transaksi"
+                  >
+                    <SvgIcon name="edit" :size="16" />
+                  </button>
+                  <button
                     v-if="item.status === 'pending' && auth.hasPermission('laundry_accounts.edit')"
                     @click="markPickedUp(item)"
                     class="text-green-600 hover:text-green-800 transition text-sm px-2 py-1 rounded hover:bg-green-50"
@@ -117,7 +129,7 @@
               </td>
             </tr>
             <tr v-if="data.length === 0">
-              <td colspan="7" class="text-center py-8 text-gray-400">
+              <td colspan="8" class="text-center py-8 text-gray-400">
                 Tidak ada transaksi laundry ditemukan.
               </td>
             </tr>
@@ -137,6 +149,9 @@
                 <h3 class="font-bold text-blue-700 mt-1">{{ item.account?.nomor_laundry }}</h3>
                 <p class="text-xs text-gray-600 truncate max-w-[200px]">
                   {{ item.account?.student?.nama_lengkap || item.account?.user?.name || 'Unknown' }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  Vendor: {{ item.vendor?.name || item.account?.vendor?.name || '-' }}
                 </p>
               </div>
               <span
@@ -171,6 +186,14 @@
             </div>
 
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+              <button
+                v-if="auth.hasPermission('laundry_accounts.edit')"
+                @click="editTransaction(item)"
+                class="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1.5 rounded transition text-xs font-medium"
+              >
+                <SvgIcon name="edit" :size="14" />
+                <span>Edit</span>
+              </button>
               <button
                 v-if="item.status === 'pending' && auth.hasPermission('laundry_accounts.edit')"
                 @click="markPickedUp(item)"
@@ -225,7 +248,7 @@
     </div>
 
     <!-- Forms/Modals -->
-    <TransactionForm v-model="showForm" @saved="handleSaved" />
+    <TransactionForm v-model="showForm" :transaction="selectedTransaction" @saved="handleSaved" />
     
     <ConfirmModal
       v-model:show="showDeleteModal"
@@ -254,6 +277,7 @@ const auth = useAuthStore();
 const toast = useToastStore();
 
 const showForm = ref(false);
+const selectedTransaction = ref(null);
 const showDeleteModal = ref(false);
 const transactionToDelete = ref(null);
 const deleteLoading = ref(false);
@@ -287,6 +311,12 @@ function formatDateTime(dateStr) {
 }
 
 function createTransaction() {
+  selectedTransaction.value = null;
+  showForm.value = true;
+}
+
+function editTransaction(transaction) {
+  selectedTransaction.value = { ...transaction };
   showForm.value = true;
 }
 
@@ -328,6 +358,7 @@ async function handleDelete() {
 }
 
 function handleSaved() {
+  selectedTransaction.value = null;
   fetchData();
 }
 </script>

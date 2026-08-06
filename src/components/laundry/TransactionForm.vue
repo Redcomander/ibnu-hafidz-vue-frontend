@@ -35,7 +35,7 @@
             <div class="px-5 pb-6 pt-3 sm:p-6">
               <div class="flex items-center justify-between mb-5">
                 <DialogTitle as="h3" class="text-lg font-bold text-gray-900">
-                  Tambah Transaksi Laundry
+                  {{ isEditing ? "Edit Transaksi Laundry" : "Tambah Transaksi Laundry" }}
                 </DialogTitle>
                 <button @click="closeModal" type="button" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition">
                   <SvgIcon name="x" :size="20" />
@@ -151,6 +151,23 @@
                   </div>
                 </div>
 
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Tanggal *
+                  </label>
+                  <input
+                    v-model="form.tanggal"
+                    type="date"
+                    required
+                    class="input-field"
+                    :disabled="!canEditTanggal"
+                    :class="!canEditTanggal ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''"
+                  />
+                  <p class="text-[11px] text-gray-400 mt-1">
+                    {{ canEditTanggal ? "Bisa diubah oleh admin/super_admin." : "Tanggal otomatis Asia/Jakarta. Hanya admin/super_admin yang dapat mengubah." }}
+                  </p>
+                </div>
+
                 <!-- Weight input -->
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -243,18 +260,25 @@ import {
 } from "@headlessui/vue";
 import api from "@/api";
 import { useToastStore } from "@/stores/toast";
+import { useAuthStore } from "@/stores/auth";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 
 const props = defineProps({
   modelValue: Boolean,
+  transaction: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["update:modelValue", "saved"]);
 const toast = useToastStore();
+const auth = useAuthStore();
 const loading = ref(false);
 
 const form = ref({
   laundry_account_id: "",
+  tanggal: "",
   berat_kg: "",
   catatan: "",
 });
@@ -269,6 +293,11 @@ const selectedAccountDetails = computed(() => {
   if (!form.value.laundry_account_id) return null;
   return accounts.value.find(a => a.id === form.value.laundry_account_id);
 });
+
+const isEditing = computed(() => !!props.transaction?.id);
+const canEditTanggal = computed(() =>
+  (auth.userRoles || []).some((role) => ["super_admin", "admin"].includes(role?.name))
+);
 
 const filteredAccounts = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
@@ -285,6 +314,20 @@ function selectAccount(account) {
   form.value.laundry_account_id = account.id;
   searchQuery.value = "";
   showAccountDropdown.value = false;
+}
+
+function getJakartaDateString() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = parts.find((p) => p.type === "year")?.value || "";
+  const month = parts.find((p) => p.type === "month")?.value || "";
+  const day = parts.find((p) => p.type === "day")?.value || "";
+  return `${year}-${month}-${day}`;
 }
 
 function handleOutsideClick(event) {
@@ -331,8 +374,25 @@ async function fetchAccounts() {
 function resetForm() {
   form.value = {
     laundry_account_id: "",
+    tanggal: getJakartaDateString(),
     berat_kg: "",
     catatan: "",
+  };
+  searchQuery.value = "";
+  showAccountDropdown.value = false;
+}
+
+function fillFormFromTransaction() {
+  if (!props.transaction) {
+    resetForm();
+    return;
+  }
+
+  form.value = {
+    laundry_account_id: props.transaction.laundry_account_id || "",
+    tanggal: (props.transaction.tanggal || "").toString().split("T")[0] || getJakartaDateString(),
+    berat_kg: props.transaction.berat_kg ?? "",
+    catatan: props.transaction.catatan || "",
   };
   searchQuery.value = "";
   showAccountDropdown.value = false;
@@ -343,9 +403,19 @@ watch(
   (newVal) => {
     if (newVal) {
       if (!accounts.value.length) fetchAccounts();
-      resetForm();
+      fillFormFromTransaction();
     }
   }
+);
+
+watch(
+  () => props.transaction,
+  () => {
+    if (props.modelValue) {
+      fillFormFromTransaction();
+    }
+  },
+  { deep: true }
 );
 
 function closeModal() {
@@ -361,11 +431,16 @@ async function saveTransaction() {
       laundry_account_id: form.value.laundry_account_id,
       berat_kg: parseFloat(form.value.berat_kg),
       catatan: form.value.catatan,
-      tanggal: new Date().toISOString().split('T')[0], // Defaults to today
+      tanggal: form.value.tanggal,
       harga_per_kg: 5000 // Can be fetched from settings later, hardcode for now based on Laravel
     };
-    await api.post("/laundry/transactions", payload);
-    toast.success("Transaksi berhasil ditambahkan");
+    if (isEditing.value) {
+      await api.put(`/laundry/transactions/${props.transaction.id}`, payload);
+      toast.success("Transaksi berhasil diperbarui");
+    } else {
+      await api.post("/laundry/transactions", payload);
+      toast.success("Transaksi berhasil ditambahkan");
+    }
     emit("saved");
     closeModal();
   } catch (err) {
