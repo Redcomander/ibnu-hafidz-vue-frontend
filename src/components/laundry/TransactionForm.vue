@@ -25,14 +25,14 @@
           leave-to="opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"
         >
           <DialogPanel
-            class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl text-left overflow-hidden"
+            class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl text-left overflow-hidden max-h-[92vh] sm:max-h-[90vh] flex flex-col"
           >
             <!-- Drag handle (mobile visual cue) -->
             <div class="flex justify-center pt-3 pb-1 sm:hidden">
               <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
             </div>
 
-            <div class="px-5 pb-6 pt-3 sm:p-6">
+            <div class="px-5 pb-4 pt-3 sm:p-6 flex flex-col min-h-0">
               <div class="flex items-center justify-between mb-5">
                 <DialogTitle as="h3" class="text-lg font-bold text-gray-900">
                   {{ isEditing ? "Edit Transaksi Laundry" : "Tambah Transaksi Laundry" }}
@@ -42,7 +42,7 @@
                 </button>
               </div>
 
-              <form @submit.prevent="saveTransaction" class="space-y-4">
+              <form @submit.prevent="saveTransaction" class="space-y-4 overflow-y-auto pr-1 pb-2 min-h-0">
                 <div ref="accountPickerRef" class="relative">
                   <label class="block text-sm font-medium text-gray-700 mb-1.5">
                     Nomor Laundry / Pemilik *
@@ -228,7 +228,7 @@
                   </p>
                 </div>
 
-                <div class="flex gap-3 pt-2">
+                <div class="flex gap-3 pt-3 sticky bottom-0 bg-white pb-2 sm:pb-0">
                   <button type="button" class="btn-secondary flex-1" @click="closeModal" :disabled="loading">
                     Batal
                   </button>
