@@ -3,15 +3,17 @@
     <button
       type="button"
       @click="toggle"
-      class="input-field flex w-full items-center justify-between text-left cursor-pointer select-none"
+      class="input-field flex w-full items-center justify-between gap-2 text-left cursor-pointer select-none min-h-[52px]"
       :class="[
         disabled ? 'cursor-not-allowed bg-gray-100 text-gray-400' : '',
-        isOpen ? 'ring-2 ring-primary/20 border-primary' : ''
+        isOpen ? 'ring-2 ring-green-100 border-green-500' : 'border-gray-200'
       ]"
       :disabled="disabled"
     >
-      <span v-if="selectedOption" class="text-gray-800 truncate">{{ getLabel(selectedOption) }}</span>
-      <span v-else class="text-gray-400 truncate">{{ placeholder }}</span>
+      <span v-if="selectedOption" class="text-gray-800 text-sm leading-tight break-words line-clamp-2">
+        {{ getPrimaryLabel(selectedOption) }}
+      </span>
+      <span v-else class="text-gray-400 text-sm leading-tight break-words line-clamp-2">{{ placeholder }}</span>
       <SvgIcon
         name="chevron-down"
         :size="16"
@@ -33,15 +35,15 @@
           v-if="isOpen"
           ref="dropdownRef"
           :style="dropdownStyle"
-          class="fixed z-[9999] bg-white rounded-lg shadow-xl border border-gray-100 flex flex-col overflow-hidden"
+          class="fixed z-[9999] bg-white rounded-xl shadow-2xl border-2 border-gray-200 flex flex-col overflow-hidden"
           @click.stop
         >
-          <div class="p-2 border-b border-gray-50 sticky top-0 bg-white">
+          <div class="p-2.5 border-b border-gray-100 sticky top-0 bg-white">
             <input
               ref="searchInput"
               v-model="searchQuery"
               type="text"
-              class="w-full px-3 py-1.5 text-sm bg-gray-50 rounded-md border-none focus:ring-1 focus:ring-primary focus:bg-white transition placeholder-gray-400 outline-none"
+              class="w-full px-3.5 py-2.5 text-sm bg-white rounded-lg border-2 border-gray-200 focus:ring-2 focus:ring-green-100 focus:border-green-500 transition placeholder-gray-400 outline-none"
               placeholder="Cari..."
               @click.stop
             />
@@ -53,15 +55,22 @@
               :key="getValue(option)"
               type="button"
               @click="select(option)"
-              class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group transition-colors"
-              :class="{ 'bg-primary/5 text-primary': modelValue === getValue(option) }"
+              class="w-full text-left px-4 py-3 hover:bg-green-50 flex items-start justify-between gap-3 group transition-colors border-b border-gray-100 last:border-b-0"
+              :class="{ 'bg-green-50': modelValue === getValue(option) }"
             >
-              <span class="truncate">{{ getLabel(option) }}</span>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-gray-900 break-words leading-snug">
+                  {{ getPrimaryLabel(option) }}
+                </div>
+                <div v-if="getSecondaryLabel(option)" class="text-xs text-gray-500 break-words mt-0.5">
+                  {{ getSecondaryLabel(option) }}
+                </div>
+              </div>
               <SvgIcon
                 v-if="modelValue === getValue(option)"
                 name="check"
                 :size="16"
-                class="text-primary"
+                class="text-green-600 shrink-0 mt-0.5"
               />
             </button>
 
@@ -124,6 +133,25 @@ function getLabel(opt) {
   return opt[props.labelKey] || ''
 }
 
+function getPrimaryLabel(opt) {
+  if (!opt) return ''
+  const nomor = String(opt.nomor_laundry || '').trim()
+  const owner = String(opt.owner_name || opt.nama || '').trim()
+  if (nomor && owner) return `${nomor} - ${owner}`
+  if (nomor) return nomor
+  return getLabel(opt)
+}
+
+function getSecondaryLabel(opt) {
+  if (!opt) return ''
+  const vendor = String(opt.vendor?.name || opt.vendor || '').trim()
+  const tipe = String(opt.owner_type || opt.type || '').trim()
+  if (vendor && tipe) return `${vendor} • ${tipe}`
+  if (vendor) return vendor
+  if (tipe) return tipe
+  return ''
+}
+
 function getValue(opt) {
   if (!opt) return null
   return opt[props.valueKey]
@@ -134,7 +162,22 @@ const selectedOption = computed(() => props.options.find((opt) => getValue(opt) 
 const filteredOptions = computed(() => {
   if (!debouncedSearchQuery.value) return props.options
   const query = debouncedSearchQuery.value.toLowerCase()
-  return props.options.filter((opt) => String(getLabel(opt)).toLowerCase().includes(query))
+  return props.options.filter((opt) => {
+    const allText = [
+      getLabel(opt),
+      getPrimaryLabel(opt),
+      getSecondaryLabel(opt),
+      opt?.nomor_laundry,
+      opt?.owner_name,
+      opt?.nama,
+      opt?.vendor?.name,
+      opt?.vendor,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+    return allText.includes(query)
+  })
 })
 
 function updatePosition() {
