@@ -33,10 +33,13 @@
 
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1.5">Handler</label>
-            <select v-model="form.handler_id" class="input-field !py-2.5 text-sm">
-              <option :value="null">Belum Ditentukan</option>
-              <option v-for="user in handlers" :key="user.id" :value="user.id">{{ user.name }}</option>
-            </select>
+            <SearchableSelect
+              v-model="form.handler_id"
+              :options="handlerOptions"
+              label-key="name"
+              value-key="id"
+              placeholder="Cari nama handler..."
+            />
           </div>
 
           <div>
@@ -67,7 +70,8 @@
 </template>
 
 <script setup>
-import { reactive, watch, ref } from 'vue'
+import { computed, reactive, watch, ref } from 'vue'
+import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -86,6 +90,11 @@ const form = reactive({
   alamat: '',
   alamat_lengkap: '',
   catatan: '',
+})
+
+const handlerOptions = computed(() => {
+  const base = [{ id: null, name: 'Belum Ditentukan' }]
+  return base.concat(props.handlers || [])
 })
 
 watch(

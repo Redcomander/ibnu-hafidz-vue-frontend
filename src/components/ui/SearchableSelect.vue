@@ -5,19 +5,19 @@
       @click="toggle"
       class="input-field flex w-full items-center justify-between gap-2 text-left cursor-pointer select-none min-h-[52px]"
       :class="[
-        disabled ? 'cursor-not-allowed bg-gray-100 text-gray-400' : '',
-        isOpen ? 'ring-2 ring-green-100 border-green-500' : 'border-gray-200'
+        disabled ? 'cursor-not-allowed bg-gray-100 text-gray-400 dark:bg-slate-800 dark:text-slate-500' : '',
+        isOpen ? 'ring-2 ring-green-100 border-green-500 dark:ring-emerald-900/40 dark:border-emerald-500' : 'border-gray-200 dark:border-slate-700'
       ]"
       :disabled="disabled"
     >
-      <span v-if="selectedOption" class="text-gray-800 text-sm leading-tight break-words line-clamp-2">
+      <span v-if="selectedOption" class="text-gray-800 dark:text-slate-100 text-sm leading-tight break-words line-clamp-2">
         {{ getPrimaryLabel(selectedOption) }}
       </span>
-      <span v-else class="text-gray-400 text-sm leading-tight break-words line-clamp-2">{{ placeholder }}</span>
+      <span v-else class="text-gray-400 dark:text-slate-400 text-sm leading-tight break-words line-clamp-2">{{ placeholder }}</span>
       <SvgIcon
         name="chevron-down"
         :size="16"
-        class="text-gray-400 transition-transform duration-200 shrink-0"
+        class="text-gray-400 dark:text-slate-400 transition-transform duration-200 shrink-0"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
@@ -35,15 +35,15 @@
           v-if="isOpen"
           ref="dropdownRef"
           :style="dropdownStyle"
-          class="fixed z-[9999] bg-white rounded-xl shadow-2xl border-2 border-gray-200 flex flex-col overflow-hidden"
+          class="fixed z-[9999] bg-white dark:bg-slate-900 rounded-xl shadow-2xl border-2 border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden"
           @click.stop
         >
-          <div class="p-2.5 border-b border-gray-100 sticky top-0 bg-white">
+          <div class="p-2.5 border-b border-gray-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
             <input
               ref="searchInput"
               v-model="searchQuery"
               type="text"
-              class="w-full px-3.5 py-2.5 text-sm bg-white rounded-lg border-2 border-gray-200 focus:ring-2 focus:ring-green-100 focus:border-green-500 transition placeholder-gray-400 outline-none"
+              class="w-full px-3.5 py-2.5 text-sm bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 rounded-lg border-2 border-gray-200 dark:border-slate-700 focus:ring-2 focus:ring-green-100 dark:focus:ring-emerald-900/40 focus:border-green-500 dark:focus:border-emerald-500 transition placeholder-gray-400 dark:placeholder-slate-400 outline-none"
               placeholder="Cari..."
               @click.stop
             />
@@ -55,14 +55,14 @@
               :key="getValue(option)"
               type="button"
               @click="select(option)"
-              class="w-full text-left px-4 py-3 hover:bg-green-50 flex items-start justify-between gap-3 group transition-colors border-b border-gray-100 last:border-b-0"
-              :class="{ 'bg-green-50': modelValue === getValue(option) }"
+              class="w-full text-left px-4 py-3 hover:bg-green-50 dark:hover:bg-slate-800/80 flex items-start justify-between gap-3 group transition-colors border-b border-gray-100 dark:border-slate-800 last:border-b-0"
+              :class="{ 'bg-green-50 dark:bg-emerald-900/25': modelValue === getValue(option) }"
             >
               <div class="min-w-0">
-                <div class="text-sm font-semibold text-gray-900 break-words leading-snug">
+                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 break-words leading-snug">
                   {{ getPrimaryLabel(option) }}
                 </div>
-                <div v-if="getSecondaryLabel(option)" class="text-xs text-gray-500 break-words mt-0.5">
+                <div v-if="getSecondaryLabel(option)" class="text-xs text-gray-500 dark:text-slate-400 break-words mt-0.5">
                   {{ getSecondaryLabel(option) }}
                 </div>
               </div>
@@ -70,11 +70,11 @@
                 v-if="modelValue === getValue(option)"
                 name="check"
                 :size="16"
-                class="text-green-600 shrink-0 mt-0.5"
+                class="text-green-600 dark:text-emerald-400 shrink-0 mt-0.5"
               />
             </button>
 
-            <div v-if="filteredOptions.length === 0" class="p-4 text-center text-xs text-gray-400">
+            <div v-if="filteredOptions.length === 0" class="p-4 text-center text-xs text-gray-400 dark:text-slate-500">
               Tidak ada data ditemukan
             </div>
           </div>
