@@ -320,7 +320,7 @@
       </div>
 
       <!-- Mobile View -->
-      <div class="md:hidden">
+      <div class="md:hidden p-3 space-y-3 bg-gray-50/70">
         <div v-if="loading" class="p-8 text-center text-gray-500">
           <div
             class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"
@@ -331,24 +331,29 @@
           Tidak ada data ditemukan
         </div>
         <template v-else>
-          <div
+          <article
             v-for="item in data"
             :key="item.id"
-            class="p-4 border-b border-gray-100 last:border-0 hover:bg-gray-50"
+            class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
           >
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <h3 class="font-semibold text-gray-800">{{ item.nama }}</h3>
-                <p class="text-xs text-gray-500">{{ item.tingkat }}</p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wide text-gray-400">
+                  Kelas
+                </p>
+                <h3 class="mt-0.5 text-base font-semibold text-gray-800 truncate">
+                  {{ item.nama }}
+                </h3>
+                <p class="text-xs text-gray-500 mt-0.5">{{ item.tingkat }}</p>
               </div>
               <span
-                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                class="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
                 :class="
                   item.gender === 'banin'
                     ? 'bg-blue-50 text-blue-700'
                     : item.gender === 'banat'
                       ? 'bg-pink-50 text-pink-700'
-                      : 'bg-gray-50 text-gray-600'
+                      : 'bg-gray-100 text-gray-600'
                 "
               >
                 {{
@@ -361,31 +366,50 @@
               </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
-              <div>
-                <p class="text-xs text-gray-400">Wali Kelas</p>
-                <p v-if="item.wali_kelas" class="font-medium text-gray-700">
+            <div class="mt-3 grid grid-cols-3 gap-2">
+              <div class="rounded-xl bg-gray-50 border border-gray-100 p-2.5 text-center">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400">Santri</p>
+                <p class="text-sm font-semibold text-gray-800 mt-0.5">
+                  {{ item.students ? item.students.length : 0 }}
+                </p>
+              </div>
+              <div class="col-span-2 rounded-xl bg-gray-50 border border-gray-100 p-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400">Wali Kelas</p>
+                <p v-if="item.wali_kelas" class="text-sm font-medium text-gray-700 mt-0.5 truncate">
                   {{ item.wali_kelas.name }}
                 </p>
-                <p v-else class="text-gray-400 italic text-xs">Belum diatur</p>
+                <p v-else class="text-xs text-gray-400 italic mt-0.5">Belum diatur</p>
               </div>
-              <div>
-                <p class="text-xs text-gray-400">Wali Diniyyah</p>
-                <p
-                  v-if="item.wali_kelas_diniyyah"
-                  class="font-medium text-gray-700"
-                >
+              <div class="col-span-3 rounded-xl bg-gray-50 border border-gray-100 p-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400">Wali Diniyyah</p>
+                <p v-if="item.wali_kelas_diniyyah" class="text-sm font-medium text-gray-700 mt-0.5 truncate">
                   {{ item.wali_kelas_diniyyah.name }}
                 </p>
-                <p v-else class="text-gray-400 italic text-xs">Belum diatur</p>
+                <p v-else class="text-xs text-gray-400 italic mt-0.5">Belum diatur</p>
               </div>
             </div>
 
-            <div class="flex justify-end gap-2 mt-3">
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <router-link
+                v-if="auth.hasPermission('kelas.view')"
+                :to="{ name: 'kelas-detail', params: { id: item.id } }"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700"
+              >
+                <SvgIcon name="eye" :size="14" />
+                Detail
+              </router-link>
+              <button
+                v-if="auth.hasPermission('kelas.edit')"
+                @click="openMembersModal(item)"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"
+              >
+                <SvgIcon name="users" :size="14" />
+                Anggota
+              </button>
               <button
                 v-if="auth.hasPermission('kelas.view')"
                 @click="exportKelas(item, 'excel')"
-                class="text-emerald-600 hover:text-emerald-700 text-sm px-3 py-1.5 bg-emerald-50 rounded-md flex items-center gap-1"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700"
               >
                 <SvgIcon name="download" :size="14" />
                 Excel
@@ -393,35 +417,27 @@
               <button
                 v-if="auth.hasPermission('kelas.view')"
                 @click="exportKelas(item, 'pdf')"
-                class="text-rose-600 hover:text-rose-700 text-sm px-3 py-1.5 bg-rose-50 rounded-md flex items-center gap-1"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700"
               >
                 <SvgIcon name="document" :size="14" />
                 PDF
               </button>
               <button
                 v-if="auth.hasPermission('kelas.edit')"
-                @click="openMembersModal(item)"
-                class="text-blue-600 hover:text-blue-700 text-sm px-3 py-1.5 bg-blue-50 rounded-md flex items-center gap-1"
-              >
-                <SvgIcon name="users" :size="14" />
-                Anggota
-              </button>
-              <button
-                v-if="auth.hasPermission('kelas.edit')"
                 @click="editKelas(item)"
-                class="text-primary hover:text-primary-dark text-sm px-3 py-1.5 bg-brand-50 rounded-md"
+                class="inline-flex items-center justify-center rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-primary"
               >
                 Edit
               </button>
               <button
                 v-if="auth.hasPermission('kelas.delete')"
                 @click="confirmDelete(item)"
-                class="text-red-600 hover:text-red-700 text-sm px-3 py-1.5 bg-red-50 rounded-md"
+                class="inline-flex items-center justify-center rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600"
               >
                 Hapus
               </button>
             </div>
-          </div>
+          </article>
         </template>
       </div>
 
