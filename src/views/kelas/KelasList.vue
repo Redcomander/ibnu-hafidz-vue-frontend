@@ -317,9 +317,20 @@
             </tr>
           </tbody>
         </table>
+      </div>
 
-        <!-- Mobile View -->
-        <div class="md:hidden">
+      <!-- Mobile View -->
+      <div class="md:hidden">
+        <div v-if="loading" class="p-8 text-center text-gray-500">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"
+          ></div>
+          Memuat data...
+        </div>
+        <div v-else-if="data.length === 0" class="p-8 text-center text-gray-400">
+          Tidak ada data ditemukan
+        </div>
+        <template v-else>
           <div
             v-for="item in data"
             :key="item.id"
@@ -411,7 +422,7 @@
               </button>
             </div>
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- Pagination -->
