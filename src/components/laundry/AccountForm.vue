@@ -36,7 +36,7 @@
                   <label class="block text-sm font-medium text-gray-700 mb-1">
                     Vendor Laundry *
                   </label>
-                  <select v-model="form.vendor_id" required class="input-field" :disabled="isEditing">
+                  <select v-model="form.vendor_id" required class="input-field">
                     <option value="" disabled>Pilih Vendor</option>
                     <option v-for="v in vendors" :key="v.id" :value="v.id">
                       {{ v.name }} ({{ v.gender_type }})
@@ -101,6 +101,33 @@
                   </label>
                 </div>
 
+                <div
+                  v-if="isEditing"
+                  class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-700">Status Blokir Akun</p>
+                      <p class="text-xs text-slate-500 mt-0.5">
+                        {{ isBlocked ? 'Akun sedang diblokir dan tidak bisa transaksi.' : 'Akun aktif dan dapat melakukan transaksi.' }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      @click="toggleBlockStatus"
+                      :disabled="blockLoading"
+                      :class="[
+                        'px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-60 disabled:cursor-not-allowed',
+                        isBlocked
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-red-600 text-white hover:bg-red-700',
+                      ]"
+                    >
+                      {{ blockLoading ? 'Memproses...' : isBlocked ? 'Buka Blokir' : 'Blokir Akun' }}
+                    </button>
+                  </div>
+                </div>
+
                 <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                   <button
                     type="button"
@@ -151,6 +178,8 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue", "saved"]);
 const toast = useToastStore();
 const loading = ref(false);
+const blockLoading = ref(false);
+const isBlocked = ref(false);
 
 const isEditing = computed(() => !!props.account);
 
@@ -190,6 +219,7 @@ function resetForm() {
       active: props.account.active ?? true,
     };
     ownerType.value = props.account.student_id ? "student" : "user";
+    isBlocked.value = !!props.account.blocked;
   } else {
     form.value = {
       vendor_id: vendors.value.length ? vendors.value[0].id : "",
@@ -198,6 +228,7 @@ function resetForm() {
       active: true,
     };
     ownerType.value = "student";
+    isBlocked.value = false;
   }
 }
 
@@ -217,6 +248,27 @@ watch(
 
 function closeModal() {
   emit("update:modelValue", false);
+}
+
+async function toggleBlockStatus() {
+  if (!props.account?.id || blockLoading.value) return;
+
+  const actionText = isBlocked.value ? "membuka blokir" : "memblokir";
+  const confirmed = window.confirm(`Apakah Anda yakin ingin ${actionText} akun ini?`);
+  if (!confirmed) return;
+
+  blockLoading.value = true;
+  try {
+    const { data } = await api.put(`/laundry/accounts/${props.account.id}/toggle-block`);
+    isBlocked.value = !!data?.blocked;
+    toast.success(isBlocked.value ? "Akun berhasil diblokir" : "Akun berhasil diaktifkan");
+    emit("saved");
+  } catch (err) {
+    console.error(err);
+    toast.error("Gagal mengubah status blokir akun");
+  } finally {
+    blockLoading.value = false;
+  }
 }
 
 async function saveAccount() {

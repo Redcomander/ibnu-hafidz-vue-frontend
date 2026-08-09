@@ -25,11 +25,33 @@
         </button>
       </div>
 
+      <div class="md:hidden px-4 pt-3 pb-0">
+        <div class="grid grid-cols-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1">
+          <button
+            type="button"
+            class="px-3 py-2 rounded-md text-xs font-semibold transition"
+            :class="activeMobileTab === 'add' ? 'bg-primary text-white' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'"
+            @click="activeMobileTab = 'add'"
+          >
+            Tambah Santri
+          </button>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-md text-xs font-semibold transition"
+            :class="activeMobileTab === 'members' ? 'bg-primary text-white' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'"
+            @click="activeMobileTab = 'members'"
+          >
+            Daftar Anggota
+          </button>
+        </div>
+      </div>
+
       <!-- Body -->
       <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
         <!-- Left: Add Member -->
         <div
           class="w-full md:w-1/2 p-4 border-b md:border-b-0 md:border-r border-gray-100 dark:border-slate-700 flex flex-col min-h-0"
+          :class="activeMobileTab === 'add' ? 'flex' : 'hidden md:flex'"
         >
           <h4 class="font-semibold text-gray-700 dark:text-slate-200 mb-3">Tambah Santri</h4>
 
@@ -97,7 +119,7 @@
         </div>
 
         <!-- Right: Current Members -->
-        <div class="w-full md:w-1/2 p-4 flex flex-col min-h-0 bg-gray-50/30 dark:bg-slate-800/40">
+        <div class="w-full md:w-1/2 p-4 flex flex-col min-h-0 bg-gray-50/30 dark:bg-slate-800/40" :class="activeMobileTab === 'members' ? 'flex' : 'hidden md:flex'">
           <div class="flex justify-between items-center mb-3">
             <h4 class="font-semibold text-gray-700 dark:text-slate-200">Daftar Anggota</h4>
             <span
@@ -190,6 +212,7 @@ const currentMembers = ref([]);
 const loadingMembers = ref(false);
 const processingId = ref(null);
 const memberSearchQuery = ref("");
+const activeMobileTab = ref("members");
 
 const filteredMembers = computed(() => {
   const query = memberSearchQuery.value.trim().toLowerCase();
@@ -235,6 +258,7 @@ watch(
       searchQuery.value = "";
       memberSearchQuery.value = "";
       searchResults.value = [];
+      activeMobileTab.value = "members";
     }
   },
 );

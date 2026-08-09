@@ -320,31 +320,31 @@
       </div>
 
       <!-- Mobile View -->
-      <div class="md:hidden p-3 space-y-3 bg-gray-50/70">
-        <div v-if="loading" class="p-8 text-center text-gray-500">
+      <div class="md:hidden p-3 space-y-3 bg-gray-50/70 dark:bg-slate-900/70">
+        <div v-if="loading" class="p-8 text-center text-gray-500 dark:text-slate-400">
           <div
             class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"
           ></div>
           Memuat data...
         </div>
-        <div v-else-if="data.length === 0" class="p-8 text-center text-gray-400">
+        <div v-else-if="data.length === 0" class="p-8 text-center text-gray-400 dark:text-slate-500">
           Tidak ada data ditemukan
         </div>
         <template v-else>
           <article
             v-for="item in data"
             :key="item.id"
-            class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+            class="rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <p class="text-[11px] uppercase tracking-wide text-gray-400">
+                <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-slate-500">
                   Kelas
                 </p>
-                <h3 class="mt-0.5 text-base font-semibold text-gray-800 truncate">
+                <h3 class="mt-0.5 text-base font-semibold text-gray-800 dark:text-slate-100 truncate">
                   {{ item.nama }}
                 </h3>
-                <p class="text-xs text-gray-500 mt-0.5">{{ item.tingkat }}</p>
+                <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{{ item.tingkat }}</p>
               </div>
               <span
                 class="shrink-0 inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
@@ -367,25 +367,25 @@
             </div>
 
             <div class="mt-3 grid grid-cols-3 gap-2">
-              <div class="rounded-xl bg-gray-50 border border-gray-100 p-2.5 text-center">
-                <p class="text-[10px] uppercase tracking-wide text-gray-400">Santri</p>
-                <p class="text-sm font-semibold text-gray-800 mt-0.5">
+              <div class="rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 p-2.5 text-center">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-slate-500">Santri</p>
+                <p class="text-sm font-semibold text-gray-800 dark:text-slate-100 mt-0.5">
                   {{ item.students ? item.students.length : 0 }}
                 </p>
               </div>
-              <div class="col-span-2 rounded-xl bg-gray-50 border border-gray-100 p-2.5">
-                <p class="text-[10px] uppercase tracking-wide text-gray-400">Wali Kelas</p>
-                <p v-if="item.wali_kelas" class="text-sm font-medium text-gray-700 mt-0.5 truncate">
+              <div class="col-span-2 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 p-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-slate-500">Wali Kelas</p>
+                <p v-if="item.wali_kelas" class="text-sm font-medium text-gray-700 dark:text-slate-200 mt-0.5 truncate">
                   {{ item.wali_kelas.name }}
                 </p>
-                <p v-else class="text-xs text-gray-400 italic mt-0.5">Belum diatur</p>
+                <p v-else class="text-xs text-gray-400 dark:text-slate-500 italic mt-0.5">Belum diatur</p>
               </div>
-              <div class="col-span-3 rounded-xl bg-gray-50 border border-gray-100 p-2.5">
-                <p class="text-[10px] uppercase tracking-wide text-gray-400">Wali Diniyyah</p>
-                <p v-if="item.wali_kelas_diniyyah" class="text-sm font-medium text-gray-700 mt-0.5 truncate">
+              <div class="col-span-3 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 p-2.5">
+                <p class="text-[10px] uppercase tracking-wide text-gray-400 dark:text-slate-500">Wali Diniyyah</p>
+                <p v-if="item.wali_kelas_diniyyah" class="text-sm font-medium text-gray-700 dark:text-slate-200 mt-0.5 truncate">
                   {{ item.wali_kelas_diniyyah.name }}
                 </p>
-                <p v-else class="text-xs text-gray-400 italic mt-0.5">Belum diatur</p>
+                <p v-else class="text-xs text-gray-400 dark:text-slate-500 italic mt-0.5">Belum diatur</p>
               </div>
             </div>
 
@@ -393,7 +393,7 @@
               <router-link
                 v-if="auth.hasPermission('kelas.view')"
                 :to="{ name: 'kelas-detail', params: { id: item.id } }"
-                class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-slate-200"
               >
                 <SvgIcon name="eye" :size="14" />
                 Detail
