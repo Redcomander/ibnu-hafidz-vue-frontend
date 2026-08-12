@@ -196,7 +196,8 @@ const handlers = ref([])
 const summary = ref(null)
 const templates = ref([])
 const sumberOptions = ref([])
-const selectedTemplateId = ref('')
+const cachedTagihanTemplateId = localStorage.getItem('tagihan_template_id')
+const selectedTemplateId = ref(cachedTagihanTemplateId || '')
 const selectedIds = ref([])
 const showEditModal = ref(false)
 const selectedTagihan = ref(null)
@@ -244,13 +245,8 @@ watch(
       return
     }
     localStorage.removeItem('tagihan_template_id')
-  },
-  { immediate: true }
+  }
 )
-const cachedTagihanTemplateId = localStorage.getItem('tagihan_template_id')
-if (cachedTagihanTemplateId) {
-  selectedTemplateId.value = cachedTagihanTemplateId
-}
 
 async function loadHandlers() {
   try {

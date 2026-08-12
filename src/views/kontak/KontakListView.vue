@@ -380,7 +380,8 @@ const handlers = ref([])
 const summary = ref(null)
 const templates = ref([])
 const sumberOptions = ref([])
-const selectedTemplateId = ref('')
+const cachedKontakTemplateId = localStorage.getItem('kontak_template_id')
+const selectedTemplateId = ref(cachedKontakTemplateId || '')
 const selectedIds = ref([])
 
 const {
@@ -494,14 +495,8 @@ watch(
       return
     }
     localStorage.removeItem('kontak_template_id')
-  },
-  { immediate: true }
+  }
 )
-
-const cachedKontakTemplateId = localStorage.getItem('kontak_template_id')
-if (cachedKontakTemplateId) {
-  selectedTemplateId.value = cachedKontakTemplateId
-}
 
 async function loadHandlers() {
   try {
