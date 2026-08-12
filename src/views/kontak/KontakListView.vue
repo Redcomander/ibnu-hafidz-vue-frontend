@@ -307,9 +307,19 @@
                 <p class="text-xs font-semibold text-gray-700">{{ item.user?.name || 'Sistem' }}</p>
                 <p class="text-[11px] text-gray-500">{{ formatDateTime(item.created_at) }}</p>
               </div>
-              <p class="text-xs text-gray-600 mt-1">
+
+              <div v-if="item.pesan_final" class="mt-2 rounded-lg bg-white px-2.5 py-2 text-[11px] text-gray-700 border border-gray-100 whitespace-pre-wrap break-words">
+                {{ item.pesan_final }}
+              </div>
+
+              <p v-if="item.status_awal || item.status_akhir" class="text-xs text-gray-600 mt-2">
                 {{ item.status_awal || '-' }} -> {{ item.status_akhir || '-' }}
               </p>
+
+              <p v-if="item.dikirim_via" class="text-[11px] text-gray-500 mt-1">
+                Via: {{ item.dikirim_via }}
+              </p>
+
               <p v-if="item.catatan" class="text-xs text-gray-500 mt-1">{{ item.catatan }}</p>
             </div>
             <p v-if="riwayatRows.length === 0" class="text-sm text-gray-400">Belum ada riwayat.</p>
