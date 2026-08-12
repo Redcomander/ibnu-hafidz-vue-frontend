@@ -16,6 +16,41 @@
             {{ item.nama }}
           </option>
         </select>
+        <div
+          class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[11px] font-semibold sm:text-xs"
+          :class="waConnected ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200' : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+        >
+          <span class="h-2.5 w-2.5 rounded-full" :class="waConnected ? 'bg-emerald-500' : 'bg-slate-400'" aria-hidden="true"></span>
+          {{ waConnected ? 'WA Terhubung' : 'WA Belum Terhubung' }}
+        </div>
+        <button
+          v-if="auth.hasPermission('kontak.view') && data.length > 0 && !bulkPaused && !bulkSendLoading"
+          class="btn-primary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
+          @click="sendAllContacts"
+        >
+          Kirim Semua WA
+        </button>
+        <button
+          v-if="bulkSendLoading && !bulkPaused"
+          class="btn-secondary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
+          @click="pauseBulkSend"
+        >
+          Pause
+        </button>
+        <button
+          v-if="bulkPaused"
+          class="btn-primary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
+          @click="resumeBulkSend"
+        >
+          Resume
+        </button>
+        <button
+          v-if="auth.hasPermission('kontak.view')"
+          class="btn-secondary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
+          @click="openWAConnectModal"
+        >
+          {{ waConnected ? 'Reconnect WA' : 'Login WA' }}
+        </button>
         <button
           v-if="auth.hasPermission('kontak.view')"
           class="btn-secondary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
@@ -61,110 +96,139 @@
       :sumber-data="filters.sumber_data"
       :handlers="handlers"
       :sumber-options="sumberOptions"
+      :can-delete-sumber="auth.hasPermission('kontak.delete') && !!filters.sumber_data"
       @update:search="search = $event"
       @update:status="filters.status = $event"
       @update:handlerId="filters.handler_id = $event"
       @update:sumberData="filters.sumber_data = $event"
+      @delete-sumber="handleDeleteSource"
       @reset="resetFilters"
     />
 
-    <div class="glass-card overflow-hidden rounded-2xl">
-      <div v-if="loading" class="p-10 text-center text-gray-500 text-sm">Memuat data kontak...</div>
+    <div v-if="bulkSendLoading || bulkSendProgress > 0 || bulkPaused" class="glass-card rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800/80 dark:bg-emerald-950/20">
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-200">Proses pengiriman bulk</p>
+          <p class="text-xs text-emerald-600 dark:text-emerald-300">
+            {{ bulkPaused ? 'Dijeda sementara' : bulkSendCurrentName ? `Saat ini: ${bulkSendCurrentName}` : 'Menyiapkan pengiriman...' }}
+          </p>
+        </div>
+        <div class="text-right">
+          <span class="block text-xs font-semibold text-emerald-700 dark:text-emerald-200">{{ bulkSendProgress }}%</span>
+          <span class="block text-[10px] text-emerald-600 dark:text-emerald-300">{{ bulkSuccessCount }} sukses / {{ bulkFailedCount }} gagal</span>
+        </div>
+      </div>
+      <div class="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+        <div
+          class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-500"
+          :style="{ width: `${bulkSendProgress}%` }"
+        ></div>
+      </div>
+      <div class="flex items-center justify-between gap-2 text-[11px] text-emerald-700 dark:text-emerald-200">
+        <span>Diproses: {{ Math.min(bulkSuccessCount + bulkFailedCount, bulkQueue.length) }}/{{ bulkQueue.length || 0 }}</span>
+        <span>{{ bulkPaused ? 'Paused' : bulkSendLoading ? 'Running' : 'Ready' }}</span>
+      </div>
+    </div>
+
+    <div class="glass-card overflow-hidden rounded-2xl border border-slate-200/70 dark:border-slate-700/80">
+      <div v-if="loading" class="p-10 text-center text-sm text-slate-500 dark:text-slate-400">Memuat data kontak...</div>
 
       <template v-else>
-        <table class="data-table hidden md:table">
-          <thead>
-            <tr>
-              <th class="w-10 text-center">
-                <input
-                  v-if="auth.hasPermission('kontak.delete')"
-                  type="checkbox"
-                  class="w-4 h-4"
-                  :checked="isAllPageSelected"
-                  @change="toggleSelectAllPage"
-                />
-              </th>
-              <th>Nama</th>
-              <th>No WhatsApp</th>
-              <th>Status</th>
-              <th>Handler</th>
-              <th>Sumber</th>
-              <th>Terakhir Dihubungi</th>
-              <th class="text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in data" :key="row.id">
-              <td class="text-center">
-                <input
-                  v-if="auth.hasPermission('kontak.delete')"
-                  type="checkbox"
-                  class="w-4 h-4"
-                  :checked="selectedIds.includes(row.id)"
-                  @change="toggleSelectRow(row.id, $event.target.checked)"
-                />
-              </td>
-              <td>
-                <div class="font-medium text-gray-800">{{ row.nama }}</div>
-                <div class="text-xs text-gray-500">NIS: {{ row.nis || '-' }}</div>
-              </td>
-              <td class="text-gray-700">{{ row.no_whatsapp }}</td>
-              <td><StatusBadge :status="row.status_kontak" /></td>
-              <td class="text-gray-700">{{ row.handler?.name || 'Belum ada' }}</td>
-              <td class="text-gray-600">{{ row.sumber_data || '-' }}</td>
-              <td class="text-gray-600">{{ formatDateTime(row.last_contact_at) }}</td>
-              <td>
-                <div class="flex justify-end items-center gap-2">
-                  <button
-                    v-if="auth.hasPermission('kontak.edit')"
-                    @click="openEdit(row)"
-                    class="px-2.5 py-1.5 text-xs rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    v-if="auth.hasPermission('kontak_riwayat.view')"
-                    @click="openRiwayat(row)"
-                    class="px-2.5 py-1.5 text-xs rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  >
-                    Riwayat
-                  </button>
-                  <button
+        <div class="overflow-x-auto">
+          <table class="data-table hidden min-w-[980px] md:table">
+            <thead>
+              <tr>
+                <th class="w-10 text-center">
+                  <input
                     v-if="auth.hasPermission('kontak.delete')"
-                    @click="handleDelete(row.id)"
-                    class="px-2.5 py-1.5 text-xs rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200"
-                  >
-                    Hapus
-                  </button>
-                  <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" />
-                </div>
-              </td>
-            </tr>
-            <tr v-if="data.length === 0">
-              <td :colspan="auth.hasPermission('kontak.delete') ? 8 : 7" class="text-center py-8 text-gray-400">Belum ada data kontak</td>
-            </tr>
-          </tbody>
-        </table>
+                    type="checkbox"
+                    class="w-4 h-4"
+                    :checked="isAllPageSelected"
+                    @change="toggleSelectAllPage"
+                  />
+                </th>
+                <th>Nama</th>
+                <th>No WhatsApp</th>
+                <th>Status</th>
+                <th>Handler</th>
+                <th>Sumber</th>
+                <th>Terakhir Dihubungi</th>
+                <th class="text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in data" :key="row.id" class="align-top">
+                <td class="text-center">
+                  <input
+                    v-if="auth.hasPermission('kontak.delete')"
+                    type="checkbox"
+                    class="w-4 h-4"
+                    :checked="selectedIds.includes(row.id)"
+                    @change="toggleSelectRow(row.id, $event.target.checked)"
+                  />
+                </td>
+                <td class="min-w-[180px]">
+                  <div class="font-semibold text-slate-800 dark:text-slate-100">{{ row.nama }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">NIS: {{ row.nis || '-' }}</div>
+                </td>
+                <td class="whitespace-nowrap text-slate-700 dark:text-slate-200">{{ row.no_whatsapp }}</td>
+                <td><StatusBadge :status="row.status_kontak" /></td>
+                <td class="min-w-[140px] text-slate-700 dark:text-slate-200">{{ row.handler?.name || 'Belum ada' }}</td>
+                <td class="min-w-[120px] text-slate-600 dark:text-slate-300">{{ row.sumber_data || '-' }}</td>
+                <td class="min-w-[160px] text-slate-600 dark:text-slate-300">{{ formatDateTime(row.last_contact_at) }}</td>
+                <td>
+                  <div class="flex justify-end items-center gap-2">
+                    <button
+                      v-if="auth.hasPermission('kontak.edit')"
+                      @click="openEdit(row)"
+                      class="rounded-lg bg-indigo-100 px-2.5 py-1.5 text-[11px] font-medium text-indigo-700 transition hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-200 dark:hover:bg-indigo-800/40 sm:text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      v-if="auth.hasPermission('kontak_riwayat.view')"
+                      @click="openRiwayat(row)"
+                      class="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:text-xs"
+                    >
+                      Riwayat
+                    </button>
+                    <button
+                      v-if="auth.hasPermission('kontak.delete')"
+                      @click="handleDelete(row.id)"
+                      class="rounded-lg bg-rose-100 px-2.5 py-1.5 text-[11px] font-medium text-rose-700 transition hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-200 dark:hover:bg-rose-800/40 sm:text-xs"
+                    >
+                      Hapus
+                    </button>
+                    <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" />
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="data.length === 0">
+                <td :colspan="auth.hasPermission('kontak.delete') ? 8 : 7" class="py-8 text-center text-slate-400 dark:text-slate-500">Belum ada data kontak</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="md:hidden divide-y divide-gray-100">
-          <div v-for="row in data" :key="row.id" class="p-4 space-y-3">
+        <div class="md:hidden divide-y divide-slate-200 dark:divide-slate-700">
+          <div v-for="row in data" :key="row.id" class="space-y-3 p-4">
             <div class="flex items-start justify-between gap-2">
-              <div class="flex items-start gap-2 min-w-0">
+              <div class="flex min-w-0 items-start gap-2">
                 <input
                   v-if="auth.hasPermission('kontak.delete')"
                   type="checkbox"
-                  class="mt-1 w-4 h-4 shrink-0"
+                  class="mt-1 h-4 w-4 shrink-0"
                   :checked="selectedIds.includes(row.id)"
                   @change="toggleSelectRow(row.id, $event.target.checked)"
                 />
                 <div class="min-w-0">
-                  <h3 class="font-semibold text-gray-800 text-sm truncate">{{ row.nama }}</h3>
-                  <p class="text-xs text-gray-500 truncate">{{ row.no_whatsapp }}</p>
+                  <h3 class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{{ row.nama }}</h3>
+                  <p class="truncate text-xs text-slate-500 dark:text-slate-400">{{ row.no_whatsapp }}</p>
                 </div>
               </div>
               <StatusBadge :status="row.status_kontak" />
             </div>
-            <div class="text-xs text-gray-600 space-y-0.5">
+            <div class="space-y-1 text-xs text-slate-600 dark:text-slate-300">
               <p>Handler: {{ row.handler?.name || 'Belum ada' }}</p>
               <p>Sumber: {{ row.sumber_data || '-' }}</p>
               <p>Terakhir: {{ formatDateTime(row.last_contact_at) }}</p>
@@ -173,43 +237,45 @@
               <button
                 v-if="auth.hasPermission('kontak.edit')"
                 @click="openEdit(row)"
-                class="px-2.5 py-2 text-xs rounded-lg bg-indigo-100 text-indigo-700 font-medium min-h-9"
+                class="min-h-9 rounded-lg bg-indigo-100 px-2.5 py-2 text-[11px] font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200"
               >
                 Edit
               </button>
               <button
                 v-if="auth.hasPermission('kontak_riwayat.view')"
                 @click="openRiwayat(row)"
-                class="px-2.5 py-2 text-xs rounded-lg bg-gray-100 text-gray-700 font-medium min-h-9"
+                class="min-h-9 rounded-lg bg-slate-100 px-2.5 py-2 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
               >
                 Riwayat
               </button>
               <button
                 v-if="auth.hasPermission('kontak.delete')"
                 @click="handleDelete(row.id)"
-                class="px-2.5 py-2 text-xs rounded-lg bg-rose-100 text-rose-700 font-medium min-h-9"
+                class="min-h-9 rounded-lg bg-rose-100 px-2.5 py-2 text-[11px] font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-200"
               >
                 Hapus
               </button>
-              <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" class="w-full" />
+              <div class="col-span-2">
+                <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" class="w-full" />
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-2">
-          <p class="text-xs text-gray-500">Halaman {{ meta.page }} dari {{ meta.totalPages || 1 }}</p>
+        <div class="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
+          <p class="text-xs text-slate-500 dark:text-slate-400">Halaman {{ meta.page }} dari {{ meta.totalPages || 1 }}</p>
           <div class="flex gap-2">
             <button
               @click="setPage(meta.page - 1)"
               :disabled="meta.page <= 1"
-              class="px-3 py-2 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 min-h-9"
+              class="min-h-9 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Prev
             </button>
             <button
               @click="setPage(meta.page + 1)"
               :disabled="meta.page >= meta.totalPages"
-              class="px-3 py-2 text-xs rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 min-h-9"
+              class="min-h-9 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
             >
               Next
             </button>
@@ -224,6 +290,8 @@
       :handlers="handlers"
       @save="saveEdit"
     />
+
+    <WAQRModal :show="showWAQRModal" @close="showWAQRModal = false" />
 
     <teleport to="body">
       <div v-if="showRiwayat" class="fixed inset-0 z-[70] flex justify-end">
@@ -271,13 +339,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useTable } from '@/composables/useTable'
 import api from '@/api'
 import {
   bulkDeleteKontak,
   deleteKontak,
+  deleteKontakSource,
   exportKontakExcel,
   fetchKontakSumberOptions,
   fetchKontakSummary,
@@ -285,12 +354,14 @@ import {
   fetchTemplateList,
   updateKontak,
 } from '@/api/kontak'
+import { fetchWAStatus, sendWAMessage } from '@/api/wa'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import KontakFilterBar from '@/components/kontak/KontakFilterBar.vue'
 import StatusBadge from '@/components/kontak/StatusBadge.vue'
 import WhatsAppButton from '@/components/kontak/WhatsAppButton.vue'
 import HandlerAssignModal from '@/components/kontak/HandlerAssignModal.vue'
+import WAQRModal from '@/components/wa/WAQRModal.vue'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -344,6 +415,17 @@ const cards = computed(() => {
 
 const showEditModal = ref(false)
 const selectedKontak = ref(null)
+const showWAQRModal = ref(false)
+const waConnected = ref(false)
+const bulkSendLoading = ref(false)
+const bulkSendProgress = ref(0)
+const bulkSendCurrentName = ref('')
+const bulkSuccessCount = ref(0)
+const bulkFailedCount = ref(0)
+const bulkPaused = ref(false)
+const bulkPauseRequested = ref(false)
+const bulkQueue = ref([])
+let waStatusTimer = null
 
 const showRiwayat = ref(false)
 const riwayatTarget = ref(null)
@@ -351,7 +433,32 @@ const riwayatRows = ref([])
 
 onMounted(async () => {
   await Promise.all([loadHandlers(), loadSummary(), loadTemplates(), loadSumberOptions()])
+  await refreshWAStatus()
+  startWAStatusPolling()
 })
+
+onBeforeUnmount(() => {
+  if (waStatusTimer) {
+    clearInterval(waStatusTimer)
+    waStatusTimer = null
+  }
+})
+
+async function refreshWAStatus() {
+  try {
+    const response = await fetchWAStatus()
+    waConnected.value = !!response?.ready
+  } catch {
+    waConnected.value = false
+  }
+}
+
+function startWAStatusPolling() {
+  if (waStatusTimer) return
+  waStatusTimer = setInterval(() => {
+    refreshWAStatus()
+  }, 5000)
+}
 
 watch(data, (rows) => {
   const rowSet = new Set((rows || []).map((item) => item.id))
@@ -404,9 +511,137 @@ function resetFilters() {
   filters.sumber_data = ''
 }
 
+async function handleDeleteSource() {
+  const source = filters.sumber_data
+  if (!source) return
+  if (!window.confirm(`Hapus semua kontak dengan sumber "${source}"?`)) return
+
+  try {
+    await deleteKontakSource(source)
+    filters.sumber_data = ''
+    toast.success('Sumber kontak berhasil dihapus')
+    await Promise.all([fetchData(), loadSummary(), loadSumberOptions()])
+  } catch (err) {
+    toast.error(err?.response?.data?.message || 'Gagal menghapus sumber kontak')
+  }
+}
+
 function openEdit(row) {
   selectedKontak.value = row
   showEditModal.value = true
+}
+
+function openWAConnectModal() {
+  showWAQRModal.value = true
+}
+
+async function pauseBulkSend() {
+  bulkPauseRequested.value = true
+  bulkPaused.value = true
+  toast.info('Pengiriman bulk dijeda')
+}
+
+async function resumeBulkSend() {
+  if (!bulkQueue.value.length) return
+  bulkPauseRequested.value = false
+  bulkPaused.value = false
+  bulkSendLoading.value = true
+  await processBulkQueue()
+}
+
+async function waitForMacroBreak(blockIndex, totalBlocks) {
+  if (blockIndex <= 0 || totalBlocks <= 0) return
+  const blockSize = 10 + Math.floor(Math.random() * 6)
+  if (blockIndex % blockSize !== 0) return
+
+  const breakMinutes = 15 + Math.random() * 15
+  const breakMs = breakMinutes * 60 * 1000
+  bulkSendCurrentName.value = 'Istirahat blok otomatis...'
+  await new Promise((resolve) => setTimeout(resolve, breakMs))
+}
+
+async function processBulkQueue() {
+  const contacts = bulkQueue.value
+  if (!contacts.length) return
+
+  const blockSize = 10 + Math.floor(Math.random() * 6)
+
+  for (let index = 0; index < contacts.length; index += 1) {
+    if (bulkPauseRequested.value) {
+      bulkPaused.value = true
+      bulkSendLoading.value = false
+      return
+    }
+
+    const contact = contacts[index]
+    const contactName = contact.nama || `Kontak ${index + 1}`
+    bulkSendCurrentName.value = contactName
+    bulkSendProgress.value = Math.round((index / contacts.length) * 100)
+
+    try {
+      await sendWAMessage({
+        kontak_id: contact.id,
+        template_id: selectedTemplateIdNumber.value || undefined,
+        log: 1,
+      })
+      bulkSuccessCount.value += 1
+    } catch (err) {
+      bulkFailedCount.value += 1
+      console.error('Bulk WA send failed for contact', contact.id, err)
+    }
+
+    if (index < contacts.length - 1) {
+      const delayMs = 4000 + Math.random() * 6000
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+    }
+
+    const blockIndex = index + 1
+    if (blockIndex >= blockSize && blockIndex % blockSize === 0 && index < contacts.length - 1) {
+      await waitForMacroBreak(blockIndex, blockSize)
+    }
+  }
+
+  bulkSendProgress.value = 100
+  bulkSendCurrentName.value = 'Selesai'
+  toast.success(`Pengiriman bulk selesai: ${bulkSuccessCount.value} sukses, ${bulkFailedCount.value} gagal`)
+  bulkSendLoading.value = false
+  bulkPaused.value = false
+  bulkPauseRequested.value = false
+}
+
+async function sendAllContacts() {
+  if (bulkSendLoading.value) return
+
+  const contacts = [...data.value]
+  if (!contacts.length) {
+    toast.error('Tidak ada kontak yang bisa dikirim')
+    return
+  }
+
+  try {
+    const status = await fetchWAStatus()
+    if (!status?.ready) {
+      showWAQRModal.value = true
+      toast.error('WhatsApp belum terhubung. Silakan login WA terlebih dahulu.')
+      return
+    }
+
+    bulkQueue.value = contacts
+    bulkSendLoading.value = true
+    bulkSendProgress.value = 0
+    bulkSendCurrentName.value = ''
+    bulkSuccessCount.value = 0
+    bulkFailedCount.value = 0
+    bulkPaused.value = false
+    bulkPauseRequested.value = false
+
+    await processBulkQueue()
+  } catch (err) {
+    toast.error(err?.response?.data?.message || err?.message || 'Gagal memulai pengiriman bulk')
+    bulkSendLoading.value = false
+    bulkPaused.value = false
+    bulkPauseRequested.value = false
+  }
 }
 
 async function saveEdit({ id, payload }) {

@@ -1,0 +1,133 @@
+<template>
+  <teleport to="body">
+    <div v-if="show" class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+      <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Login WhatsApp</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              {{ waReady ? 'Akun WhatsApp sudah terhubung' : 'Scan QR untuk menghubungkan akun WhatsApp Anda' }}
+            </p>
+          </div>
+          <button type="button" @click="$emit('close')" class="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">✕</button>
+        </div>
+
+        <div v-if="loading" class="flex min-h-[260px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+          {{ waReady ? 'Memeriksa status koneksi...' : 'Mempersiapkan QR...' }}
+        </div>
+
+        <div v-else-if="waReady" class="flex flex-col items-center gap-4 py-2 text-center">
+          <div class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-900/40">✅</div>
+          <div class="space-y-1">
+            <p class="text-lg font-semibold text-emerald-700 dark:text-emerald-300">WhatsApp Terhubung</p>
+            <p class="text-sm text-slate-600 dark:text-slate-300">Akun Anda siap digunakan untuk kirim pesan.</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+            Status: terhubung
+          </div>
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+          >
+            Selesai
+          </button>
+        </div>
+
+        <div v-else-if="qrImage" class="flex flex-col items-center gap-3">
+          <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950">
+            <img :src="qrImage" alt="WhatsApp QR" class="h-60 w-60 object-contain" />
+          </div>
+          <p class="text-center text-xs text-slate-600 dark:text-slate-300">
+            Buka WhatsApp di ponsel Anda → Menu → Linked Devices → Link a Device
+          </p>
+          <div class="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+            Status: menunggu koneksi
+          </div>
+        </div>
+
+        <div v-else class="flex min-h-[260px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+          Tidak ada QR yang tersedia saat ini.
+        </div>
+      </div>
+    </div>
+  </teleport>
+</template>
+
+<script setup>
+import { watch, ref, onBeforeUnmount } from 'vue'
+import { fetchWAQRCode, fetchWAStatus } from '@/api/wa'
+
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+const emit = defineEmits(['close'])
+const qrImage = ref('')
+const loading = ref(false)
+const waReady = ref(false)
+let statusTimer = null
+
+watch(() => props.show, async (value) => {
+  if (!value) {
+    if (statusTimer) {
+      clearInterval(statusTimer)
+      statusTimer = null
+    }
+    return
+  }
+
+  await loadQRCode()
+  await checkWAStatus()
+  startStatusPolling()
+})
+
+onBeforeUnmount(() => {
+  if (statusTimer) {
+    clearInterval(statusTimer)
+    statusTimer = null
+  }
+})
+
+async function checkWAStatus() {
+  try {
+    const response = await fetchWAStatus()
+    waReady.value = !!response?.ready
+    if (waReady.value) {
+      qrImage.value = ''
+    }
+  } catch {
+    waReady.value = false
+  }
+}
+
+function startStatusPolling() {
+  if (statusTimer) return
+
+  statusTimer = setInterval(async () => {
+    if (!props.show) return
+    await checkWAStatus()
+  }, 2000)
+}
+
+async function loadQRCode() {
+  loading.value = true
+  try {
+    const response = await fetchWAQRCode()
+    qrImage.value = response?.qr || ''
+    if (response?.qr) {
+      waReady.value = false
+    }
+  } catch {
+    qrImage.value = ''
+    waReady.value = false
+  } finally {
+    loading.value = false
+  }
+}
+</script>
