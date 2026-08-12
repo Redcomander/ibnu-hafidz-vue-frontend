@@ -300,13 +300,13 @@ const routes = [
         path: 'kontak',
         name: 'kontak-list',
         component: () => import('@/views/kontak/KontakListView.vue'),
-        meta: { permission: 'kontak.view', title: 'Database Kontak Calon Santri' },
+        meta: { permission: 'kontak.view', title: 'Database Kontak & Tagihan' },
       },
       {
         path: 'kontak/import-excel',
         name: 'kontak-import-excel',
         component: () => import('@/views/kontak/ImportExcelView.vue'),
-        meta: { permission: 'kontak.import', title: 'Import Kontak Excel' },
+        meta: { permission: 'kontak.import', title: 'Import Excel' },
       },
       {
         path: 'kontak/template',
@@ -314,18 +314,13 @@ const routes = [
         component: () => import('@/views/kontak/TemplateManagerView.vue'),
         meta: { permission: 'template_pesan.view', title: 'Template Pesan WhatsApp' },
       },
-      // ---- Database Tagihan ----
       {
         path: 'tagihan',
-        name: 'tagihan-list',
-        component: () => import('@/views/tagihan/TagihanListView.vue'),
-        meta: { permission: 'tagihan.view', title: 'Database Tagihan' },
+        redirect: '/dashboard/kontak',
       },
       {
         path: 'tagihan/import-excel',
-        name: 'tagihan-import-excel',
-        component: () => import('@/views/tagihan/ImportTagihanView.vue'),
-        meta: { permission: 'tagihan.import', title: 'Import Tagihan Excel' },
+        redirect: '/dashboard/kontak/import-excel',
       },
       // ---- Content & Prestasi ----
       {

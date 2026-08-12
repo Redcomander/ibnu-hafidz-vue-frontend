@@ -102,6 +102,16 @@
 
     <!-- Student Stats -->
     <template v-else-if="activeTab === 'student'">
+      <ConfirmModal
+        v-model:show="showDeleteModal"
+        title="Hapus Absensi Santri"
+        :message="deleteConfirmMessage"
+        type="danger"
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        @confirm="confirmDeleteStudentStatus"
+      />
+
       <!-- Stat Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div
@@ -134,9 +144,11 @@
           :key="section.status"
           :title="section.title"
           :students="section.students"
+          :status="section.status"
           :color="section.color"
           :icon="section.icon"
           :searchQuery="studentSearch"
+          :onDelete="removeStudentStatus"
         />
       </div>
     </template>
@@ -239,6 +251,7 @@ import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js'
 import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
@@ -247,9 +260,11 @@ const StudentStatusSection = {
   props: {
     title: String,
     students: Array,
+    status: String,
     color: String,
     icon: String,
     searchQuery: String,
+    onDelete: Function,
   },
   setup(props) {
     const open = ref(true)
@@ -279,11 +294,21 @@ const StudentStatusSection = {
       for (const s of props.students || []) {
         const name = s?.name || 'Tanpa nama'
         if (!map[name]) {
-          map[name] = { name, kelas: s?.kelas || '', tingkat: s?.tingkat || '', count: 0, notes: [] }
+          map[name] = {
+            name,
+            student_id: s?.student_id ?? s?.id ?? null,
+            id: s?.id ?? null,
+            kelas: s?.kelas || '',
+            tingkat: s?.tingkat || '',
+            count: 0,
+            notes: []
+          }
         }
 
         if (!map[name].kelas && s?.kelas) map[name].kelas = s.kelas
         if (!map[name].tingkat && s?.tingkat) map[name].tingkat = s.tingkat
+        if (!map[name].student_id && s?.student_id) map[name].student_id = s.student_id
+        if (!map[name].id && s?.id) map[name].id = s.id
 
         map[name].count++
         if (s?.catatan) map[name].notes.push(s.catatan)
@@ -318,6 +343,12 @@ const StudentStatusSection = {
 
       const bodyChildren = []
       if (open.value) {
+        const removeStudent = (entry) => {
+          if (props.onDelete) {
+            props.onDelete({ ...entry, status: props.status })
+          }
+        }
+
         // Search bar with robust flex layout
         const searchComp = h('div', { 
           class: 'flex items-center gap-2 h-10 px-3.5 mb-2 rounded-lg border border-gray-200 bg-gray-50/50 focus-within:bg-white focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all'
@@ -342,11 +373,18 @@ const StudentStatusSection = {
           for (const entry of filtered.value) {
             const classLabel = [entry.kelas, entry.tingkat].filter(Boolean).join(' ').trim()
 
-            const nameRow = h('div', { class: 'flex items-center gap-2' }, [
-              h('span', { class: 'text-[13px] font-bold text-gray-800 uppercase tracking-wide' }, entry.name),
-              h('span', {
-                class: ['inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-[10px] font-extrabold rounded-full text-white shadow-sm', styles.badgeBg].join(' ')
-              }, `${entry.count}x`)
+            const nameRow = h('div', { class: 'flex items-center justify-between gap-2' }, [
+              h('div', { class: 'flex items-center gap-2' }, [
+                h('span', { class: 'text-[13px] font-bold text-gray-800 uppercase tracking-wide' }, entry.name),
+                h('span', {
+                  class: ['inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-[10px] font-extrabold rounded-full text-white shadow-sm', styles.badgeBg].join(' ')
+                }, `${entry.count}x`)
+              ]),
+              h('button', {
+                type: 'button',
+                class: 'text-[10px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md border border-red-200 transition-colors',
+                onClick: () => removeStudent(entry),
+              }, 'Hapus')
             ])
 
             const detailRow = classLabel
@@ -392,6 +430,14 @@ const loading = ref(false)
 const activeTab = ref('student')
 const kelasList = ref([])
 const exporting = ref(null)
+const showDeleteModal = ref(false)
+const pendingDeleteEntry = ref(null)
+const deleteConfirmMessage = computed(() => {
+  if (!pendingDeleteEntry.value) return 'Apakah Anda yakin ingin menghapus absensi santri ini?'
+  const name = pendingDeleteEntry.value.name || 'santri ini'
+  const status = pendingDeleteEntry.value.status || 'izin'
+  return `Hapus status ${status} untuk ${name}? Tindakan ini akan menghapus data absensi yang sudah tercatat.`
+})
 
 const tabs = [
   { key: 'student', label: 'Absensi Santri' },
@@ -479,6 +525,52 @@ const studentSections = computed(() => [
   { status: 'sakit', title: 'Santri Sakit',  students: data.value.sakit_students, color: 'orange', icon: 'heart' },
   { status: 'alpa',  title: 'Santri Alpa',   students: data.value.alpa_students,  color: 'red',    icon: 'x-circle' },
 ])
+
+function openDeleteStudentStatus(entry) {
+  const studentId = entry?.student_id ?? entry?.id
+  const status = entry?.status || 'izin'
+  if (!studentId) {
+    console.warn('Cannot delete attendance: student_id missing', entry)
+    return
+  }
+
+  pendingDeleteEntry.value = { ...entry, status }
+  showDeleteModal.value = true
+}
+
+async function confirmDeleteStudentStatus() {
+  const entry = pendingDeleteEntry.value
+  if (!entry) return
+
+  const studentId = entry.student_id ?? entry.id
+  const status = entry.status || 'izin'
+
+  try {
+    await api.delete(`/attendance/student/${studentId}`, {
+      params: {
+        status,
+        type: attendanceType.value,
+        start_date: filters.value.start_date,
+        end_date: filters.value.end_date,
+      },
+    })
+    showDeleteModal.value = false
+    pendingDeleteEntry.value = null
+    await fetchStats()
+    if (activeTab.value === 'history') {
+      await fetchHistory()
+    }
+  } catch (err) {
+    console.error('Failed to delete student attendance status:', err)
+    showDeleteModal.value = false
+    pendingDeleteEntry.value = null
+    alert('Gagal menghapus absensi santri. Silakan coba lagi.')
+  }
+}
+
+async function removeStudentStatus(entry) {
+  openDeleteStudentStatus(entry)
+}
 
 function getStatusBadge(status) {
   const s = (status || '').toLowerCase()

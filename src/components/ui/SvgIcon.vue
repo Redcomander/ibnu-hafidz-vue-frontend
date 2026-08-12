@@ -391,6 +391,13 @@
       <polyline points="16 16 12 12 8 16" />
     </template>
 
+    <!-- Database -->
+    <template v-else-if="name === 'database'">
+      <ellipse cx="12" cy="5" rx="8" ry="3" />
+      <path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5" />
+      <path d="M4 12v7c0 1.66 3.58 3 8 3s8-1.34 8-3v-7" />
+    </template>
+
     <!-- Folder -->
     <template v-else-if="name === 'folder'">
       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
