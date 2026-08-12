@@ -383,12 +383,12 @@ const {
   fetchData,
   setPage,
 } = useTable('/kontak', {
-  defaultSort: 'updated_at',
-  defaultOrder: 'desc',
+  defaultSort: 'last_contact_at',
+  defaultOrder: 'asc',
   initialFilters: {
     status: '',
     handler_id: '',
-    sumber_data: '',
+    sumber_data: localStorage.getItem('kontak_source_filter') || '',
   },
 })
 
@@ -465,6 +465,34 @@ watch(data, (rows) => {
   selectedIds.value = selectedIds.value.filter((id) => rowSet.has(id))
 })
 
+watch(
+  () => filters.sumber_data,
+  (value) => {
+    if (value) {
+      localStorage.setItem('kontak_source_filter', value)
+      return
+    }
+    localStorage.removeItem('kontak_source_filter')
+  }
+)
+
+watch(
+  selectedTemplateId,
+  (value) => {
+    if (value) {
+      localStorage.setItem('kontak_template_id', String(value))
+      return
+    }
+    localStorage.removeItem('kontak_template_id')
+  },
+  { immediate: true }
+)
+
+const cachedKontakTemplateId = localStorage.getItem('kontak_template_id')
+if (cachedKontakTemplateId) {
+  selectedTemplateId.value = cachedKontakTemplateId
+}
+
 async function loadHandlers() {
   try {
     const { data: response } = await api.get('/users', {
@@ -508,7 +536,7 @@ function resetFilters() {
   search.value = ''
   filters.status = ''
   filters.handler_id = ''
-  filters.sumber_data = ''
+  // keep source filter stable so it does not reset unexpectedly
 }
 
 async function handleDeleteSource() {
@@ -518,7 +546,7 @@ async function handleDeleteSource() {
 
   try {
     await deleteKontakSource(source)
-    filters.sumber_data = ''
+    // keep the current source selection until the user intentionally clears it
     toast.success('Sumber kontak berhasil dihapus')
     await Promise.all([fetchData(), loadSummary(), loadSumberOptions()])
   } catch (err) {

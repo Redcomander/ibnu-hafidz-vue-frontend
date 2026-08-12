@@ -202,9 +202,9 @@ const showEditModal = ref(false)
 const selectedTagihan = ref(null)
 
 const { data, loading, meta, search, filters, sort, fetchData, setPage } = useTable('/tagihan', {
-  defaultSort: 'updated_at',
-  defaultOrder: 'desc',
-  initialFilters: { status: '', handler_id: '', sumber_data: '' },
+  defaultSort: 'last_contact_at',
+  defaultOrder: 'asc',
+  initialFilters: { status: '', handler_id: '', sumber_data: localStorage.getItem('tagihan_source_filter') || '' },
 })
 
 const selectedTemplateIdNumber = computed(() => {
@@ -226,6 +226,31 @@ const cards = computed(() => {
 
 onMounted(async () => { await Promise.all([loadHandlers(), loadSummary(), loadTemplates(), loadSumberOptions()]) })
 watch(data, (rows) => { const rowSet = new Set((rows || []).map((item) => item.id)); selectedIds.value = selectedIds.value.filter((id) => rowSet.has(id)) })
+watch(
+  () => filters.sumber_data,
+  (value) => {
+    if (value) {
+      localStorage.setItem('tagihan_source_filter', value)
+      return
+    }
+    localStorage.removeItem('tagihan_source_filter')
+  }
+)
+watch(
+  selectedTemplateId,
+  (value) => {
+    if (value) {
+      localStorage.setItem('tagihan_template_id', String(value))
+      return
+    }
+    localStorage.removeItem('tagihan_template_id')
+  },
+  { immediate: true }
+)
+const cachedTagihanTemplateId = localStorage.getItem('tagihan_template_id')
+if (cachedTagihanTemplateId) {
+  selectedTemplateId.value = cachedTagihanTemplateId
+}
 
 async function loadHandlers() {
   try {
@@ -268,7 +293,7 @@ function resetFilters() {
   search.value = ''
   filters.status = ''
   filters.handler_id = ''
-  filters.sumber_data = ''
+  // keep source filter stable so it does not reset unexpectedly
 }
 
 function openEdit(row) {
@@ -376,7 +401,7 @@ async function handleDeleteSource() {
   if (!window.confirm(`Hapus semua tagihan dengan sumber "${source}"?`)) return
   try {
     await deleteTagihanSource(source)
-    filters.sumber_data = ''
+    // keep the current source selection until the user intentionally clears it
     toast.success('Sumber tagihan berhasil dihapus')
     await Promise.all([fetchData(), loadSummary(), loadSumberOptions()])
   } catch (err) {
