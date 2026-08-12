@@ -100,6 +100,12 @@
         <option value="banin">Banin</option>
         <option value="banat">Banat</option>
       </select>
+      <select v-model="filters.owner_status" class="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition" @change="fetchData">
+        <option value="all">Semua Pemilik</option>
+        <option value="has_owner">Punya Pemilik</option>
+        <option value="unknown">Unknown</option>
+        <option value="orphan">Orphan</option>
+      </select>
       <div class="flex flex-wrap gap-2 items-center w-full sm:w-auto">
         <span class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Periode Limit:</span>
         <input type="date" v-model="filters.date_from" @change="fetchData" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" />
@@ -364,6 +370,7 @@ const { data, loading, meta, search, filters, fetchData, setPage } =
     defaultOrder: "desc",
     initialFilters: { 
       gender_type: "all",
+      owner_status: "all",
       date_from: firstDay,
       date_to: lastDay
     },
@@ -433,6 +440,9 @@ function exportExceeded() {
   if (filters.gender_type && filters.gender_type !== 'all') {
     queryParams.append('gender_type', filters.gender_type);
   }
+  if (filters.owner_status && filters.owner_status !== 'all') {
+    queryParams.append('owner_status', filters.owner_status);
+  }
   if (filters.date_from) {
     queryParams.append('date_from', filters.date_from);
   }
@@ -462,6 +472,9 @@ function exportAllAccountsPdf() {
   
   if (filters.gender_type && filters.gender_type !== 'all') {
     queryParams.append('gender_type', filters.gender_type);
+  }
+  if (filters.owner_status && filters.owner_status !== 'all') {
+    queryParams.append('owner_status', filters.owner_status);
   }
   if (token) {
     queryParams.append('token', token);

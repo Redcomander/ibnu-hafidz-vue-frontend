@@ -3,7 +3,7 @@
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
       <div>
         <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Template Pesan WhatsApp</h1>
-        <p class="text-xs sm:text-sm text-gray-500 mt-1">Gunakan placeholder: {nama}, {nis}, {no_whatsapp}</p>
+        <p class="text-xs sm:text-sm text-gray-500 mt-1">Gunakan placeholder: {nama}, {nis}, {no_whatsapp}, {total_tagihan}, {status_tagihan}</p>
       </div>
       <button
         v-if="auth.hasPermission('template_pesan.create')"

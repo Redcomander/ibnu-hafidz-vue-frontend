@@ -42,6 +42,8 @@ export const useAuthStore = defineStore('auth', () => {
       'kontak.view', 'kontak.create', 'kontak.edit', 'kontak.delete', 'kontak.import',
       'template_pesan.view', 'template_pesan.create', 'template_pesan.edit', 'template_pesan.delete',
       'kontak_riwayat.view', 'kontak_dashboard.view',
+      'tagihan.view', 'tagihan.create', 'tagihan.edit', 'tagihan.delete', 'tagihan.import',
+      'tagihan_dashboard.view',
     ])
 
     if (!kontakPermissions.has(permission)) return false

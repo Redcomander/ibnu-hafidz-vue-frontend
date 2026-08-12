@@ -30,6 +30,11 @@ export async function bulkDeleteKontak(ids = []) {
   return data
 }
 
+export async function deleteKontakSource(source) {
+  const { data } = await api.delete(`/kontak/sumber/${encodeURIComponent(source)}`)
+  return data
+}
+
 export async function updateKontakStatus(id, payload) {
   const { data } = await api.patch(`/kontak/${id}/status`, payload)
   return data

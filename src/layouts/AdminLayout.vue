@@ -607,6 +607,23 @@ const navItems = [
     menuKey: 'kontak_template',
     activeOn: ["/dashboard/kontak/template"],
   },
+  {
+    to: "/dashboard/tagihan",
+    icon: "document",
+    label: "Database Tagihan",
+    permission: "tagihan.view",
+    menuKey: 'tagihan_database',
+    activeOn: ["/dashboard/tagihan"],
+    activeExcept: ["/dashboard/tagihan/import-excel"],
+  },
+  {
+    to: "/dashboard/tagihan/import-excel",
+    icon: "upload",
+    label: "Import Tagihan Excel",
+    permission: "tagihan.import",
+    menuKey: 'tagihan_import',
+    activeOn: ["/dashboard/tagihan/import-excel"],
+  },
 
   { header: 'Konten & Galeri' },
   {

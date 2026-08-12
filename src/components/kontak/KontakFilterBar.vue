@@ -15,6 +15,14 @@
       >
         Reset Filter
       </button>
+      <button
+        v-if="canDeleteSumber && sumberData"
+        type="button"
+        class="px-3 py-2.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-sm font-medium hover:bg-rose-100 lg:whitespace-nowrap"
+        @click="$emit('delete-sumber')"
+      >
+        Hapus Sumber
+      </button>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -64,7 +72,8 @@ defineProps({
   sumberData: { type: String, default: '' },
   handlers: { type: Array, default: () => [] },
   sumberOptions: { type: Array, default: () => [] },
+  canDeleteSumber: { type: Boolean, default: false },
 })
 
-defineEmits(['update:search', 'update:status', 'update:handlerId', 'update:sumberData', 'reset'])
+defineEmits(['update:search', 'update:status', 'update:handlerId', 'update:sumberData', 'reset', 'delete-sumber'])
 </script>

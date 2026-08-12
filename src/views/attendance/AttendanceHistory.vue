@@ -277,9 +277,16 @@ const StudentStatusSection = {
     const grouped = computed(() => {
       const map = {}
       for (const s of props.students || []) {
-        if (!map[s.name]) map[s.name] = { name: s.name, count: 0, notes: [] }
-        map[s.name].count++
-        if (s.catatan) map[s.name].notes.push(s.catatan)
+        const name = s?.name || 'Tanpa nama'
+        if (!map[name]) {
+          map[name] = { name, kelas: s?.kelas || '', tingkat: s?.tingkat || '', count: 0, notes: [] }
+        }
+
+        if (!map[name].kelas && s?.kelas) map[name].kelas = s.kelas
+        if (!map[name].tingkat && s?.tingkat) map[name].tingkat = s.tingkat
+
+        map[name].count++
+        if (s?.catatan) map[name].notes.push(s.catatan)
       }
       return Object.values(map).sort((a, b) => b.count - a.count)
     })
@@ -333,12 +340,18 @@ const StudentStatusSection = {
           listItems.push(h('div', { class: 'text-center py-6 text-gray-400 text-sm' }, 'Tidak ada data'))
         } else {
           for (const entry of filtered.value) {
+            const classLabel = [entry.kelas, entry.tingkat].filter(Boolean).join(' ').trim()
+
             const nameRow = h('div', { class: 'flex items-center gap-2' }, [
               h('span', { class: 'text-[13px] font-bold text-gray-800 uppercase tracking-wide' }, entry.name),
               h('span', {
                 class: ['inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-[10px] font-extrabold rounded-full text-white shadow-sm', styles.badgeBg].join(' ')
               }, `${entry.count}x`)
             ])
+
+            const detailRow = classLabel
+              ? h('div', { class: 'mt-1 text-[11px] font-medium text-gray-500' }, classLabel)
+              : null
 
             const noteRows = entry.notes.length
               ? h('div', { class: 'mt-1.5 space-y-0.5 ml-0.5' },
@@ -352,7 +365,7 @@ const StudentStatusSection = {
               : null
 
             listItems.push(
-              h('div', { key: entry.name, class: 'py-3 border-b border-gray-100/80 last:border-0' }, [nameRow, noteRows])
+              h('div', { key: entry.name, class: 'py-3 border-b border-gray-100/80 last:border-0' }, [nameRow, detailRow, noteRows])
             )
           }
         }

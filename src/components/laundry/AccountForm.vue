@@ -48,7 +48,7 @@
                   <label class="block text-sm font-medium text-gray-700 mb-1">
                     Kategori Pemilik *
                   </label>
-                  <select v-model="ownerType" class="input-field" :disabled="isEditing">
+                  <select v-model="ownerType" class="input-field">
                     <option value="student">Santri</option>
                     <option value="user">User / Guru</option>
                   </select>
@@ -65,7 +65,6 @@
                     labelKey="nama_lengkap"
                     valueKey="id"
                     placeholder="Pilih santri..."
-                    :disabled="isEditing"
                     required
                   />
                 </div>
@@ -81,7 +80,6 @@
                     labelKey="name"
                     valueKey="id"
                     placeholder="Pilih user..."
-                    :disabled="isEditing"
                     required
                   />
                 </div>

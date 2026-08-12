@@ -314,6 +314,19 @@ const routes = [
         component: () => import('@/views/kontak/TemplateManagerView.vue'),
         meta: { permission: 'template_pesan.view', title: 'Template Pesan WhatsApp' },
       },
+      // ---- Database Tagihan ----
+      {
+        path: 'tagihan',
+        name: 'tagihan-list',
+        component: () => import('@/views/tagihan/TagihanListView.vue'),
+        meta: { permission: 'tagihan.view', title: 'Database Tagihan' },
+      },
+      {
+        path: 'tagihan/import-excel',
+        name: 'tagihan-import-excel',
+        component: () => import('@/views/tagihan/ImportTagihanView.vue'),
+        meta: { permission: 'tagihan.import', title: 'Import Tagihan Excel' },
+      },
       // ---- Content & Prestasi ----
       {
         path: 'articles',
