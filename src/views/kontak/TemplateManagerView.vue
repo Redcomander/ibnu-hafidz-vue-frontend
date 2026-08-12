@@ -4,7 +4,7 @@
       <div>
         <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Template Pesan WhatsApp</h1>
         <p class="text-xs sm:text-sm text-gray-500 mt-1">
-          Gunakan placeholder aktif: kontak = {nama}, {nis}, {no_whatsapp}, {status_kontak}, {sumber_data}, {tunggakan}; tagihan = {nama}, {nis}, {no_whatsapp}, {total_tagihan}, {tunggakan}, {status_tagihan}
+          Gunakan placeholder aktif: kontak = {nama}, {nis}, {no_whatsapp}, {ttl}, {alamat}, {nama_ayah}, {nama_ibu}, {asal_sekolah}, {jenis_kelamin}, {jenjang_pendidikan}, {status_kontak}, {sumber_data}, {tunggakan}; tagihan = {nama}, {nis}, {no_whatsapp}, {ttl}, {alamat}, {total_tagihan}, {tunggakan}, {status_tagihan}
         </p>
       </div>
       <button
