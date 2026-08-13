@@ -611,14 +611,17 @@ async function resumeBulkSend() {
   await processBulkQueue()
 }
 
+function randomBetween(min, max) {
+  return Math.random() * (max - min) + min
+}
+
 async function waitForMacroBreak(blockIndex, totalBlocks) {
   if (blockIndex <= 0 || totalBlocks <= 0) return
-  const blockSize = 10 + Math.floor(Math.random() * 6)
-  if (blockIndex % blockSize !== 0) return
+  const breakInterval = 5 + Math.floor(Math.random() * 3)
+  if (blockIndex % breakInterval !== 0) return
 
-  const breakMinutes = 15 + Math.random() * 15
-  const breakMs = breakMinutes * 60 * 1000
-  bulkSendCurrentName.value = 'Istirahat blok otomatis...'
+  const breakMs = randomBetween(12000, 25000)
+  bulkSendCurrentName.value = 'Istirahat otomatis untuk menjaga akun tetap aman...'
   await new Promise((resolve) => setTimeout(resolve, breakMs))
 }
 
@@ -626,7 +629,8 @@ async function processBulkQueue() {
   const contacts = bulkQueue.value
   if (!contacts.length) return
 
-  const blockSize = 10 + Math.floor(Math.random() * 6)
+  const blockSize = 6 + Math.floor(Math.random() * 4)
+  const softBreakEvery = 4 + Math.floor(Math.random() * 3)
 
   for (let index = 0; index < contacts.length; index += 1) {
     if (bulkPauseRequested.value) {
@@ -639,6 +643,11 @@ async function processBulkQueue() {
     const contactName = contact.nama || `Kontak ${index + 1}`
     bulkSendCurrentName.value = contactName
     bulkSendProgress.value = Math.round((index / contacts.length) * 100)
+
+    if (index > 0) {
+      const preDelay = randomBetween(2200, 5200)
+      await new Promise((resolve) => setTimeout(resolve, preDelay))
+    }
 
     try {
       await sendWAMessage({
@@ -653,13 +662,18 @@ async function processBulkQueue() {
     }
 
     if (index < contacts.length - 1) {
-      const delayMs = 4000 + Math.random() * 6000
+      const delayMs = randomBetween(6000, 14000)
       await new Promise((resolve) => setTimeout(resolve, delayMs))
     }
 
     const blockIndex = index + 1
     if (blockIndex >= blockSize && blockIndex % blockSize === 0 && index < contacts.length - 1) {
       await waitForMacroBreak(blockIndex, blockSize)
+    }
+
+    if ((index + 1) % softBreakEvery === 0 && index < contacts.length - 1) {
+      const softPause = randomBetween(5000, 9000)
+      await new Promise((resolve) => setTimeout(resolve, softPause))
     }
   }
 
