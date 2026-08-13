@@ -15,7 +15,7 @@
         <div v-if="loading" class="flex min-h-[260px] flex-col items-center justify-center gap-4 text-center text-sm text-slate-500 dark:text-slate-400">
           <div class="relative flex h-20 w-20 items-center justify-center">
             <div class="absolute inset-0 animate-ping rounded-full bg-emerald-200/60 dark:bg-emerald-500/20"></div>
-            <div class="relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl shadow-sm dark:bg-emerald-900/40">📱</div>
+            <div class="relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl shadow-sm dark:bg-emerald-900/40"> </div>
           </div>
           <div class="space-y-1">
             <p class="text-base font-semibold text-slate-700 dark:text-slate-200">
@@ -28,7 +28,7 @@
         </div>
 
         <div v-else-if="waReady" class="flex flex-col items-center gap-4 py-2 text-center">
-          <div class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-900/40">✅</div>
+          <div class="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-900/40"></div>
           <div class="space-y-1">
             <p class="text-lg font-semibold text-emerald-700 dark:text-emerald-300">WhatsApp Terhubung</p>
             <p class="text-sm text-slate-600 dark:text-slate-300">Akun Anda siap digunakan untuk kirim pesan.</p>
@@ -83,8 +83,8 @@
         </div>
 
         <div v-else class="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center text-sm text-slate-500 dark:text-slate-400">
-          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-2xl dark:bg-slate-800">⌛</div>
-          <p class="font-medium text-slate-600 dark:text-slate-300">Tidak ada QR yang tersedia saat ini.</p>
+          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-2xl dark:bg-slate-800"></div>
+          <p class="font-medium text-slate-600 dark:text-slate-300">Menunggu QR baru tersedia.</p>
         </div>
       </div>
     </div>
@@ -155,8 +155,8 @@ async function handleReconnect() {
     waReady.value = false
     await loadQRCode()
     await checkWAStatus()
-  } finally {
-    loading.value = false
+  } catch {
+    loading.value = true
   }
 }
 
@@ -167,7 +167,7 @@ async function handleDisconnect() {
     qrImage.value = ''
     waReady.value = false
   } finally {
-    loading.value = false
+    loading.value = true
   }
 }
 
@@ -191,13 +191,20 @@ async function loadQRCode() {
     const response = await fetchWAQRCode()
     const nextQr = response?.qr || ''
 
+    if (!nextQr) {
+      qrImage.value = ''
+      waReady.value = false
+      loading.value = true
+      return
+    }
+
     qrImage.value = nextQr
     waReady.value = false
     loading.value = false
   } catch {
     qrImage.value = ''
     waReady.value = false
-    loading.value = false
+    loading.value = true
   } finally {
     qrLoadInFlight = false
   }
