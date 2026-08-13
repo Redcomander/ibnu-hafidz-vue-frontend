@@ -12,8 +12,19 @@
           <button type="button" @click="$emit('close')" class="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">✕</button>
         </div>
 
-        <div v-if="loading" class="flex min-h-[260px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-          {{ waReady ? 'Memeriksa status koneksi...' : 'Mempersiapkan QR...' }}
+        <div v-if="loading" class="flex min-h-[260px] flex-col items-center justify-center gap-4 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div class="relative flex h-20 w-20 items-center justify-center">
+            <div class="absolute inset-0 animate-ping rounded-full bg-emerald-200/60 dark:bg-emerald-500/20"></div>
+            <div class="relative flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl shadow-sm dark:bg-emerald-900/40">📱</div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-base font-semibold text-slate-700 dark:text-slate-200">
+              {{ waReady ? 'Memeriksa status koneksi...' : 'Mempersiapkan QR login...' }}
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Tunggu sebentar sampai WhatsApp siap dibuatkan sesi login unik untuk akun Anda.
+            </p>
+          </div>
         </div>
 
         <div v-else-if="waReady" class="flex flex-col items-center gap-4 py-2 text-center">
@@ -71,8 +82,9 @@
           </button>
         </div>
 
-        <div v-else class="flex min-h-[260px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-          Tidak ada QR yang tersedia saat ini.
+        <div v-else class="flex min-h-[260px] flex-col items-center justify-center gap-3 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-2xl dark:bg-slate-800">⌛</div>
+          <p class="font-medium text-slate-600 dark:text-slate-300">Tidak ada QR yang tersedia saat ini.</p>
         </div>
       </div>
     </div>
