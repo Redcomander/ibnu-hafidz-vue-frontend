@@ -237,9 +237,9 @@ async function checkWAStatus() {
     }
 
     if (nextQr) {
-      qrImage.value = nextQr
-      loading.value = false
-      stateKey.value = 'qr'
+      loading.value = true
+      stateKey.value = 'loading'
+      await loadQRCode(true)
       return
     }
 
