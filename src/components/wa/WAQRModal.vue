@@ -193,18 +193,13 @@ async function loadQRCode() {
 
     qrImage.value = nextQr
     waReady.value = false
-
-    if (!nextQr) {
-      loading.value = false
-    }
+    loading.value = false
   } catch {
     qrImage.value = ''
     waReady.value = false
+    loading.value = false
   } finally {
     qrLoadInFlight = false
-    if (!qrImage.value) {
-      loading.value = false
-    }
   }
 }
 </script>
