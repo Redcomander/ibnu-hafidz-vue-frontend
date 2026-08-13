@@ -570,7 +570,8 @@ function resetFilters() {
   search.value = ''
   filters.status = ''
   filters.handler_id = ''
-  // keep source filter stable so it does not reset unexpectedly
+  filters.sumber_data = ''
+  localStorage.removeItem('kontak_source_filter')
 }
 
 async function handleDeleteSource() {
