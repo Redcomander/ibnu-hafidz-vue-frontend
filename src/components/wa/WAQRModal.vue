@@ -95,6 +95,7 @@ const qrImage = ref('')
 const loading = ref(false)
 const waReady = ref(false)
 let statusTimer = null
+let qrLoadInFlight = false
 
 watch(() => props.show, async (value) => {
   if (!value) {
@@ -105,7 +106,9 @@ watch(() => props.show, async (value) => {
     return
   }
 
-  await loadQRCode()
+  if (!qrImage.value) {
+    await loadQRCode()
+  }
   await checkWAStatus()
   startStatusPolling()
 })
@@ -120,9 +123,12 @@ onBeforeUnmount(() => {
 async function checkWAStatus() {
   try {
     const response = await fetchWAStatus()
-    waReady.value = !!response?.ready
-    if (waReady.value) {
+    const nextReady = !!response?.ready
+    waReady.value = nextReady
+
+    if (nextReady) {
       qrImage.value = ''
+      loading.value = false
     }
   } catch {
     waReady.value = false
@@ -133,6 +139,8 @@ async function handleReconnect() {
   loading.value = true
   try {
     await disconnectWA()
+    qrImage.value = ''
+    waReady.value = false
     await loadQRCode()
     await checkWAStatus()
   } finally {
@@ -157,22 +165,34 @@ function startStatusPolling() {
   statusTimer = setInterval(async () => {
     if (!props.show) return
     await checkWAStatus()
-  }, 2000)
+  }, 5000)
 }
 
 async function loadQRCode() {
+  if (qrLoadInFlight || qrImage.value) {
+    return
+  }
+
+  qrLoadInFlight = true
   loading.value = true
   try {
     const response = await fetchWAQRCode()
-    qrImage.value = response?.qr || ''
-    if (response?.qr) {
-      waReady.value = false
+    const nextQr = response?.qr || ''
+
+    qrImage.value = nextQr
+    waReady.value = false
+
+    if (!nextQr) {
+      loading.value = false
     }
   } catch {
     qrImage.value = ''
     waReady.value = false
   } finally {
-    loading.value = false
+    qrLoadInFlight = false
+    if (!qrImage.value) {
+      loading.value = false
+    }
   }
 }
 </script>
