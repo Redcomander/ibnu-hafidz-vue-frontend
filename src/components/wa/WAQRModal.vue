@@ -164,13 +164,34 @@ const waReady = ref(false)
 const stateKey = ref('loading')
 let statusTimer = null
 let qrLoadInFlight = false
+let activeRequest = null
+
+function stopPolling() {
+  if (statusTimer) {
+    clearInterval(statusTimer)
+    statusTimer = null
+  }
+
+  if (activeRequest) {
+    activeRequest.abort()
+    activeRequest = null
+  }
+}
+
+function handlePageVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    stopPolling()
+    return
+  }
+
+  if (props.show) {
+    startStatusPolling()
+  }
+}
 
 watch(() => props.show, async (value) => {
   if (!value) {
-    if (statusTimer) {
-      clearInterval(statusTimer)
-      statusTimer = null
-    }
+    stopPolling()
     return
   }
 
@@ -182,15 +203,28 @@ watch(() => props.show, async (value) => {
 })
 
 onBeforeUnmount(() => {
-  if (statusTimer) {
-    clearInterval(statusTimer)
-    statusTimer = null
+  stopPolling()
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handlePageVisibilityChange)
+    window.removeEventListener('pagehide', stopPolling)
   }
 })
 
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', handlePageVisibilityChange)
+  window.addEventListener('pagehide', stopPolling)
+}
+
 async function checkWAStatus() {
+  if (!props.show) return
+
+  const controller = new AbortController()
+  activeRequest = controller
+
   try {
-    const response = await fetchWAStatus()
+    const response = await fetchWAStatus(controller.signal)
+    if (!props.show) return
+
     const nextReady = !!response?.ready
     const nextQr = response?.qr || ''
     waReady.value = nextReady
@@ -213,10 +247,15 @@ async function checkWAStatus() {
       loading.value = true
       stateKey.value = 'loading'
     }
-  } catch {
+  } catch (error) {
+    if (error?.name === 'AbortError') return
     waReady.value = false
     loading.value = true
     stateKey.value = 'loading'
+  } finally {
+    if (activeRequest === controller) {
+      activeRequest = null
+    }
   }
 }
 
@@ -224,14 +263,18 @@ async function handleReconnect() {
   loading.value = true
   stateKey.value = 'loading'
   try {
+    stopPolling()
     await disconnectWA()
     qrImage.value = ''
     waReady.value = false
     await loadQRCode(true)
     await checkWAStatus()
-  } catch {
-    loading.value = true
-    stateKey.value = 'loading'
+    startStatusPolling()
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      loading.value = true
+      stateKey.value = 'loading'
+    }
   }
 }
 
@@ -239,6 +282,7 @@ async function handleDisconnect() {
   loading.value = true
   stateKey.value = 'loading'
   try {
+    stopPolling()
     await disconnectWA()
     qrImage.value = ''
     waReady.value = false
@@ -249,15 +293,16 @@ async function handleDisconnect() {
 }
 
 function startStatusPolling() {
-  if (statusTimer) return
+  if (statusTimer || !props.show) return
 
   statusTimer = setInterval(async () => {
-    if (!props.show) return
+    if (!props.show || document.visibilityState === 'hidden') return
     await checkWAStatus()
   }, 5000)
 }
 
 async function loadQRCode(force = false) {
+  if (!props.show) return
   if (!force && (qrLoadInFlight || qrImage.value)) {
     return
   }
@@ -265,8 +310,14 @@ async function loadQRCode(force = false) {
   qrLoadInFlight = true
   loading.value = true
   stateKey.value = 'loading'
+
+  const controller = new AbortController()
+  activeRequest = controller
+
   try {
-    const response = await fetchWAQRCode()
+    const response = await fetchWAQRCode(controller.signal)
+    if (!props.show) return
+
     const nextQr = response?.qr || ''
 
     if (!nextQr) {
@@ -281,13 +332,17 @@ async function loadQRCode(force = false) {
     waReady.value = false
     loading.value = false
     stateKey.value = 'qr'
-  } catch {
+  } catch (error) {
+    if (error?.name === 'AbortError') return
     qrImage.value = ''
     waReady.value = false
     loading.value = true
     stateKey.value = 'loading'
   } finally {
     qrLoadInFlight = false
+    if (activeRequest === controller) {
+      activeRequest = null
+    }
   }
 }
 </script>

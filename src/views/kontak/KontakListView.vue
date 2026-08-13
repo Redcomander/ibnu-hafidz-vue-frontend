@@ -446,14 +446,39 @@ onMounted(async () => {
   await Promise.all([loadHandlers(), loadSummary(), loadTemplates(), loadSumberOptions()])
   await refreshWAStatus()
   startWAStatusPolling()
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', stopWAStatusPolling)
+  }
 })
 
 onBeforeUnmount(() => {
+  stopWAStatusPolling()
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('pagehide', stopWAStatusPolling)
+  }
+})
+
+function stopWAStatusPolling() {
   if (waStatusTimer) {
     clearInterval(waStatusTimer)
     waStatusTimer = null
   }
-})
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'hidden') {
+    stopWAStatusPolling()
+    return
+  }
+
+  startWAStatusPolling()
+}
 
 async function refreshWAStatus() {
   try {
@@ -465,8 +490,12 @@ async function refreshWAStatus() {
 }
 
 function startWAStatusPolling() {
-  if (waStatusTimer) return
+  if (waStatusTimer || document.visibilityState === 'hidden') return
   waStatusTimer = setInterval(() => {
+    if (document.visibilityState === 'hidden') {
+      stopWAStatusPolling()
+      return
+    }
     refreshWAStatus()
   }, 5000)
 }
