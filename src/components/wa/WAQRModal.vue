@@ -298,7 +298,7 @@ function startStatusPolling() {
   statusTimer = setInterval(async () => {
     if (!props.show || document.visibilityState === 'hidden') return
     await checkWAStatus()
-  }, 5000)
+  }, 20000)
 }
 
 async function loadQRCode(force = false) {

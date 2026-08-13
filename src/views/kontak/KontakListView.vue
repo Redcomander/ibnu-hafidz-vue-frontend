@@ -497,7 +497,7 @@ function startWAStatusPolling() {
       return
     }
     refreshWAStatus()
-  }, 5000)
+  }, 30000)
 }
 
 watch(data, (rows) => {
