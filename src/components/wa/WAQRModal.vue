@@ -26,6 +26,22 @@
             <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
             Status: terhubung
           </div>
+          <div class="grid w-full gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              @click="handleReconnect"
+              class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              Reconnect
+            </button>
+            <button
+              type="button"
+              @click="handleDisconnect"
+              class="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-900/60"
+            >
+              Disconnect
+            </button>
+          </div>
           <button
             type="button"
             @click="$emit('close')"
@@ -46,6 +62,13 @@
             <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
             Status: menunggu koneksi
           </div>
+          <button
+            type="button"
+            @click="handleReconnect"
+            class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            Refresh QR
+          </button>
         </div>
 
         <div v-else class="flex min-h-[260px] items-center justify-center text-sm text-slate-500 dark:text-slate-400">
@@ -58,7 +81,7 @@
 
 <script setup>
 import { watch, ref, onBeforeUnmount } from 'vue'
-import { fetchWAQRCode, fetchWAStatus } from '@/api/wa'
+import { fetchWAQRCode, fetchWAStatus, disconnectWA } from '@/api/wa'
 
 const props = defineProps({
   show: {
@@ -103,6 +126,28 @@ async function checkWAStatus() {
     }
   } catch {
     waReady.value = false
+  }
+}
+
+async function handleReconnect() {
+  loading.value = true
+  try {
+    await disconnectWA()
+    await loadQRCode()
+    await checkWAStatus()
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleDisconnect() {
+  loading.value = true
+  try {
+    await disconnectWA()
+    qrImage.value = ''
+    waReady.value = false
+  } finally {
+    loading.value = false
   }
 }
 

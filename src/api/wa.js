@@ -10,6 +10,11 @@ export async function fetchWAQRCode() {
   return data
 }
 
+export async function disconnectWA() {
+  const { data } = await api.post('/wa/disconnect')
+  return data
+}
+
 export async function sendWAMessage(payload = {}) {
   const { data } = await api.post('/wa/send', payload)
   return data
