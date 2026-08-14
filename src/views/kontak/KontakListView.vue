@@ -199,7 +199,7 @@
                     >
                       Hapus
                     </button>
-                    <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" />
+                    <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" @sent="refreshAfterWAInteraction" />
                   </div>
                 </td>
               </tr>
@@ -256,7 +256,7 @@
                 Hapus
               </button>
               <div class="col-span-2">
-                <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" class="w-full" />
+                <WhatsAppButton :kontak-id="row.id" :template-id="selectedTemplateIdNumber" class="w-full" @sent="refreshAfterWAInteraction" />
               </div>
             </div>
           </div>
@@ -574,6 +574,10 @@ function resetFilters() {
   localStorage.removeItem('kontak_source_filter')
 }
 
+async function refreshAfterWAInteraction() {
+  await Promise.all([fetchData(), loadSummary()])
+}
+
 async function handleDeleteSource() {
   const source = filters.sumber_data
   if (!source) return
@@ -680,6 +684,7 @@ async function processBulkQueue() {
 
   bulkSendProgress.value = 100
   bulkSendCurrentName.value = 'Selesai'
+  await Promise.all([fetchData(), loadSummary()])
   toast.success(`Pengiriman bulk selesai: ${bulkSuccessCount.value} sukses, ${bulkFailedCount.value} gagal`)
   bulkSendLoading.value = false
   bulkPaused.value = false

@@ -47,6 +47,7 @@ const props = defineProps({
 
 const loading = ref(false)
 const toast = useToastStore()
+const emit = defineEmits(['sent'])
 
 async function sendAuto() {
   loading.value = true
@@ -60,6 +61,7 @@ async function sendAuto() {
       if (props.withLog) payload.log = 1
 
       await sendWAMessage(payload)
+      emit('sent')
       toast.success('Pesan WhatsApp berhasil dikirim')
       return
     }
@@ -95,6 +97,7 @@ async function openManual() {
     }
 
     window.open(response.url, '_blank', 'noopener,noreferrer')
+    emit('sent')
   } catch (err) {
     toast.error(err?.response?.data?.message || err?.message || 'Gagal membuka WhatsApp')
   } finally {
