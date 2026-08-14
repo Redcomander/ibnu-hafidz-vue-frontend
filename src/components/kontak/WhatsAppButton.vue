@@ -53,7 +53,7 @@ async function sendAuto() {
   loading.value = true
   try {
     const status = await fetchWAStatus()
-    if (status?.ready) {
+    if (status?.ready || status?.connected) {
       const payload = {
         kontak_id: props.kontakId,
         template_id: props.templateId || undefined,

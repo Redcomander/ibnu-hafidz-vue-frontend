@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
     ])
 
     if (!kontakPermissions.has(permission)) return false
-    return hasRole('super_admin') || hasRole('admin') || hasRole('panitia_ppdb')
+    return ['super_admin', 'admin', 'panitia_ppdb', 'panitia', 'admin_ppdb'].some((roleName) => hasRole(roleName))
   }
 
   // Check if user has a specific permission

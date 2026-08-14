@@ -483,7 +483,7 @@ function handleVisibilityChange() {
 async function refreshWAStatus() {
   try {
     const response = await fetchWAStatus()
-    waConnected.value = !!response?.ready
+    waConnected.value = !!(response?.ready || response?.connected)
   } catch {
     waConnected.value = false
   }

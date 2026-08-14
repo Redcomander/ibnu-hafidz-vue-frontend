@@ -163,10 +163,20 @@ const loading = ref(false)
 const waReady = ref(false)
 const stateKey = ref('loading')
 let statusTimer = null
+let closeTimer = null
 let qrLoadInFlight = false
 let activeRequest = null
 
+function clearCloseTimer() {
+  if (closeTimer) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+}
+
 function stopPolling() {
+  clearCloseTimer()
+
   if (statusTimer) {
     clearInterval(statusTimer)
     statusTimer = null
@@ -195,6 +205,7 @@ watch(() => props.show, async (value) => {
     return
   }
 
+  clearCloseTimer()
   loading.value = true
   stateKey.value = 'loading'
   await loadQRCode(true)
@@ -225,14 +236,19 @@ async function checkWAStatus() {
     const response = await fetchWAStatus(controller.signal)
     if (!props.show) return
 
-    const nextReady = !!response?.ready
+    const nextConnected = !!(response?.ready || response?.connected)
     const nextQr = response?.qr || ''
-    waReady.value = nextReady
+    waReady.value = nextConnected
 
-    if (nextReady) {
+    if (nextConnected) {
+      stopPolling()
       qrImage.value = ''
       loading.value = false
       stateKey.value = 'connected'
+      clearCloseTimer()
+      closeTimer = setTimeout(() => {
+        emit('close')
+      }, 1600)
       return
     }
 
@@ -279,6 +295,7 @@ async function handleReconnect() {
 }
 
 async function handleDisconnect() {
+  clearCloseTimer()
   loading.value = true
   stateKey.value = 'loading'
   try {
