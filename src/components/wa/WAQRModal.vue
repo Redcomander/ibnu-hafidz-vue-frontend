@@ -315,7 +315,7 @@ function startStatusPolling() {
   statusTimer = setInterval(async () => {
     if (!props.show || document.visibilityState === 'hidden') return
     await checkWAStatus()
-  }, 30000)
+  }, 3000)
 }
 
 async function loadQRCode(force = false) {
@@ -342,6 +342,7 @@ async function loadQRCode(force = false) {
       waReady.value = false
       loading.value = true
       stateKey.value = 'loading'
+      await checkWAStatus()
       return
     }
 
@@ -349,6 +350,7 @@ async function loadQRCode(force = false) {
     waReady.value = false
     loading.value = false
     stateKey.value = 'qr'
+    await checkWAStatus()
   } catch (error) {
     if (error?.name === 'AbortError') return
     qrImage.value = ''
