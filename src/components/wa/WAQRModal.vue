@@ -256,9 +256,11 @@ async function checkWAStatus() {
     }
 
     if (nextQr) {
-      loading.value = true
-      stateKey.value = 'loading'
-      await loadQRCode(true)
+      if (!qrImage.value) {
+        loading.value = true
+        stateKey.value = 'loading'
+        await loadQRCode(true)
+      }
       return
     }
 
@@ -329,7 +331,7 @@ function startStatusPolling() {
   statusTimer = setInterval(async () => {
     if (!props.show || document.visibilityState === 'hidden') return
     await checkWAStatus()
-  }, 3000)
+  }, 10000)
 }
 
 async function loadQRCode(force = false) {
@@ -364,7 +366,6 @@ async function loadQRCode(force = false) {
     waReady.value = false
     loading.value = false
     stateKey.value = 'qr'
-    await checkWAStatus()
   } catch (error) {
     if (error?.name === 'AbortError') return
     qrImage.value = ''
