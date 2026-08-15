@@ -21,7 +21,9 @@
           :class="waConnected ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200' : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
         >
           <span class="h-2.5 w-2.5 rounded-full" :class="waConnected ? 'bg-emerald-500' : 'bg-slate-400'" aria-hidden="true"></span>
-          {{ waConnected ? 'WA Terhubung' : 'WA Belum Terhubung' }}
+          <span>
+            {{ waConnected ? `WA Terhubung (${formatConnectedNumber(waConnectedNumber)})` : 'WA Belum Terhubung' }}
+          </span>
         </div>
         <button
           v-if="auth.hasPermission('kontak.view') && data.length > 0 && !bulkPaused && !bulkSendLoading"
@@ -428,6 +430,7 @@ const showEditModal = ref(false)
 const selectedKontak = ref(null)
 const showWAQRModal = ref(false)
 const waConnected = ref(false)
+const waConnectedNumber = ref('')
 const bulkSendLoading = ref(false)
 const bulkSendProgress = ref(0)
 const bulkSendCurrentName = ref('')
@@ -480,12 +483,27 @@ function handleVisibilityChange() {
   startWAStatusPolling()
 }
 
-async function refreshWAStatus() {
+function formatConnectedNumber(value) {
+  if (!value) return 'nomor tidak diketahui'
+
+  const trimmed = String(value).replace(/\D/g, '')
+  if (!trimmed) return 'nomor tidak diketahui'
+
+  if (trimmed.startsWith('62')) {
+    return `+${trimmed}`
+  }
+
+  return `+62${trimmed}`
+}
+
+  async function refreshWAStatus() {
   try {
     const response = await fetchWAStatus()
     waConnected.value = !!(response?.ready || response?.connected)
+    waConnectedNumber.value = response?.connected_number || ''
   } catch {
     waConnected.value = false
+    waConnectedNumber.value = ''
   }
 }
 
