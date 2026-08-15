@@ -162,6 +162,7 @@ const qrImage = ref('')
 const loading = ref(false)
 const waReady = ref(false)
 const stateKey = ref('loading')
+const closing = ref(false)
 let statusTimer = null
 let closeTimer = null
 let qrLoadInFlight = false
@@ -201,10 +202,12 @@ function handlePageVisibilityChange() {
 
 watch(() => props.show, async (value) => {
   if (!value) {
+    closing.value = true
     stopPolling()
     return
   }
 
+  closing.value = false
   clearCloseTimer()
   loading.value = true
   stateKey.value = 'loading'
@@ -227,7 +230,7 @@ if (typeof document !== 'undefined') {
 }
 
 async function checkWAStatus() {
-  if (!props.show) return
+  if (!props.show || closing.value) return
 
   const controller = new AbortController()
   activeRequest = controller
@@ -277,14 +280,8 @@ async function checkWAStatus() {
 
 async function handleCloseModal() {
   clearCloseTimer()
+  closing.value = true
   stopPolling()
-
-  try {
-    await disconnectWA()
-  } catch (error) {
-    // ignore disconnect failure so the modal still closes cleanly
-  }
-
   qrImage.value = ''
   waReady.value = false
   loading.value = true
@@ -336,7 +333,7 @@ function startStatusPolling() {
 }
 
 async function loadQRCode(force = false) {
-  if (!props.show) return
+  if (!props.show || closing.value) return
   if (!force && (qrLoadInFlight || qrImage.value)) {
     return
   }
