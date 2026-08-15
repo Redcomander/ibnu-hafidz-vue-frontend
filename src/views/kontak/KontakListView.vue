@@ -496,14 +496,19 @@ function formatConnectedNumber(value) {
   return `+62${trimmed}`
 }
 
-  async function refreshWAStatus() {
+function resetWAState() {
+  waConnected.value = false
+  waConnectedNumber.value = ''
+}
+
+async function refreshWAStatus() {
   try {
     const response = await fetchWAStatus()
-    waConnected.value = !!(response?.ready || response?.connected)
-    waConnectedNumber.value = response?.connected_number || ''
+    const nextConnected = !!(response?.ready || response?.connected)
+    waConnected.value = nextConnected
+    waConnectedNumber.value = nextConnected ? response?.connected_number || '' : ''
   } catch {
-    waConnected.value = false
-    waConnectedNumber.value = ''
+    resetWAState()
   }
 }
 
@@ -593,7 +598,8 @@ function resetFilters() {
 }
 
 async function refreshAfterWAInteraction() {
-  await Promise.all([fetchData(), loadSummary()])
+  resetWAState()
+  await Promise.all([fetchData(), loadSummary(), refreshWAStatus()])
 }
 
 async function handleDeleteSource() {
@@ -616,7 +622,9 @@ function openEdit(row) {
   showEditModal.value = true
 }
 
-function openWAConnectModal() {
+async function openWAConnectModal() {
+  resetWAState()
+  await refreshWAStatus()
   showWAQRModal.value = true
 }
 
