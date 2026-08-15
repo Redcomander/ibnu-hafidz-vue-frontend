@@ -11,7 +11,7 @@
           </div>
           <button
             type="button"
-            @click="$emit('close')"
+            @click="handleCloseModal"
             class="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             aria-label="Tutup modal"
           >
@@ -75,7 +75,7 @@
               </div>
               <button
                 type="button"
-                @click="$emit('close')"
+                @click="handleCloseModal"
                 class="w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
                 Selesai
@@ -273,6 +273,23 @@ async function checkWAStatus() {
       activeRequest = null
     }
   }
+}
+
+async function handleCloseModal() {
+  clearCloseTimer()
+  stopPolling()
+
+  try {
+    await disconnectWA()
+  } catch (error) {
+    // ignore disconnect failure so the modal still closes cleanly
+  }
+
+  qrImage.value = ''
+  waReady.value = false
+  loading.value = true
+  stateKey.value = 'loading'
+  emit('close')
 }
 
 async function handleReconnect() {
