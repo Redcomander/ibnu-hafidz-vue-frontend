@@ -68,6 +68,23 @@
             />
           </div>
 
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">NIK</label>
+              <input v-model="form.nik" type="text" class="input-field" placeholder="Nomor Induk Kependudukan" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tempat Lahir</label>
+              <input v-model="form.tempat_lahir" type="text" class="input-field" placeholder="Tempat lahir" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
+            <input v-model="form.tanggal_lahir" type="date" class="input-field" />
+          </div>
+
           <!-- Password (Required for Create, Optional for Edit) -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -213,6 +230,9 @@ const form = ref({
   name: "",
   username: "",
   email: "",
+  nik: "",
+  tempat_lahir: "",
+  tanggal_lahir: "",
   password: "",
   password_confirmation: "",
   role_ids: [],
@@ -257,6 +277,9 @@ watch(
           name: props.user.name,
           username: props.user.username,
           email: props.user.email,
+          nik: props.user.nik || "",
+          tempat_lahir: props.user.tempat_lahir || "",
+          tanggal_lahir: props.user.tanggal_lahir || "",
           password: "", // Don't fill password
           password_confirmation: "",
           role_ids: props.user.roles ? props.user.roles.map((r) => r.id) : [],
@@ -267,6 +290,9 @@ watch(
           name: "",
           username: "",
           email: "",
+          nik: "",
+          tempat_lahir: "",
+          tanggal_lahir: "",
           password: "",
           password_confirmation: "",
           role_ids: [],

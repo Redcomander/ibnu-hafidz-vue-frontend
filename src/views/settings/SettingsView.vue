@@ -87,6 +87,22 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label class="input-label">NIK</label>
+            <input v-model="form.nik" type="text" class="input-field" placeholder="Nomor Induk Kependudukan" />
+          </div>
+          <div>
+            <label class="input-label">Tempat Lahir</label>
+            <input v-model="form.tempat_lahir" type="text" class="input-field" placeholder="Tempat lahir" />
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <label class="input-label">Tanggal Lahir</label>
+          <input v-model="form.tanggal_lahir" type="date" class="input-field" />
+        </div>
+
         <div class="border-t border-gray-100 pt-4">
           <h3 class="text-sm font-semibold text-gray-700 mb-3">Ganti Password (Opsional)</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -188,6 +204,9 @@ const form = reactive({
   name: '',
   username: '',
   email: '',
+  nik: '',
+  tempat_lahir: '',
+  tanggal_lahir: '',
   current_password: '',
   new_password: '',
 });
@@ -207,6 +226,9 @@ const fillFromAuth = () => {
   form.name = auth.user?.name || '';
   form.username = auth.user?.username || '';
   form.email = auth.user?.email || '';
+  form.nik = auth.user?.nik || '';
+  form.tempat_lahir = auth.user?.tempat_lahir || '';
+  form.tanggal_lahir = auth.user?.tanggal_lahir || '';
   form.current_password = '';
   form.new_password = '';
 };
@@ -351,6 +373,9 @@ async function saveProfile() {
       name: form.name,
       username: form.username,
       email: form.email,
+      nik: form.nik,
+      tempat_lahir: form.tempat_lahir,
+      tanggal_lahir: form.tanggal_lahir,
       current_password: form.current_password,
       new_password: form.new_password,
     };
