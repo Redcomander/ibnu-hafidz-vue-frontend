@@ -15,6 +15,11 @@ export async function fetchKontakDetail(id) {
   return data
 }
 
+export async function createKontak(payload) {
+  const { data } = await api.post('/kontak', payload)
+  return data
+}
+
 export async function updateKontak(id, payload) {
   const { data } = await api.put(`/kontak/${id}`, payload)
   return data

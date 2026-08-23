@@ -54,6 +54,13 @@
           {{ waConnected ? 'Reconnect WA' : 'Login WA' }}
         </button>
         <button
+          v-if="auth.hasPermission('kontak.create')"
+          class="btn-primary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
+          @click="showCreateModal = true"
+        >
+          Tambah Kontak
+        </button>
+        <button
           v-if="auth.hasPermission('kontak.view')"
           class="btn-secondary !py-2.5 !px-3 text-xs sm:text-sm min-h-10"
           @click="handleExportExcel"
@@ -286,6 +293,127 @@
       </template>
     </div>
 
+    <teleport to="body">
+      <div v-if="showCreateModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40">
+        <div class="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800">Tambah Kontak Baru</h3>
+              <p class="text-xs text-gray-500 mt-1">Input satu per satu untuk calon santri baru.</p>
+            </div>
+            <button type="button" @click="closeCreateModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Nama <span class="text-red-500">*</span></label>
+                <input v-model="createForm.nama" type="text" class="input-field !py-2.5 text-sm" placeholder="Nama calon santri" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">NIS</label>
+                <input v-model="createForm.nis" type="text" class="input-field !py-2.5 text-sm" placeholder="Nomor induk santri" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">TTL</label>
+                <input v-model="createForm.ttl" type="text" class="input-field !py-2.5 text-sm" placeholder="Tempat, 15-06-2010" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">No WhatsApp <span class="text-red-500">*</span></label>
+                <input v-model="createForm.no_whatsapp" type="text" class="input-field !py-2.5 text-sm" placeholder="0812..." />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Status Kontak</label>
+                <select v-model="createForm.status_kontak" class="input-field !py-2.5 text-sm">
+                  <option value="baru">Baru</option>
+                  <option value="follow_up">Follow Up</option>
+                  <option value="prospek">Prospek</option>
+                  <option value="deal">Deal</option>
+                  <option value="tidak_aktif">Tidak Aktif</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Handler</label>
+                <SearchableSelect
+                  v-model="createForm.handler_id"
+                  :options="handlers"
+                  label-key="name"
+                  value-key="id"
+                  placeholder="Cari handler..."
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Sumber Data</label>
+                <input v-model="createForm.sumber_data" type="text" class="input-field !py-2.5 text-sm" placeholder="Instagram, Referral, dll" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Asal Sekolah</label>
+                <input v-model="createForm.asal_sekolah" type="text" class="input-field !py-2.5 text-sm" placeholder="SMP/MTs" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Jenis Kelamin</label>
+                <select v-model="createForm.jenis_kelamin" class="input-field !py-2.5 text-sm">
+                  <option value="">Pilih</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Jenjang Pendidikan</label>
+                <input v-model="createForm.jenjang_pendidikan" type="text" class="input-field !py-2.5 text-sm" placeholder="SMP, SMA, dll" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Nama Ayah</label>
+                <input v-model="createForm.nama_ayah" type="text" class="input-field !py-2.5 text-sm" placeholder="Nama ayah" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Nama Ibu</label>
+                <input v-model="createForm.nama_ibu" type="text" class="input-field !py-2.5 text-sm" placeholder="Nama ibu" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Tunggakan</label>
+                <input v-model="createForm.tunggakan" type="text" class="input-field !py-2.5 text-sm" placeholder="0 / 1500000" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Alamat</label>
+                <textarea v-model="createForm.alamat" rows="2" class="input-field text-sm" placeholder="Alamat rumah"></textarea>
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Alamat Lengkap</label>
+                <textarea v-model="createForm.alamat_lengkap" rows="3" class="input-field text-sm" placeholder="Alamat lengkap"></textarea>
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1.5">Catatan</label>
+                <textarea v-model="createForm.catatan" rows="2" class="input-field text-sm" placeholder="Catatan follow-up"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-5 py-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50">
+            <button type="button" @click="closeCreateModal" class="btn-secondary !py-2.5 !px-4 text-sm min-h-10">Batal</button>
+            <button type="button" @click="submitCreateKontak" :disabled="createLoading" class="btn-primary !py-2.5 !px-4 text-sm min-h-10">
+              {{ createLoading ? 'Menyimpan...' : 'Simpan Kontak' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </teleport>
+
     <HandlerAssignModal
       v-model:show="showEditModal"
       :kontak="selectedKontak"
@@ -357,6 +485,7 @@ import { useTable } from '@/composables/useTable'
 import api from '@/api'
 import {
   bulkDeleteKontak,
+  createKontak,
   deleteKontak,
   deleteKontakSource,
   exportKontakExcel,
@@ -373,6 +502,7 @@ import KontakFilterBar from '@/components/kontak/KontakFilterBar.vue'
 import StatusBadge from '@/components/kontak/StatusBadge.vue'
 import WhatsAppButton from '@/components/kontak/WhatsAppButton.vue'
 import HandlerAssignModal from '@/components/kontak/HandlerAssignModal.vue'
+import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 import WAQRModal from '@/components/wa/WAQRModal.vue'
 
 const auth = useAuthStore()
@@ -428,6 +558,26 @@ const cards = computed(() => {
 
 const showEditModal = ref(false)
 const selectedKontak = ref(null)
+const showCreateModal = ref(false)
+const createLoading = ref(false)
+const createForm = ref({
+  nis: '',
+  nama: '',
+  ttl: '',
+  alamat: '',
+  alamat_lengkap: '',
+  nama_ayah: '',
+  nama_ibu: '',
+  no_whatsapp: '',
+  asal_sekolah: '',
+  jenis_kelamin: '',
+  jenjang_pendidikan: '',
+  tunggakan: '',
+  status_kontak: 'baru',
+  handler_id: null,
+  sumber_data: '',
+  catatan: '',
+})
 const showWAQRModal = ref(false)
 const waConnected = ref(false)
 const waConnectedNumber = ref('')
@@ -620,6 +770,70 @@ async function handleDeleteSource() {
 function openEdit(row) {
   selectedKontak.value = row
   showEditModal.value = true
+}
+
+function closeCreateModal() {
+  showCreateModal.value = false
+  createForm.value = {
+    nis: '',
+    nama: '',
+    ttl: '',
+    alamat: '',
+    alamat_lengkap: '',
+    nama_ayah: '',
+    nama_ibu: '',
+    no_whatsapp: '',
+    asal_sekolah: '',
+    jenis_kelamin: '',
+    jenjang_pendidikan: '',
+    tunggakan: '',
+    status_kontak: 'baru',
+    handler_id: null,
+    sumber_data: '',
+    catatan: '',
+  }
+}
+
+async function submitCreateKontak() {
+  if (!createForm.value.nama?.trim()) {
+    toast.error('Nama kontak wajib diisi')
+    return
+  }
+  if (!createForm.value.no_whatsapp?.trim()) {
+    toast.error('No WhatsApp wajib diisi')
+    return
+  }
+
+  createLoading.value = true
+  try {
+    const payload = {
+      nis: createForm.value.nis?.trim() || null,
+      nama: createForm.value.nama.trim(),
+      ttl: createForm.value.ttl?.trim() || null,
+      alamat: createForm.value.alamat?.trim() || null,
+      alamat_lengkap: createForm.value.alamat_lengkap?.trim() || null,
+      nama_ayah: createForm.value.nama_ayah?.trim() || null,
+      nama_ibu: createForm.value.nama_ibu?.trim() || null,
+      no_whatsapp: createForm.value.no_whatsapp.trim(),
+      asal_sekolah: createForm.value.asal_sekolah?.trim() || null,
+      jenis_kelamin: createForm.value.jenis_kelamin?.trim() || null,
+      jenjang_pendidikan: createForm.value.jenjang_pendidikan?.trim() || null,
+      tunggakan: createForm.value.tunggakan?.trim() || null,
+      status_kontak: createForm.value.status_kontak || 'baru',
+      handler_id: createForm.value.handler_id || null,
+      sumber_data: createForm.value.sumber_data?.trim() || null,
+      catatan: createForm.value.catatan?.trim() || null,
+    }
+
+    await createKontak(payload)
+    toast.success('Kontak baru berhasil dibuat')
+    closeCreateModal()
+    await Promise.all([fetchData(), loadSummary()])
+  } catch (err) {
+    toast.error(err?.response?.data?.message || 'Gagal menambah kontak')
+  } finally {
+    createLoading.value = false
+  }
 }
 
 async function openWAConnectModal() {
