@@ -70,6 +70,15 @@
             <option value="alpa">Alpa</option>
           </select>
         </div>
+        <!-- Time Window -->
+        <div>
+          <label class="input-label">Waktu</label>
+          <select v-model="filters.time_window" @change="fetchStats" class="input-field text-sm">
+            <option value="">Semua Waktu</option>
+            <option value="before_break">Sebelum Istirahat (sebelum 09:31)</option>
+            <option value="after_break">Setelah Istirahat (setelah 09:59)</option>
+          </select>
+        </div>
         <!-- Reset -->
         <div class="flex items-end">
           <button @click="resetFilters" class="btn-secondary text-sm w-full">Reset</button>
@@ -456,6 +465,7 @@ const filters = ref({
   gender: '',
   jenjang: '',
   status: '',
+  time_window: '',
 })
 
 // Filter kelas based on jenjang
@@ -682,6 +692,7 @@ async function fetchHistory() {
       gender: filters.value.gender || undefined,
       jenjang: filters.value.jenjang || undefined,
       status: filters.value.status || undefined,
+      time_window: filters.value.time_window || undefined,
       search: historySearch.value || undefined,
       page: historyPage.value,
       per_page: 20,
@@ -732,6 +743,7 @@ function resetFilters() {
     gender: '',
     jenjang: '',
     status: '',
+    time_window: '',
   }
   fetchStats()
   if (activeTab.value === 'history') fetchHistory()
