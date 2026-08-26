@@ -232,6 +232,12 @@ const routes = [
         component: () => import('@/views/halaqoh/HalaqohTeacherStats.vue'),
         meta: { permission: 'halaqoh.view', title: 'Rekapan Halaqoh Guru' },
       },
+      {
+        path: 'halaqoh/validasi',
+        name: 'halaqoh-validation',
+        component: () => import('@/views/halaqoh/HalaqohApprovalValidation.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Validasi Halaqoh' },
+      },
       // ---- Absensi Ekstra ----
       {
         path: 'absensi-ekstra',

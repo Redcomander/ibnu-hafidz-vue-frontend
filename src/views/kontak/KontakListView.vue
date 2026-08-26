@@ -421,7 +421,12 @@
       @save="saveEdit"
     />
 
-    <WAQRModal :show="showWAQRModal" @close="showWAQRModal = false" />
+    <WAQRModal
+      :show="showWAQRModal"
+      :account-type="waAccountType"
+      @update:account-type="waAccountType = $event"
+      @close="showWAQRModal = false"
+    />
 
     <teleport to="body">
       <div v-if="showRiwayat" class="fixed inset-0 z-[70] flex justify-end">
@@ -581,6 +586,7 @@ const createForm = ref({
 const showWAQRModal = ref(false)
 const waConnected = ref(false)
 const waConnectedNumber = ref('')
+const waAccountType = ref('shared')
 const bulkSendLoading = ref(false)
 const bulkSendProgress = ref(0)
 const bulkSendCurrentName = ref('')
@@ -653,7 +659,7 @@ function resetWAState() {
 
 async function refreshWAStatus() {
   try {
-    const response = await fetchWAStatus()
+    const response = await fetchWAStatus(undefined, waAccountType.value)
     const nextConnected = !!(response?.ready || response?.connected)
     waConnected.value = nextConnected
     waConnectedNumber.value = nextConnected ? response?.connected_number || '' : ''
@@ -898,6 +904,7 @@ async function processBulkQueue() {
       await sendWAMessage({
         kontak_id: contact.id,
         template_id: selectedTemplateIdNumber.value || undefined,
+        account_type: waAccountType.value,
         log: 1,
       })
       bulkSuccessCount.value += 1
@@ -941,10 +948,10 @@ async function sendAllContacts() {
   }
 
   try {
-    const status = await fetchWAStatus()
+    const status = await fetchWAStatus(undefined, waAccountType.value)
     if (!status?.ready) {
       showWAQRModal.value = true
-      toast.error('WhatsApp belum terhubung. Silakan login WA terlebih dahulu.')
+      toast.error(`WhatsApp ${waAccountType.value} belum terhubung. Silakan login akun tersebut terlebih dahulu.`)
       return
     }
 

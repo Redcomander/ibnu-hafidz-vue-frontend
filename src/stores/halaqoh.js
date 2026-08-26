@@ -147,5 +147,20 @@ export const useHalaqohStore = defineStore('halaqoh', {
       this.teacherStats = data
       return data
     },
+
+    async fetchAssignmentChangeRequests(params = {}) {
+      const { data } = await api.get('/halaqoh/assignment-change-requests', { params })
+      return data
+    },
+
+    async approveAssignmentChangeRequest(id) {
+      const { data } = await api.post(`/halaqoh/assignment-change-requests/${id}/approve`)
+      return data
+    },
+
+    async rejectAssignmentChangeRequest(id, payload = {}) {
+      const { data } = await api.post(`/halaqoh/assignment-change-requests/${id}/reject`, payload)
+      return data
+    },
   },
 })

@@ -507,6 +507,12 @@ const navItems = [
     permission: "halaqoh.view",
   },
   {
+    to: "/dashboard/halaqoh/validasi",
+    icon: "check-circle",
+    label: "Validasi Halaqoh",
+    roles: ['super_admin', 'admin'],
+  },
+  {
     to: "/dashboard/absensi-ekstra",
     icon: "check-circle",
     label: "Absensi Ekstra",
