@@ -309,6 +309,7 @@ const StudentStatusSection = {
             id: s?.id ?? null,
             kelas: s?.kelas || '',
             tingkat: s?.tingkat || '',
+            jadwal_time: s?.jadwal_time || '',
             count: 0,
             notes: []
           }
@@ -316,6 +317,7 @@ const StudentStatusSection = {
 
         if (!map[name].kelas && s?.kelas) map[name].kelas = s.kelas
         if (!map[name].tingkat && s?.tingkat) map[name].tingkat = s.tingkat
+        if (!map[name].jadwal_time && s?.jadwal_time) map[name].jadwal_time = s.jadwal_time
         if (!map[name].student_id && s?.student_id) map[name].student_id = s.student_id
         if (!map[name].id && s?.id) map[name].id = s.id
 
@@ -381,6 +383,7 @@ const StudentStatusSection = {
         } else {
           for (const entry of filtered.value) {
             const classLabel = [entry.kelas, entry.tingkat].filter(Boolean).join(' ').trim()
+            const timeLabel = entry.jadwal_time ? `Jadwal: ${entry.jadwal_time}` : ''
 
             const nameRow = h('div', { class: 'flex items-center justify-between gap-2' }, [
               h('div', { class: 'flex items-center gap-2' }, [
@@ -396,9 +399,15 @@ const StudentStatusSection = {
               }, 'Hapus')
             ])
 
-            const detailRow = classLabel
-              ? h('div', { class: 'mt-1 text-[11px] font-medium text-gray-500' }, classLabel)
-              : null
+            const detailRows = []
+            if (classLabel) {
+              detailRows.push(h('div', { class: 'mt-1 text-[11px] font-medium text-gray-500' }, classLabel))
+            }
+            if (timeLabel) {
+              detailRows.push(h('div', { class: 'mt-0.5 text-[11px] font-medium text-blue-600' }, timeLabel))
+            }
+
+            const detailRow = detailRows.length ? h('div', { class: 'mt-1 space-y-0.5' }, detailRows) : null
 
             const noteRows = entry.notes.length
               ? h('div', { class: 'mt-1.5 space-y-0.5 ml-0.5' },
