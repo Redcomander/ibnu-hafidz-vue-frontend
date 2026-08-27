@@ -297,32 +297,37 @@ const StudentStatusSection = {
     }
     const styles = colorMap[props.color] || colorMap.yellow
 
-    // Group students by name
+    // Group students by name + schedule time so same student on different jadwal is counted separately.
     const grouped = computed(() => {
       const map = {}
       for (const s of props.students || []) {
         const name = s?.name || 'Tanpa nama'
-        if (!map[name]) {
-          map[name] = {
+        const jadwalTime = s?.jadwal_time || ''
+        const kelas = s?.kelas || ''
+        const tingkat = s?.tingkat || ''
+        const key = `${name}::${jadwalTime}::${kelas}::${tingkat}`
+
+        if (!map[key]) {
+          map[key] = {
             name,
             student_id: s?.student_id ?? s?.id ?? null,
             id: s?.id ?? null,
-            kelas: s?.kelas || '',
-            tingkat: s?.tingkat || '',
-            jadwal_time: s?.jadwal_time || '',
+            kelas,
+            tingkat,
+            jadwal_time: jadwalTime,
             count: 0,
             notes: []
           }
         }
 
-        if (!map[name].kelas && s?.kelas) map[name].kelas = s.kelas
-        if (!map[name].tingkat && s?.tingkat) map[name].tingkat = s.tingkat
-        if (!map[name].jadwal_time && s?.jadwal_time) map[name].jadwal_time = s.jadwal_time
-        if (!map[name].student_id && s?.student_id) map[name].student_id = s.student_id
-        if (!map[name].id && s?.id) map[name].id = s.id
+        if (!map[key].kelas && kelas) map[key].kelas = kelas
+        if (!map[key].tingkat && tingkat) map[key].tingkat = tingkat
+        if (!map[key].jadwal_time && jadwalTime) map[key].jadwal_time = jadwalTime
+        if (!map[key].student_id && s?.student_id) map[key].student_id = s.student_id
+        if (!map[key].id && s?.id) map[key].id = s.id
 
-        map[name].count++
-        if (s?.catatan) map[name].notes.push(s.catatan)
+        map[key].count++
+        if (s?.catatan) map[key].notes.push(s.catatan)
       }
       return Object.values(map).sort((a, b) => b.count - a.count)
     })
