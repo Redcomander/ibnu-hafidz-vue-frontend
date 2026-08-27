@@ -146,6 +146,19 @@
         </div>
       </div>
 
+      <!-- Student Search -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center gap-3 h-11 px-4 rounded-xl border border-gray-300 bg-white focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+          <SvgIcon name="search" :size="18" class="text-gray-400 shrink-0" />
+          <input
+            v-model="studentSearch"
+            type="text"
+            placeholder="Cari nama santri di semua status..."
+            class="flex-1 h-full bg-transparent border-none focus:ring-0 outline-none text-sm py-0 placeholder:text-gray-400"
+          />
+        </div>
+      </div>
+
       <!-- Student Detail Lists -->
       <div class="space-y-4">
         <StudentStatusSection
@@ -334,9 +347,22 @@ const StudentStatusSection = {
 
     // Filter by local search
     const filtered = computed(() => {
-      const q = (localSearch.value || props.searchQuery || '').toLowerCase().trim()
-      if (!q) return grouped.value
-      return grouped.value.filter(e => e.name.toLowerCase().includes(q))
+      const queries = [localSearch.value, props.searchQuery]
+        .map(value => String(value ?? '').trim().toLowerCase())
+        .filter(Boolean)
+
+      if (!queries.length) return grouped.value
+
+      return grouped.value.filter(entry => {
+        const haystack = [
+          entry.name,
+          entry.kelas,
+          entry.tingkat,
+          entry.jadwal_time,
+        ].join(' ').toLowerCase()
+
+        return queries.every(query => haystack.includes(query))
+      })
     })
 
     return () => {
