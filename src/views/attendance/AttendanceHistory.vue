@@ -169,7 +169,6 @@
           :status="section.status"
           :color="section.color"
           :icon="section.icon"
-          :searchQuery="studentSearch"
           :onDelete="removeStudentStatus"
         />
       </div>
@@ -285,12 +284,10 @@ const StudentStatusSection = {
     status: String,
     color: String,
     icon: String,
-    searchQuery: String,
     onDelete: Function,
   },
   setup(props) {
     const open = ref(true)
-    const localSearch = ref('')
     const colorMap = {
       yellow: {
         headerBg: 'bg-gradient-to-r from-yellow-400 to-amber-500',
@@ -310,7 +307,8 @@ const StudentStatusSection = {
     }
     const styles = colorMap[props.color] || colorMap.yellow
 
-    // Group students by name + schedule time so same student on different jadwal is counted separately.
+    // Group students by class before listing the names inside it. Within each class, keep a second grouping
+    // by name + schedule time so the same student on different jadwal is still counted separately.
     const grouped = computed(() => {
       const map = {}
       for (const s of props.students || []) {
@@ -342,35 +340,41 @@ const StudentStatusSection = {
         map[key].count++
         if (s?.catatan) map[key].notes.push(s.catatan)
       }
-      return Object.values(map).sort((a, b) => b.count - a.count)
+
+      const entries = Object.values(map).sort((a, b) => b.count - a.count)
+      const groupedByClass = {}
+
+      for (const entry of entries) {
+        const classKey = [entry.kelas, entry.tingkat].filter(Boolean).join(' ').trim() || 'Tanpa Kelas'
+        if (!groupedByClass[classKey]) groupedByClass[classKey] = []
+        groupedByClass[classKey].push(entry)
+      }
+
+      return Object.keys(groupedByClass)
+        .sort((a, b) => a.localeCompare(b))
+        .map(classKey => ({
+          classKey,
+          label: classKey,
+          entries: groupedByClass[classKey],
+        }))
     })
 
-    watch(() => props.searchQuery, (value) => {
-      if (value !== undefined && value !== null && localSearch.value !== value) {
-        localSearch.value = value
-      }
-    }, { immediate: true })
-
-    // Filter by combined local and global search so results stay in sync across the page.
     const filtered = computed(() => {
-      const queries = [localSearch.value, props.searchQuery]
-        .map(value => String(value ?? '').trim().toLowerCase())
-        .filter(Boolean)
-        .flatMap(value => value.split(/\s+/).filter(Boolean))
-        .filter(Boolean)
+      const rawQuery = String(props.searchQuery ?? '').trim()
+      const queries = rawQuery.toLowerCase().split(/\s+/).map(v => v.trim()).filter(Boolean)
+      const base = grouped.value
 
-      if (!queries.length) return grouped.value
+      if (!queries.length) return base
 
-      return grouped.value.filter(entry => {
-        const haystack = [
-          entry.name,
-          entry.kelas,
-          entry.tingkat,
-          entry.jadwal_time,
-        ].join(' ').toLowerCase()
-
-        return queries.every(query => haystack.includes(query))
-      })
+      return base
+        .map(group => ({
+          ...group,
+          entries: group.entries.filter(entry => {
+            const haystack = [entry.name, entry.kelas, entry.tingkat, entry.jadwal_time].join(' ').toLowerCase()
+            return queries.every(query => haystack.includes(query))
+          })
+        }))
+        .filter(group => group.entries.length)
     })
 
     return () => {
@@ -387,7 +391,7 @@ const StudentStatusSection = {
           h('span', { class: 'text-sm font-bold text-white tracking-wide' }, props.title)
         ]),
         h('span', { class: 'px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-xs font-bold' },
-          `${filtered.value.length} siswa`
+          `${filtered.value.reduce((sum, group) => sum + group.entries.length, 0)} siswa`
         )
       ])
 
@@ -399,73 +403,66 @@ const StudentStatusSection = {
           }
         }
 
-        // Search bar with robust flex layout
-        const searchComp = h('div', { 
-          class: 'flex items-center gap-2 h-10 px-3.5 mb-2 rounded-lg border border-gray-200 bg-gray-50/50 focus-within:bg-white focus-within:border-blue-400 focus-within:ring-1 focus-within:ring-blue-400 transition-all'
-        }, [
-          h(SvgIcon, { name: 'search', size: 15, class: 'text-gray-400 shrink-0' }),
-          h('input', {
-            type: 'text',
-            value: localSearch.value,
-            onInput: (e) => { localSearch.value = e.target.value },
-            placeholder: 'Cari nama siswa...',
-            class: 'flex-1 h-full bg-transparent border-none focus:ring-0 outline-none text-sm py-0 placeholder:text-gray-400'
-          })
-        ])
-
-        bodyChildren.push(h('div', { class: 'px-5 pt-4 pb-2' }, [searchComp]))
-
-        // Student list
-        const listItems = []
+        const classBlocks = []
         if (!filtered.value.length) {
-          listItems.push(h('div', { class: 'text-center py-6 text-gray-400 text-sm' }, 'Tidak ada data'))
+          classBlocks.push(h('div', { class: 'text-center py-6 text-gray-400 text-sm' }, 'Tidak ada data'))
         } else {
-          for (const entry of filtered.value) {
-            const classLabel = [entry.kelas, entry.tingkat].filter(Boolean).join(' ').trim()
-            const timeLabel = entry.jadwal_time ? `Jadwal: ${entry.jadwal_time}` : ''
+          for (const group of filtered.value) {
+            classBlocks.push(
+              h('div', { key: group.classKey, class: 'border-b border-gray-100 last:border-b-0' }, [
+                h('div', { class: 'px-4 py-2.5 bg-slate-100 text-xs font-bold text-slate-700 uppercase tracking-wide border-b border-slate-200' }, [
+                  `${group.label} (${group.entries.length})`
+                ]),
+                h('div', { class: 'px-4 py-2 space-y-2' }, group.entries.map((entry) => {
+                  const classLabel = [entry.kelas, entry.tingkat].filter(Boolean).join(' ').trim()
+                  const timeLabel = entry.jadwal_time ? `Jadwal: ${entry.jadwal_time}` : ''
 
-            const nameRow = h('div', { class: 'flex items-center justify-between gap-2' }, [
-              h('div', { class: 'flex items-center gap-2' }, [
-                h('span', { class: 'text-[13px] font-bold text-gray-800 uppercase tracking-wide' }, entry.name),
-                h('span', {
-                  class: ['inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-[10px] font-extrabold rounded-full text-white shadow-sm', styles.badgeBg].join(' ')
-                }, `${entry.count}x`)
-              ]),
-              h('button', {
-                type: 'button',
-                class: 'text-[10px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md border border-red-200 transition-colors',
-                onClick: () => removeStudent(entry),
-              }, 'Hapus')
-            ])
+                  const nameRow = h('div', { class: 'flex items-center justify-between gap-2' }, [
+                    h('div', { class: 'flex items-center gap-2' }, [
+                      h('span', { class: 'text-[13px] font-bold text-gray-800 uppercase tracking-wide' }, entry.name),
+                      h('span', {
+                        class: ['inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-[10px] font-extrabold rounded-full text-white shadow-sm', styles.badgeBg].join(' ')
+                      }, `${entry.count}x`)
+                    ]),
+                    h('button', {
+                      type: 'button',
+                      class: 'text-[10px] font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md border border-red-200 transition-colors',
+                      onClick: () => removeStudent(entry),
+                    }, 'Hapus')
+                  ])
 
-            const detailRows = []
-            if (classLabel) {
-              detailRows.push(h('div', { class: 'mt-1 text-[11px] font-medium text-gray-500' }, classLabel))
-            }
-            if (timeLabel) {
-              detailRows.push(h('div', { class: 'mt-0.5 text-[11px] font-medium text-blue-600' }, timeLabel))
-            }
+                  const detailRows = []
+                  if (classLabel) {
+                    detailRows.push(h('div', { class: 'mt-1 text-[11px] font-medium text-gray-500' }, classLabel))
+                  }
+                  if (timeLabel) {
+                    detailRows.push(h('div', { class: 'mt-0.5 text-[11px] font-medium text-blue-600' }, timeLabel))
+                  }
 
-            const detailRow = detailRows.length ? h('div', { class: 'mt-1 space-y-0.5' }, detailRows) : null
+                  const detailRow = detailRows.length ? h('div', { class: 'mt-1 space-y-0.5' }, detailRows) : null
 
-            const noteRows = entry.notes.length
-              ? h('div', { class: 'mt-1.5 space-y-0.5 ml-0.5' },
-                  entry.notes.map((note, i) =>
-                    h('div', { key: i, class: 'flex items-start gap-0' }, [
-                      h('div', { class: ['w-0.5 min-h-[18px] rounded-full shrink-0 mr-2', styles.pipeBg].join(' ') }),
-                      h('span', { class: 'text-xs text-gray-500 italic leading-[18px]' }, note)
-                    ])
-                  )
-                )
-              : null
+                  const noteRows = entry.notes.length
+                    ? h('div', { class: 'mt-1.5 space-y-0.5 ml-0.5' },
+                        entry.notes.map((note, i) =>
+                          h('div', { key: i, class: 'flex items-start gap-0' }, [
+                            h('div', { class: ['w-0.5 min-h-[18px] rounded-full shrink-0 mr-2', styles.pipeBg].join(' ') }),
+                            h('span', { class: 'text-xs text-gray-500 italic leading-[18px]' }, note)
+                          ])
+                        )
+                      )
+                    : null
 
-            listItems.push(
-              h('div', { key: entry.name, class: 'py-3 border-b border-gray-100/80 last:border-0' }, [nameRow, detailRow, noteRows])
+                  return h('div', {
+                    key: `${entry.name}-${entry.kelas}-${entry.tingkat}-${entry.jadwal_time}-${entry.count}`,
+                    class: 'py-3 border-b border-gray-100/80 last:border-0'
+                  }, [nameRow, detailRow, noteRows])
+                }))
+              ])
             )
           }
         }
 
-        bodyChildren.push(h('div', { class: 'px-5 pb-4 space-y-1.5 max-h-[400px] overflow-y-auto' }, listItems))
+        bodyChildren.push(h('div', { class: 'px-0 pb-4 space-y-0 max-h-[500px] overflow-y-auto' }, classBlocks))
       }
 
       return h('div', { class: 'bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden' }, [
@@ -578,10 +575,23 @@ const studentCards = computed(() => [
   { label: 'Alpa',   count: data.value.student_counts.alpa,  icon: 'x-circle',     bg: 'bg-gradient-to-br from-red-600 to-rose-700' },
 ])
 
+function applyStudentSearch(items) {
+  const rawQuery = String(studentSearch.value ?? '').trim()
+  if (!rawQuery) return items || []
+
+  const queries = rawQuery.toLowerCase().split(/\s+/).map(v => v.trim()).filter(Boolean)
+  if (!queries.length) return items || []
+
+  return (items || []).filter(item => {
+    const haystack = [item?.name, item?.kelas, item?.tingkat, item?.jadwal_time].join(' ').toLowerCase()
+    return queries.every(query => haystack.includes(query))
+  })
+}
+
 const studentSections = computed(() => [
-  { status: 'izin',  title: 'Santri Izin',  students: data.value.izin_students,  color: 'yellow', icon: 'clock' },
-  { status: 'sakit', title: 'Santri Sakit',  students: data.value.sakit_students, color: 'orange', icon: 'heart' },
-  { status: 'alpa',  title: 'Santri Alpa',   students: data.value.alpa_students,  color: 'red',    icon: 'x-circle' },
+  { status: 'izin',  title: 'Santri Izin',  students: applyStudentSearch(data.value.izin_students),  color: 'yellow', icon: 'clock' },
+  { status: 'sakit', title: 'Santri Sakit',  students: applyStudentSearch(data.value.sakit_students), color: 'orange', icon: 'heart' },
+  { status: 'alpa',  title: 'Santri Alpa',   students: applyStudentSearch(data.value.alpa_students),  color: 'red',    icon: 'x-circle' },
 ])
 
 function openDeleteStudentStatus(entry) {
