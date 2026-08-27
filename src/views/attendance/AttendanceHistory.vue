@@ -345,10 +345,18 @@ const StudentStatusSection = {
       return Object.values(map).sort((a, b) => b.count - a.count)
     })
 
-    // Filter by local search
+    watch(() => props.searchQuery, (value) => {
+      if (value !== undefined && value !== null && localSearch.value !== value) {
+        localSearch.value = value
+      }
+    }, { immediate: true })
+
+    // Filter by combined local and global search so results stay in sync across the page.
     const filtered = computed(() => {
       const queries = [localSearch.value, props.searchQuery]
         .map(value => String(value ?? '').trim().toLowerCase())
+        .filter(Boolean)
+        .flatMap(value => value.split(/\s+/).filter(Boolean))
         .filter(Boolean)
 
       if (!queries.length) return grouped.value
