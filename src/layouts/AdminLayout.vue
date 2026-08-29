@@ -11,7 +11,7 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-out shadow-xl border-r border-white/10',
+        'sidebar-shell fixed inset-y-0 left-0 z-30 flex flex-col transition-all duration-300 ease-out border-r',
         // Mobile: translate
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'md:translate-x-0',
@@ -43,36 +43,51 @@
       <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         <template v-for="(item, index) in visibleNavItems" :key="index">
           <!-- Header -->
-          <div v-if="item.header" class="px-4 mt-6 mb-2 first:mt-2">
+          <div v-if="item.type === 'header'" class="section-shell">
              <transition name="fade">
-                <span v-if="!collapsed" class="text-xs font-bold text-white/40 uppercase tracking-wider">
-                  {{ item.header }}
-                </span>
-                <div v-else class="h-px bg-white/10 w-full mx-auto my-2"></div>
+                <div v-if="!collapsed" class="section-header">
+                  <span class="section-title">
+                    {{ item.header }}
+                  </span>
+                  <button
+                    type="button"
+                    @click.stop="toggleSection(item.header)"
+                    class="section-toggle"
+                    :title="isSectionCollapsed(item.header) ? 'Expand section' : 'Collapse section'"
+                  >
+                    <SvgIcon :name="isSectionCollapsed(item.header) ? 'chevron-right' : 'chevron-down'" :size="14" />
+                  </button>
+                </div>
+                <div v-else class="section-divider">
+                  <span class="section-divider-line"></span>
+                </div>
              </transition>
           </div>
 
           <!-- Link -->
-          <router-link
-            v-else
-            :to="item.to"
-            custom
-            v-slot="{ isExactActive, navigate }"
-          >
-            <div
-              @click="navigate"
-              :class="[
-                'sidebar-nav-item',
-                { active: isNavActive(item, isExactActive) },
-              ]"
-              :title="collapsed ? item.label : ''"
+          <template v-else-if="!isSectionCollapsed(item.sectionHeader)">
+            <router-link
+              :to="item.to"
+              custom
+              v-slot="{ isExactActive, navigate }"
             >
-              <SvgIcon :name="item.icon" :size="20" class="flex-shrink-0" />
-              <transition name="fade">
-                <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-              </transition>
-            </div>
-          </router-link>
+              <div
+                @click="navigate"
+                :class="[
+                  'sidebar-nav-item',
+                  { active: isNavActive(item, isExactActive) },
+                ]"
+                :title="collapsed ? item.label : ''"
+              >
+                <span class="nav-icon-wrap">
+                  <SvgIcon :name="item.icon" :size="20" class="flex-shrink-0" />
+                </span>
+                <transition name="fade">
+                  <span v-if="!collapsed" class="truncate nav-label">{{ item.label }}</span>
+                </transition>
+              </div>
+            </router-link>
+          </template>
         </template>
       </nav>
 
@@ -80,7 +95,7 @@
       <!-- Collapse toggle (Desktop Only) -->
       <button
         @click="collapsed = !collapsed"
-        class="hidden md:block p-3 text-white/50 hover:text-white hover:bg-white/10 transition-colors text-center"
+        class="sidebar-collapse-button hidden md:block text-white/50 hover:text-white transition-all text-center"
       >
         <SvgIcon
           :name="collapsed ? 'chevron-right' : 'chevron-left'"
@@ -89,7 +104,7 @@
       </button>
 
       <!-- User section -->
-      <div class="border-t border-white/10 p-4">
+      <div class="user-panel border-t border-white/10 p-4">
         <div class="flex items-center gap-3">
           <div
             class="w-9 h-9 rounded-full overflow-hidden bg-secondary flex items-center justify-center text-primary-dark font-bold text-sm flex-shrink-0"
@@ -256,6 +271,39 @@ const showMobileSearch = ref(false);
 const showNotifications = ref(false);
 const avatarLoadFailed = ref(false);
 const sidebarMenuSettings = ref({});
+const collapsedSections = ref({});
+
+function getSidebarCollapseStorageKey() {
+  const userKey = auth.user?.id ?? auth.user?.username ?? auth.user?.email ?? auth.userName ?? 'guest'
+  return `sidebar-collapsed-sections:${String(userKey)}`
+}
+
+function loadCollapsedSections() {
+  try {
+    const key = getSidebarCollapseStorageKey()
+    const stored = localStorage.getItem(key)
+    return stored ? JSON.parse(stored) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveCollapsedSections() {
+  try {
+    const key = getSidebarCollapseStorageKey()
+    localStorage.setItem(key, JSON.stringify(collapsedSections.value))
+  } catch {
+    // ignore storage errors
+  }
+}
+
+watch(
+  () => auth.user?.id ?? auth.user?.username ?? auth.user?.email ?? auth.userName,
+  () => {
+    collapsedSections.value = loadCollapsedSections()
+  },
+  { immediate: true }
+)
 
 const sidebarAvatarUrl = computed(() => {
   if (avatarLoadFailed.value) return '';
@@ -486,6 +534,7 @@ const navItems = [
     permission: "absensi_diniyyah.view",
     exact: true,
   },
+  { header: 'Halaqoh' },
   {
     to: "/dashboard/halaqoh-assignments",
     icon: "halaqoh",
@@ -512,6 +561,7 @@ const navItems = [
     label: "Validasi Halaqoh",
     roles: ['super_admin', 'admin'],
   },
+  { header: 'Ekstra & Lainnya' },
   {
     to: "/dashboard/absensi-ekstra",
     icon: "check-circle",
@@ -526,6 +576,65 @@ const navItems = [
     permission: "dashboard.view",
     menuKey: 'student_arrival',
   },
+  { header: 'Revitalisasi SMA' },
+  {
+    to: "/dashboard/revitalisasi",
+    icon: "construction",
+    label: "Ringkasan Proyek",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_sma',
+    exact: true,
+    activeOn: ['/dashboard/revitalisasi'],
+  },
+  {
+    to: "/dashboard/revitalisasi/tukang",
+    icon: "users",
+    label: "Data Tukang",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_tukang',
+    activeOn: ['/dashboard/revitalisasi/tukang'],
+  },
+  {
+    to: "/dashboard/revitalisasi/absen-tukang",
+    icon: "attendance",
+    label: "Absen Tukang",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_absen_tukang',
+    activeOn: ['/dashboard/revitalisasi/absen-tukang'],
+  },
+  {
+    to: "/dashboard/revitalisasi/nota-material",
+    icon: "document",
+    label: "Nota Material",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_nota_material',
+    activeOn: ['/dashboard/revitalisasi/nota-material'],
+  },
+  {
+    to: "/dashboard/revitalisasi/nota-masuk",
+    icon: "document-text",
+    label: "Nota Masuk",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_nota_masuk',
+    activeOn: ['/dashboard/revitalisasi/nota-masuk'],
+  },
+  {
+    to: "/dashboard/revitalisasi/material-datang",
+    icon: "package",
+    label: "Material Datang",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_material_datang',
+    activeOn: ['/dashboard/revitalisasi/material-datang'],
+  },
+  {
+    to: "/dashboard/revitalisasi/progres-pembangunan",
+    icon: "trending-up",
+    label: "Progres Pembangunan",
+    roles: ['super_admin', 'admin'],
+    menuKey: 'revitalisasi_progres',
+    activeOn: ['/dashboard/revitalisasi/progres-pembangunan'],
+  },
+  { header: 'Prestasi & OCR' },
   {
     to: "/dashboard/prestasi",
     icon: "trophy",
@@ -676,20 +785,11 @@ function canViewNavItem(item) {
 const visibleNavItems = computed(() => {
   const grouped = []
   let currentHeader = null
-  let currentItems = []
-
-  const flushSection = () => {
-    if (currentHeader && currentItems.length) {
-      grouped.push(currentHeader, ...currentItems)
-    }
-    currentHeader = null
-    currentItems = []
-  }
 
   navItems.forEach((item) => {
     if (item.header) {
-      flushSection()
-      currentHeader = item
+      currentHeader = item.header
+      grouped.push({ type: 'header', header: item.header })
       return
     }
 
@@ -697,17 +797,29 @@ const visibleNavItems = computed(() => {
       return
     }
 
-    if (currentHeader) {
-      currentItems.push(item)
-      return
-    }
-
-    grouped.push(item)
+    grouped.push({
+      ...item,
+      type: 'nav',
+      sectionHeader: currentHeader,
+    })
   })
 
-  flushSection()
   return grouped
 })
+
+function isSectionCollapsed(header) {
+  if (!header) return false
+  return !!collapsedSections.value[header]
+}
+
+function toggleSection(header) {
+  if (!header) return
+  collapsedSections.value = {
+    ...collapsedSections.value,
+    [header]: !collapsedSections.value[header],
+  }
+  saveCollapsedSections()
+}
 
 function isNavActive(item, isExactActive) {
   if (item.to === '/dashboard') return isExactActive
@@ -729,17 +841,181 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.sidebar-shell {
+  border-color: rgba(148, 163, 184, 0.12);
+  box-shadow: 18px 0 40px rgba(2, 6, 23, 0.52), inset -1px 0 0 rgba(255, 255, 255, 0.04);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.88) 100%);
+}
+
+nav {
+  padding-top: 0.75rem;
+}
+
+.section-shell {
+  padding: 0.2rem 0.5rem 0.3rem;
+  margin-top: 0.25rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem 0.45rem;
+  border-radius: 0.95rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.62));
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 6px 14px rgba(2, 6, 23, 0.22);
+  backdrop-filter: blur(6px);
+}
+
+.section-title {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.92);
+}
+
+.section-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.52);
+  color: rgba(255, 255, 255, 0.72);
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.section-toggle:hover {
+  background: rgba(59, 130, 246, 0.18);
+  color: rgba(255, 255, 255, 1);
+  border-color: rgba(96, 165, 250, 0.42);
+  transform: translateY(-1px);
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.3rem 0.8rem 0.25rem;
+}
+
+.section-divider-line {
+  display: block;
+  width: 100%;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(to right, rgba(148, 163, 184, 0.04), rgba(148, 163, 184, 0.28), rgba(148, 163, 184, 0.04));
+}
+
+.sidebar-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  border-radius: 0.95rem;
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+  transition: all 0.22s ease;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.sidebar-nav-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(168, 85, 247, 0.08));
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.sidebar-nav-item:hover {
+  transform: translateX(2px);
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(30, 41, 59, 0.62);
+  box-shadow: 0 12px 22px rgba(2, 6, 23, 0.18);
+}
+
+.sidebar-nav-item:hover::before,
+.sidebar-nav-item.active::before {
+  opacity: 1;
+}
+
+.sidebar-nav-item.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(168, 85, 247, 0.15));
+  border-color: rgba(96, 165, 250, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 16px 28px rgba(37, 99, 235, 0.18);
+}
+
+.nav-icon-wrap {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+}
+
+.sidebar-nav-item.active .nav-icon-wrap {
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.25), rgba(147, 197, 253, 0.12));
+  border-color: rgba(147, 197, 253, 0.46);
+}
+
+.nav-label {
+  position: relative;
+  z-index: 1;
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.user-panel {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.2), rgba(15, 23, 42, 0.45));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-collapse-button {
+  width: calc(100% - 1rem);
+  margin: 0.35rem auto 0.25rem;
+  padding: 0.7rem 0.5rem;
+  border-radius: 0.8rem;
+  background: rgba(15, 23, 42, 0.38);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-collapse-button:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease;
 }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
 }
-</style>
 
-<style scoped>
 @media (max-width: 767px) {
   #main-content {
     margin-left: 0 !important;

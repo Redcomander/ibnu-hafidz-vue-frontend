@@ -183,6 +183,21 @@
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </template>
 
+    <!-- Package / Box -->
+    <template v-else-if="name === 'package'">
+      <path d="M12 2 3 7l9 5 9-5-9-5z" />
+      <path d="M3 7v10l9 5 9-5V7" />
+      <path d="M12 12v10" />
+    </template>
+
+    <!-- Construction / Hard Hat -->
+    <template v-else-if="name === 'construction'">
+      <path d="M7 10h10l2 8H5l2-8z" />
+      <path d="M8 10V7.5A2.5 2.5 0 0 1 10.5 5h3A2.5 2.5 0 0 1 16 7.5V10" />
+      <path d="M9 18v1M15 18v1" />
+      <path d="M12 2v2" />
+    </template>
+
     <!-- Edit / Pencil -->
     <template v-else-if="name === 'edit'">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />

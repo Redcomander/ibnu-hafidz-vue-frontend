@@ -263,6 +263,49 @@ const routes = [
         component: () => import('@/views/arrivals/ArrivalDashboardView.vue'),
         meta: { permission: 'dashboard.view', title: 'Kedatangan Harian' },
       },
+      // ---- Revitalisasi SMA ----
+      {
+        path: 'revitalisasi',
+        name: 'revitalisasi-dashboard',
+        component: () => import('@/views/revitalisasi/RevitalisasiDashboard.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Revitalisasi SMA' },
+      },
+      {
+        path: 'revitalisasi/tukang',
+        name: 'revitalisasi-tukang',
+        component: () => import('@/views/revitalisasi/RevitalisasiTukangList.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Data Tukang' },
+      },
+      {
+        path: 'revitalisasi/absen-tukang',
+        name: 'revitalisasi-absen-tukang',
+        component: () => import('@/views/revitalisasi/RevitalisasiAbsenTukang.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Absen Tukang' },
+      },
+      {
+        path: 'revitalisasi/nota-material',
+        name: 'revitalisasi-nota-material',
+        component: () => import('@/views/revitalisasi/RevitalisasiNotaMaterial.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Nota Material' },
+      },
+      {
+        path: 'revitalisasi/nota-masuk',
+        name: 'revitalisasi-nota-masuk',
+        component: () => import('@/views/revitalisasi/RevitalisasiNotaMasuk.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Nota Masuk' },
+      },
+      {
+        path: 'revitalisasi/material-datang',
+        name: 'revitalisasi-material-datang',
+        component: () => import('@/views/revitalisasi/RevitalisasiMaterialDatang.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Material Datang' },
+      },
+      {
+        path: 'revitalisasi/progres-pembangunan',
+        name: 'revitalisasi-progres-pembangunan',
+        component: () => import('@/views/revitalisasi/RevitalisasiProgresPembangunan.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Progres Pembangunan' },
+      },
       // ---- Prestasi ----
       {
         path: 'prestasi',

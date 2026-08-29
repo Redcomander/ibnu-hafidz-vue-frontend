@@ -1,20 +1,20 @@
 <template>
-  <div class="dashboard-root">
-  <div class="space-y-6 pt-2 pb-8">
+  <div :class="['dashboard-root min-h-screen rounded-[28px] p-2 md:p-4 transition-colors duration-300', theme.isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900']">
+  <div :class="['space-y-6 pt-2 pb-8']">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div :class="['flex flex-col md:flex-row md:items-end justify-between gap-4 rounded-3xl border p-4 md:p-5 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm', theme.isDark ? 'border-slate-800 bg-slate-900/80' : 'border-slate-200 bg-white/80']">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl text-primary">
+        <h1 :class="['text-2xl font-bold tracking-tight sm:text-3xl', theme.isDark ? 'text-white' : 'text-slate-900']">
           Selamat Datang, {{ authStore.user?.name || 'User' }}!
         </h1>
-        <p class="mt-1.5 text-sm text-gray-500 font-medium tracking-wide">
+        <p :class="['mt-1.5 text-sm font-medium tracking-wide', theme.isDark ? 'text-slate-300' : 'text-slate-500']">
           {{ currentDate }}
         </p>
       </div>
       <!-- Period Selector -->
       <div class="flex items-center gap-3">
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Periode:</span>
-        <select v-model="selectedPeriod" class="bg-white border border-gray-200 text-gray-700 font-medium text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 shadow-sm">
+        <span :class="['text-xs font-bold uppercase tracking-widest px-1', theme.isDark ? 'text-slate-400' : 'text-slate-400']">Periode:</span>
+        <select v-model="selectedPeriod" :class="['font-medium text-sm rounded-xl block w-full p-2.5 shadow-sm border transition-colors focus:ring-2 focus:ring-blue-500/20', theme.isDark ? 'bg-slate-800 border-slate-700 text-slate-100 focus:border-blue-500' : 'bg-white border-slate-200 text-slate-700 focus:border-primary']">
           <option v-for="p in periodOptions" :key="p.value" :value="p.value">{{ p.label }}</option>
         </select>
       </div>
@@ -45,12 +45,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           
           <!-- FORMAL CARD (Indigo) -->
-          <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden group hover:border-indigo-200 transition-colors">
+          <div :class="['rounded-3xl p-6 border relative overflow-hidden group transition-all duration-300', theme.isDark ? 'border-slate-700 bg-slate-900/90 shadow-[0_18px_40px_rgba(15,23,42,0.38)] hover:border-indigo-500/40' : 'border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.05)] hover:border-indigo-200']">
             <div class="flex items-center gap-3 mb-6 relative z-10">
-              <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50">
+              <div :class="['w-10 h-10 rounded-xl flex items-center justify-center border', theme.isDark ? 'bg-indigo-500/10 text-indigo-300 border-indigo-400/20' : 'bg-indigo-50 text-indigo-600 border-indigo-100/50']">
                 <SvgIcon name="document" :size="20" />
               </div>
-              <h4 class="font-bold text-gray-900 text-lg">Absensi Formal</h4>
+              <h4 :class="['font-bold text-lg', theme.isDark ? 'text-slate-100' : 'text-gray-900']">Absensi Formal</h4>
             </div>
             
             <div class="flex gap-6 relative z-10">
@@ -83,12 +83,12 @@
           </div>
 
           <!-- DINIYYAH CARD (Emerald) -->
-          <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden group hover:border-emerald-200 transition-colors">
+          <div :class="['rounded-3xl p-6 border relative overflow-hidden group transition-all duration-300', theme.isDark ? 'border-slate-700 bg-slate-900/90 shadow-[0_18px_40px_rgba(15,23,42,0.38)] hover:border-emerald-500/40' : 'border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.05)] hover:border-emerald-200']">
             <div class="flex items-center gap-3 mb-6 relative z-10">
-              <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/50">
+              <div :class="['w-10 h-10 rounded-xl flex items-center justify-center border', theme.isDark ? 'bg-emerald-500/10 text-emerald-300 border-emerald-400/20' : 'bg-emerald-50 text-emerald-600 border-emerald-100/50']">
                 <SvgIcon name="document" :size="20" />
               </div>
-              <h4 class="font-bold text-gray-900 text-lg">Absensi Diniyyah</h4>
+              <h4 :class="['font-bold text-lg', theme.isDark ? 'text-slate-100' : 'text-gray-900']">Absensi Diniyyah</h4>
             </div>
             
             <div class="flex gap-6 relative z-10">
@@ -121,12 +121,12 @@
           </div>
 
           <!-- HALAQOH CARD (Amber) -->
-          <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden group hover:border-amber-200 transition-colors">
+          <div :class="['rounded-3xl p-6 border relative overflow-hidden group transition-all duration-300', theme.isDark ? 'border-slate-700 bg-slate-900/90 shadow-[0_18px_40px_rgba(15,23,42,0.38)] hover:border-amber-500/40' : 'border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.05)] hover:border-amber-200']">
             <div class="flex items-center gap-3 mb-6 relative z-10">
-              <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100/50">
+              <div :class="['w-10 h-10 rounded-xl flex items-center justify-center border', theme.isDark ? 'bg-amber-500/10 text-amber-300 border-amber-400/20' : 'bg-amber-50 text-amber-600 border-amber-100/50']">
                 <SvgIcon name="document" :size="20" />
               </div>
-              <h4 class="font-bold text-gray-900 text-lg">Absensi Halaqoh</h4>
+              <h4 :class="['font-bold text-lg', theme.isDark ? 'text-slate-100' : 'text-gray-900']">Absensi Halaqoh</h4>
             </div>
             
             <div class="flex gap-6 relative z-10">
@@ -166,7 +166,7 @@
       <!-- ============================================== -->
       <div>
         <h3 class="text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 mt-8">REKAP KEHADIRAN GURU (ANDA)</h3>
-        <div class="bg-white border border-gray-100 rounded-3xl p-6 md:p-8 shadow-[0_2px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
+        <div :class="['border rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-[0_18px_40px_rgba(15,23,42,0.12)]', theme.isDark ? 'border-slate-800 bg-slate-900/85' : 'border-slate-200 bg-white']">
 
           <div class="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
             <!-- Combined Ring -->
@@ -263,7 +263,7 @@
         <h3 class="text-sm font-bold tracking-widest text-gray-500 uppercase mb-4">
           PENGGANTIAN MENGAJAR ({{ stats.teacher.substitute_records.length }} SESI)
         </h3>
-        <div class="bg-white border border-gray-100 rounded-3xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] overflow-hidden">
+        <div :class="['border rounded-3xl overflow-hidden shadow-[0_18px_40px_rgba(15,23,42,0.12)]', theme.isDark ? 'border-slate-800 bg-slate-900/85' : 'border-slate-200 bg-white']">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
@@ -318,7 +318,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         
         <!-- JADWAL HARI INI -->
-        <div class="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm overflow-hidden flex flex-col h-[500px]">
+        <div :class="['border rounded-3xl p-6 overflow-hidden flex flex-col h-[500px] shadow-[0_18px_40px_rgba(15,23,42,0.12)]', theme.isDark ? 'border-slate-800 bg-slate-900/85' : 'border-slate-200 bg-white']">
           <div class="flex items-center justify-between mb-6 shrink-0">
             <h3 class="text-sm font-bold tracking-widest text-gray-500 uppercase">JADWAL HARI INI</h3>
             <span class="text-xs font-bold text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">{{ currentDate }}</span>
@@ -372,7 +372,7 @@
         <!-- AKSI CEPAT & LAPORAN -->
         <div class="space-y-6 flex flex-col h-[500px]">
           <!-- Aksi Cepat Grid -->
-          <div class="bg-indigo-50 border border-indigo-100/50 rounded-3xl p-6 shadow-sm flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700">
+          <div :class="['border rounded-3xl p-6 flex-1 flex flex-col shadow-[0_18px_40px_rgba(15,23,42,0.08)]', theme.isDark ? 'border-slate-800 bg-slate-900/90' : 'border-indigo-100/50 bg-indigo-50']">
             <h3 class="text-sm font-bold tracking-widest text-indigo-900/40 uppercase mb-6 shrink-0 dark:text-slate-300">AKSI CEPAT</h3>
             
             <div class="grid grid-cols-2 gap-4 flex-1">
@@ -403,7 +403,7 @@
           </div>
 
           <!-- Laporan Banner -->
-          <div class="bg-primary rounded-3xl p-6 shadow-lg shadow-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 relative overflow-hidden group">
+          <div :class="['rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 relative overflow-hidden group shadow-[0_18px_40px_rgba(79,70,229,0.24)]', theme.isDark ? 'bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600' : 'bg-primary']">
              <!-- decorative shape -->
              <div class="absolute right-0 top-0 w-32 h-full bg-white/10 skew-x-12 translate-x-10 group-hover:translate-x-0 transition-transform duration-500 pointer-events-none"></div>
              
@@ -442,12 +442,14 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
 import api from '@/api';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import TeacherAttendanceRing from '@/components/dashboard/TeacherAttendanceRing.vue';
 import AttendanceForm from '@/views/attendance/AttendanceForm.vue';
 
 const authStore = useAuthStore();
+const theme = useThemeStore();
 const stats = ref({});
 const loading = ref(true);
 const error = ref(null);
