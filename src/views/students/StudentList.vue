@@ -2,13 +2,16 @@
   <div>
     <!-- Page Header -->
     <div
-      class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"
+      :class="[
+        'flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6',
+        theme.isDark ? 'text-slate-100' : 'text-slate-900'
+      ]"
     >
       <div>
-        <h1 class="text-2xl font-bold text-primary-dark tracking-tight">
+        <h1 :class="['text-2xl font-bold tracking-tight', theme.isDark ? 'text-slate-100' : 'text-slate-900']">
           {{ isAlumniPage ? "Data Alumni" : "Data Santri" }}
         </h1>
-        <p class="text-gray-500 text-sm mt-1">
+        <p :class="['text-sm mt-1', theme.isDark ? 'text-slate-400' : 'text-gray-500']">
           {{
             isAlumniPage
               ? "Daftar santri yang telah lulus"
@@ -61,24 +64,47 @@
     </div>
 
     <!-- Filters & Search -->
-    <div class="glass-card rounded-2xl border border-slate-200/70 bg-white/80 p-4 mb-6 shadow-sm backdrop-blur-sm">
+    <div
+      :class="[
+        'glass-card rounded-2xl border p-4 mb-6 shadow-sm backdrop-blur-sm',
+        theme.isDark ? 'border-slate-700/80 bg-slate-900/80' : 'border-slate-200/70 bg-white/80'
+      ]"
+    >
       <div class="flex flex-wrap items-center gap-3">
         <div class="flex-1 min-w-[220px]">
           <input
             v-model="search"
             type="text"
             placeholder="Cari nama, NIS, atau wali..."
-            class="input-field !py-2.5 !pl-10 w-full rounded-xl border-slate-200 bg-slate-50/80 focus:border-primary/60 focus:ring-2 focus:ring-primary/10"
+            :class="[
+              'input-field !py-2.5 !pl-10 w-full rounded-xl focus:border-primary/60 focus:ring-2 focus:ring-primary/10',
+              theme.isDark
+                ? 'border-slate-700 bg-slate-800 text-slate-100 placeholder-slate-400'
+                : 'border-slate-200 bg-slate-50/80 text-slate-900 placeholder-slate-500'
+            ]"
           />
         </div>
-        <select v-model="filters.jenis_kelamin" class="input-field !py-2.5 !w-auto min-w-[150px] rounded-xl border-slate-200 bg-slate-50/80">
+        <select
+          v-model="filters.jenis_kelamin"
+          :class="[
+            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
+            theme.isDark
+              ? 'border-slate-700 bg-slate-800 text-slate-100'
+              : 'border-slate-200 bg-slate-50/80 text-slate-900'
+          ]"
+        >
           <option value="">Semua Gender</option>
           <option value="Laki-laki">Laki-laki</option>
           <option value="Perempuan">Perempuan</option>
         </select>
         <select
           v-model="filters.status_periode"
-          class="input-field !py-2.5 !w-auto min-w-[150px] rounded-xl border-slate-200 bg-slate-50/80"
+          :class="[
+            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
+            theme.isDark
+              ? 'border-slate-700 bg-slate-800 text-slate-100'
+              : 'border-slate-200 bg-slate-50/80 text-slate-900'
+          ]"
         >
           <option :value="isAlumniPage ? 'Lulus' : ''">
             {{ isAlumniPage ? "Lulus" : "Semua Status" }}
@@ -87,17 +113,41 @@
           <option value="Pindahan">Pindahan</option>
           <option value="Lulus">Lulus</option>
         </select>
-        <select v-model="filters.kelas_status" class="input-field !py-2.5 !w-auto min-w-[150px] rounded-xl border-slate-200 bg-slate-50/80">
+        <select
+          v-model="filters.kelas_status"
+          :class="[
+            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
+            theme.isDark
+              ? 'border-slate-700 bg-slate-800 text-slate-100'
+              : 'border-slate-200 bg-slate-50/80 text-slate-900'
+          ]"
+        >
           <option value="">Semua Kelas</option>
           <option value="ada">Kelas Ada</option>
           <option value="kosong">Kelas Kosong</option>
         </select>
-        <select v-model="filters.laundry_status" class="input-field !py-2.5 !w-auto min-w-[150px] rounded-xl border-slate-200 bg-slate-50/80">
+        <select
+          v-model="filters.laundry_status"
+          :class="[
+            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
+            theme.isDark
+              ? 'border-slate-700 bg-slate-800 text-slate-100'
+              : 'border-slate-200 bg-slate-50/80 text-slate-900'
+          ]"
+        >
           <option value="">Semua Laundry</option>
           <option value="ada">Laundry Ada</option>
           <option value="kosong">Laundry Kosong</option>
         </select>
-        <select v-model="filters.halaqoh_status" class="input-field !py-2.5 !w-auto min-w-[150px] rounded-xl border-slate-200 bg-slate-50/80">
+        <select
+          v-model="filters.halaqoh_status"
+          :class="[
+            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
+            theme.isDark
+              ? 'border-slate-700 bg-slate-800 text-slate-100'
+              : 'border-slate-200 bg-slate-50/80 text-slate-900'
+          ]"
+        >
           <option value="">Semua Halaqoh</option>
           <option value="ada">Halaqoh Ada</option>
           <option value="kosong">Halaqoh Kosong</option>
@@ -106,7 +156,12 @@
     </div>
 
     <!-- Data Table -->
-    <div class="glass-card overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm animate-fade-in">
+    <div
+      :class="[
+        'glass-card overflow-hidden rounded-2xl border shadow-sm animate-fade-in',
+        theme.isDark ? 'border-slate-700/80 bg-slate-900' : 'border-slate-200/70 bg-white'
+      ]"
+    >
       <!-- Loading State -->
       <div v-if="loading" class="p-12 text-center text-gray-400">
         <div
@@ -119,40 +174,40 @@
       <div v-else class="overflow-x-auto">
         <table class="data-table min-w-[1200px] w-full">
           <thead>
-            <tr class="bg-slate-50/90">
+            <tr :class="theme.isDark ? 'bg-slate-800/80' : 'bg-slate-50/90'">
               <th class="w-12 text-center px-3 py-3">
                 <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" class="rounded border-slate-300 text-primary focus:ring-primary/40" />
               </th>
-              <th @click="setSort('nisn')" class="cursor-pointer px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <th @click="setSort('nisn')" :class="['cursor-pointer px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">
                 <div class="flex items-center gap-1">
                   <span>NISN</span>
                   <span>{{ sort.field === "nisn" ? (sort.order === "asc" ? "↑" : "↓") : "" }}</span>
                 </div>
               </th>
-              <th @click="setSort('nama_lengkap')" class="cursor-pointer px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+              <th @click="setSort('nama_lengkap')" :class="['cursor-pointer px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">
                 <div class="flex items-center gap-1">
                   <span>Nama Lengkap</span>
                   <span>{{ sort.field === "nama_lengkap" ? (sort.order === "asc" ? "↑" : "↓") : "" }}</span>
                 </div>
               </th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Gender</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Status</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Kelas</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Laundry</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Halaqoh</th>
-              <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Wali</th>
-              <th class="px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Aksi</th>
+              <th :class="['px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Gender</th>
+              <th :class="['px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Status</th>
+              <th :class="['px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Kelas</th>
+              <th :class="['px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Laundry</th>
+              <th :class="['px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Halaqoh</th>
+              <th :class="['px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Wali</th>
+              <th :class="['px-3 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em]', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="student in data" :key="student.id" class="border-t border-slate-200/80 hover:bg-slate-50/60 transition-colors duration-200">
+            <tr v-for="student in data" :key="student.id" :class="['border-t transition-colors duration-200', theme.isDark ? 'border-slate-700/80 hover:bg-slate-800/70' : 'border-slate-200/80 hover:bg-slate-50/60']">
               <td class="px-3 py-3 text-center align-middle">
                 <input type="checkbox" :value="student.id" v-model="selectedIds" class="rounded border-slate-300 text-primary focus:ring-primary/40" />
               </td>
-              <td class="px-3 py-3 align-middle font-mono text-xs text-slate-600">{{ student.nisn || "-" }}</td>
+              <td :class="['px-3 py-3 align-middle font-mono text-xs', theme.isDark ? 'text-slate-300' : 'text-slate-600']">{{ student.nisn || "-" }}</td>
               <td class="px-3 py-3 align-middle">
                 <div class="max-w-[220px]">
-                  <div class="font-semibold text-slate-800 break-words leading-snug">
+                  <div :class="['font-semibold break-words leading-snug', theme.isDark ? 'text-slate-100' : 'text-slate-800']">
                     {{ student.nama_lengkap }}
                   </div>
                 </div>
@@ -182,7 +237,7 @@
                   {{ student.halaqoh_teacher || 'Belum ada' }}
                 </span>
               </td>
-              <td class="px-3 py-3 align-middle text-sm text-slate-500 break-words">
+              <td :class="['px-3 py-3 align-middle text-sm break-words', theme.isDark ? 'text-slate-400' : 'text-slate-500']">
                 {{ student.nama_ayah || "-" }}
               </td>
               <td class="px-3 py-3 align-middle">
@@ -194,7 +249,7 @@
                         params: { id: student.id },
                       })
                     "
-                    class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-primary"
+                    :class="['rounded-lg p-2 transition', theme.isDark ? 'text-slate-300 hover:bg-slate-800 hover:text-slate-100' : 'text-slate-500 hover:bg-slate-100 hover:text-primary']"
                     title="Lihat Detail"
                   >
                     <SvgIcon name="eye" :size="16" />
@@ -202,7 +257,7 @@
                   <button
                     v-if="auth.hasPermission('students.edit')"
                     @click="editStudent(student)"
-                    class="rounded-lg p-2 text-sky-600 transition hover:bg-sky-50"
+                    :class="['rounded-lg p-2 transition', theme.isDark ? 'text-sky-400 hover:bg-sky-500/10' : 'text-sky-600 hover:bg-sky-50']"
                     title="Edit"
                   >
                     <SvgIcon name="edit" :size="16" />
@@ -210,7 +265,7 @@
                   <button
                     v-if="auth.hasPermission('students.edit') && student.status_periode !== 'Lulus'"
                     @click="graduateStudent(student)"
-                    class="rounded-lg p-2 text-emerald-600 transition hover:bg-emerald-50"
+                    :class="['rounded-lg p-2 transition', theme.isDark ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-600 hover:bg-emerald-50']"
                     title="Luluskan Siswa"
                   >
                     <SvgIcon name="check" :size="16" />
@@ -218,7 +273,7 @@
                   <button
                     v-if="auth.hasPermission('students.delete')"
                     @click="confirmDelete(student)"
-                    class="rounded-lg p-2 text-red-500 transition hover:bg-red-50"
+                    :class="['rounded-lg p-2 transition', theme.isDark ? 'text-red-400 hover:bg-red-500/10' : 'text-red-500 hover:bg-red-50']"
                     title="Hapus"
                   >
                     <SvgIcon name="trash" :size="16" />
@@ -238,19 +293,19 @@
       <!-- Mobile Card View -->
       <div
         v-if="!loading && data.length > 0"
-        class="grid grid-cols-1 gap-4 p-4 md:hidden"
+        :class="['grid grid-cols-1 gap-4 p-4 md:hidden', theme.isDark ? 'bg-slate-900' : 'bg-white']"
       >
         <div
           v-for="student in data"
           :key="student.id"
-          class="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm"
+          :class="['rounded-2xl border p-4 shadow-sm', theme.isDark ? 'border-slate-700 bg-slate-800/80' : 'border-slate-200 bg-slate-50/80']"
         >
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
-              <h3 class="text-base font-semibold text-slate-800 break-words leading-snug">
+              <h3 :class="['text-base font-semibold break-words leading-snug', theme.isDark ? 'text-slate-100' : 'text-slate-800']">
                 {{ student.nama_lengkap }}
               </h3>
-              <p class="mt-1 text-xs text-slate-500 font-mono">
+              <p :class="['mt-1 text-xs font-mono', theme.isDark ? 'text-slate-400' : 'text-slate-500']">
                 {{ student.nisn || "No NISN" }}
               </p>
             </div>
@@ -259,29 +314,29 @@
             </span>
           </div>
 
-          <div class="mt-3 flex items-center justify-between text-sm text-slate-600">
-            <span :class="student.jenis_kelamin === 'Laki-laki' ? 'text-blue-600' : 'text-pink-600'">
+          <div :class="['mt-3 flex items-center justify-between text-sm', theme.isDark ? 'text-slate-300' : 'text-slate-600']">
+            <span :class="student.jenis_kelamin === 'Laki-laki' ? 'text-blue-600 dark:text-blue-400' : 'text-pink-600 dark:text-pink-400'">
               {{ student.jenis_kelamin }}
             </span>
-            <span class="text-xs text-slate-500">{{ student.nama_ayah || "-" }}</span>
+            <span :class="['text-xs', theme.isDark ? 'text-slate-400' : 'text-slate-500']">{{ student.nama_ayah || "-" }}</span>
           </div>
 
-          <div class="mt-4 space-y-2 text-xs text-slate-600">
+          <div :class="['mt-4 space-y-2 text-xs', theme.isDark ? 'text-slate-300' : 'text-slate-600']">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-slate-500">Kelas</span>
+              <span :class="theme.isDark ? 'text-slate-400' : 'text-slate-500'">Kelas</span>
               <span :class="student.kelas_status === 'Ada' ? 'badge-success' : 'badge-secondary'" class="max-w-[150px] text-left break-words">{{ student.kelas_label || 'Belum ada' }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-slate-500">Laundry</span>
+              <span :class="theme.isDark ? 'text-slate-400' : 'text-slate-500'">Laundry</span>
               <span :class="student.laundry_status === 'Ada' ? 'badge-info' : 'badge-secondary'" class="max-w-[150px] text-left break-words">{{ student.laundry_vendor || 'Belum ada' }}</span>
             </div>
             <div class="flex items-center justify-between gap-2">
-              <span class="text-slate-500">Halaqoh</span>
+              <span :class="theme.isDark ? 'text-slate-400' : 'text-slate-500'">Halaqoh</span>
               <span :class="student.halaqoh_status === 'Ada' ? 'badge-warning' : 'badge-secondary'" class="max-w-[150px] text-left break-words">{{ student.halaqoh_teacher || 'Belum ada' }}</span>
             </div>
           </div>
 
-          <div class="mt-4 flex justify-end gap-2 border-t border-slate-200 pt-3">
+          <div :class="['mt-4 flex justify-end gap-2 border-t pt-3', theme.isDark ? 'border-slate-700' : 'border-slate-200']">
             <button
               @click="
                 $router.push({
@@ -289,21 +344,21 @@
                   params: { id: student.id },
                 })
               "
-              class="rounded-lg p-2 text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+              :class="['rounded-lg p-2 transition', theme.isDark ? 'text-slate-300 hover:bg-slate-700 hover:text-slate-100' : 'text-slate-500 hover:bg-slate-200 hover:text-slate-700']"
             >
               <SvgIcon name="eye" :size="18" />
             </button>
             <button
               v-if="auth.hasPermission('students.edit')"
               @click="editStudent(student)"
-              class="rounded-lg p-2 text-sky-600 hover:bg-sky-100"
+              :class="['rounded-lg p-2 transition', theme.isDark ? 'text-sky-400 hover:bg-sky-500/10' : 'text-sky-600 hover:bg-sky-100']"
             >
               <SvgIcon name="edit" :size="18" />
             </button>
             <button
               v-if="auth.hasPermission('students.edit') && student.status_periode !== 'Lulus'"
               @click="graduateStudent(student)"
-              class="rounded-lg p-2 text-emerald-600 hover:bg-emerald-100"
+              :class="['rounded-lg p-2 transition', theme.isDark ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-600 hover:bg-emerald-100']"
               title="Luluskan Siswa"
             >
               <SvgIcon name="check" :size="18" />
@@ -311,7 +366,7 @@
             <button
               v-if="auth.hasPermission('students.delete')"
               @click="confirmDelete(student)"
-              class="rounded-lg p-2 text-red-600 hover:bg-red-100"
+              :class="['rounded-lg p-2 transition', theme.isDark ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-100']"
             >
               <SvgIcon name="trash" :size="18" />
             </button>
@@ -320,7 +375,7 @@
       </div>
       <div
         v-else-if="!loading && data.length === 0"
-        class="md:hidden px-4 py-8 text-center text-slate-400"
+        :class="['md:hidden px-4 py-8 text-center', theme.isDark ? 'text-slate-400' : 'text-slate-400']"
       >
         Tidak ada data
       </div>
@@ -328,9 +383,12 @@
       <!-- Pagination -->
       <div
         v-if="meta.totalPages > 1"
-        class="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/60 px-4 py-3 md:flex-row md:items-center md:justify-between"
+        :class="[
+          'flex flex-col gap-3 border-t px-4 py-3 md:flex-row md:items-center md:justify-between',
+          theme.isDark ? 'border-slate-700 bg-slate-900/80' : 'border-slate-200 bg-slate-50/60'
+        ]"
       >
-        <p class="text-sm text-slate-500">
+        <p :class="['text-sm', theme.isDark ? 'text-slate-300' : 'text-slate-500']">
           Menampilkan {{ (meta.page - 1) * meta.perPage + 1 }}–{{
             Math.min(meta.page * meta.perPage, meta.total)
           }}
@@ -338,10 +396,13 @@
         </p>
         <div class="flex flex-wrap items-center gap-3 md:gap-4">
           <div class="flex items-center gap-2">
-            <span class="text-sm text-slate-500 hidden sm:inline">Per halaman:</span>
+            <span :class="['text-sm hidden sm:inline', theme.isDark ? 'text-slate-300' : 'text-slate-500']">Per halaman:</span>
             <select
               v-model="meta.perPage"
-              class="input-field !py-1.5 !text-sm !w-auto bg-white border-slate-300 rounded-lg focus:ring-primary focus:border-primary"
+              :class="[
+                'input-field !py-1.5 !text-sm !w-auto rounded-lg focus:ring-primary focus:border-primary',
+                theme.isDark ? 'border-slate-700 bg-slate-800 text-slate-100' : 'border-slate-300 bg-white text-slate-900'
+              ]"
             >
               <option :value="10">10</option>
               <option :value="20">20</option>
@@ -353,7 +414,10 @@
             <button
               @click="setPage(meta.page - 1)"
               :disabled="meta.page === 1"
-              class="rounded-lg px-2 py-1.5 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="[
+                'rounded-lg px-2 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed',
+                theme.isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-200'
+              ]"
             >
               <SvgIcon name="chevron-left" :size="16" />
             </button>
@@ -363,12 +427,14 @@
               :key="i"
               @click="typeof page === 'number' ? setPage(page) : null"
               :class="[
-                'rounded-lg px-3 py-1.5 text-sm transition',
+                'rounded-lg px-3 py-1.5 text-sm transition min-w-[2.2rem]',
                 typeof page === 'number'
                   ? meta.page === page
                     ? 'bg-primary text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-200'
-                  : 'text-slate-400 cursor-default',
+                    : theme.isDark
+                      ? 'text-slate-200 hover:bg-slate-700'
+                      : 'text-slate-600 hover:bg-slate-200'
+                  : theme.isDark ? 'text-slate-500 cursor-default' : 'text-slate-400 cursor-default',
               ]"
               :disabled="typeof page !== 'number'"
             >
@@ -378,7 +444,10 @@
             <button
               @click="setPage(meta.page + 1)"
               :disabled="meta.page === meta.totalPages"
-              class="rounded-lg px-2 py-1.5 text-slate-600 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="[
+                'rounded-lg px-2 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed',
+                theme.isDark ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-200'
+              ]"
             >
               <SvgIcon name="chevron-right" :size="16" />
             </button>
@@ -419,11 +488,13 @@ import SvgIcon from "@/components/ui/SvgIcon.vue";
 import StudentForm from "@/components/students/StudentForm.vue";
 import ConfirmModal from "@/components/ui/ConfirmModal.vue";
 import { useToastStore } from "@/stores/toast";
+import { useThemeStore } from "@/stores/theme";
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 const toast = useToastStore();
+const theme = useThemeStore();
 
 const isAlumniPage = computed(() => route.name === "alumni");
 
@@ -470,25 +541,34 @@ watch(
 
 // Pagination Logic
 const visiblePages = computed(() => {
-  const { page, totalPages } = meta; // No .value needed for reactive object
+  const page = Number(meta.page) || 1;
+  const totalPages = Number(meta.totalPages) || 1;
+
   if (totalPages <= 7) {
     return Array.from({ length: totalPages }, (_, i) => i + 1);
   }
 
-  const pages = [1];
-  if (page > 3) pages.push("...");
+  const pages = [];
+  const windowSize = 2;
 
-  const start = Math.max(2, page - 1);
-  const end = Math.min(totalPages - 1, page + 1);
+  pages.push(1);
 
-  for (let i = start; i <= end; i++) {
+  if (page > windowSize + 2) pages.push("...");
+
+  const start = Math.max(2, page - windowSize);
+  const end = Math.min(totalPages - 1, page + windowSize);
+
+  for (let i = start; i <= end; i += 1) {
     pages.push(i);
   }
 
-  if (page < totalPages - 2) pages.push("...");
-  if (totalPages > 1) pages.push(totalPages);
+  if (page < totalPages - windowSize - 1) pages.push("...");
+  pages.push(totalPages);
 
-  return pages;
+  return pages.filter((item, index, arr) => {
+    if (typeof item === "string") return true;
+    return index === 0 || item !== arr[index - 1];
+  });
 });
 
 const isAllSelected = computed(() => {
