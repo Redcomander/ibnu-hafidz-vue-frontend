@@ -2,7 +2,7 @@
   <div class="space-y-5">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
-        <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Revitalisasi SMA</p>
+        <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Revitalisasi SMP</p>
         <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">Material Datang</h1>
       </div>
       <button type="button" class="btn-primary w-full md:w-auto" @click="openCreateModal">+ Catat Datang</button>
@@ -210,11 +210,11 @@
 import { computed, onMounted, ref } from 'vue'
 import { compressImageFile } from '@/utils/imageCompression'
 import {
-  createRevitalisasiMaterialDatang,
-  deleteRevitalisasiMaterialDatang,
-  fetchRevitalisasiMaterialDatang,
-  updateRevitalisasiMaterialDatang,
-} from '@/api/revitalisasi'
+  createRevitalisasiSmpMaterialDatang,
+  deleteRevitalisasiSmpMaterialDatang,
+  fetchRevitalisasiSmpMaterialDatang,
+  updateRevitalisasiSmpMaterialDatang,
+} from '@/api/revitalisasiSmp'
 
 const search = ref('')
 const loading = ref(false)
@@ -327,7 +327,7 @@ const detailPhotos = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const response = await fetchRevitalisasiMaterialDatang({ search: search.value })
+    const response = await fetchRevitalisasiSmpMaterialDatang({ search: search.value })
     list.value = Array.isArray(response?.data) ? response.data : []
   } catch (error) {
     console.error(error)
@@ -461,9 +461,9 @@ async function saveItem() {
     })
 
     if (editingId.value) {
-      await updateRevitalisasiMaterialDatang(editingId.value, payload)
+      await updateRevitalisasiSmpMaterialDatang(editingId.value, payload)
     } else {
-      await createRevitalisasiMaterialDatang(payload)
+      await createRevitalisasiSmpMaterialDatang(payload)
     }
     showModal.value = false
     await loadData()
@@ -475,7 +475,7 @@ async function saveItem() {
 
 async function deleteItem(id) {
   try {
-    await deleteRevitalisasiMaterialDatang(id)
+    await deleteRevitalisasiSmpMaterialDatang(id)
     await loadData()
   } catch (error) {
     console.error(error)

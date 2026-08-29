@@ -2,13 +2,13 @@
   <div class="space-y-5">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
-        <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Revitalisasi SMA</p>
+        <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Revitalisasi SMP</p>
         <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-slate-100">Ringkasan Proyek</h1>
       </div>
       <button
         type="button"
         class="btn-primary w-full md:w-auto"
-        @click="$router.push('/dashboard/revitalisasi/tukang')"
+        @click="$router.push('/dashboard/revitalisasi-smp/tukang')"
       >
         Kelola Tukang
       </button>
@@ -183,17 +183,17 @@
 import { onMounted, ref } from 'vue'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import {
-  createRevitalisasiPrioritas,
-  deleteRevitalisasiPrioritas,
-  fetchRevitalisasiAbsen,
-  fetchRevitalisasiMaterialDatang,
-  fetchRevitalisasiNotaMasuk,
-  fetchRevitalisasiNotaMaterial,
-  fetchRevitalisasiPrioritas,
-  fetchRevitalisasiProgres,
-  fetchRevitalisasiTukang,
-  updateRevitalisasiPrioritas,
-} from '@/api/revitalisasi'
+  createRevitalisasiSmpPrioritas,
+  deleteRevitalisasiSmpPrioritas,
+  fetchRevitalisasiSmpAbsen,
+  fetchRevitalisasiSmpMaterialDatang,
+  fetchRevitalisasiSmpNotaMasuk,
+  fetchRevitalisasiSmpNotaMaterial,
+  fetchRevitalisasiSmpPrioritas,
+  fetchRevitalisasiSmpProgres,
+  fetchRevitalisasiSmpTukang,
+  updateRevitalisasiSmpPrioritas,
+} from '@/api/revitalisasiSmp'
 
 const loading = ref(false)
 const metrics = ref([
@@ -259,7 +259,7 @@ function relativeLabel(value) {
 
 async function loadPrioritas() {
   try {
-    const response = await fetchRevitalisasiPrioritas()
+    const response = await fetchRevitalisasiSmpPrioritas()
     const list = Array.isArray(response?.data) ? response.data : []
     priorityItems.value = list.filter((item) => item.is_active !== false).sort((a, b) => (a.urutan || 0) - (b.urutan || 0))
   } catch (error) {
@@ -276,7 +276,7 @@ async function addPriority() {
   }
 
   try {
-    await createRevitalisasiPrioritas({
+    await createRevitalisasiSmpPrioritas({
       judul: title,
       deskripsi: newPriority.value.deskripsi?.trim() || '',
       tingkat: newPriority.value.tingkat || 'medium',
@@ -305,7 +305,7 @@ async function savePriorityChanges() {
         alert('Judul prioritas tidak boleh kosong.')
         return
       }
-      await updateRevitalisasiPrioritas(item.id, {
+      await updateRevitalisasiSmpPrioritas(item.id, {
         judul: trimmedTitle,
         deskripsi: String(item.deskripsi || '').trim(),
         tingkat: item.tingkat || 'medium',
@@ -330,7 +330,7 @@ async function deletePriority(id) {
   }
 
   try {
-    await deleteRevitalisasiPrioritas(id)
+    await deleteRevitalisasiSmpPrioritas(id)
     await loadPrioritas()
   } catch (error) {
     console.error(error)
@@ -346,12 +346,12 @@ async function loadDashboard() {
   loading.value = true
   try {
     const [tukangRes, absenRes, notaRes, notaMasukRes, materialRes, progresRes] = await Promise.all([
-      fetchRevitalisasiTukang(),
-      fetchRevitalisasiAbsen(),
-      fetchRevitalisasiNotaMaterial(),
-      fetchRevitalisasiNotaMasuk(),
-      fetchRevitalisasiMaterialDatang(),
-      fetchRevitalisasiProgres(),
+      fetchRevitalisasiSmpTukang(),
+      fetchRevitalisasiSmpAbsen(),
+      fetchRevitalisasiSmpNotaMaterial(),
+      fetchRevitalisasiSmpNotaMasuk(),
+      fetchRevitalisasiSmpMaterialDatang(),
+      fetchRevitalisasiSmpProgres(),
     ])
 
     const tukangList = Array.isArray(tukangRes?.data) ? tukangRes.data : []

@@ -306,6 +306,49 @@ const routes = [
         component: () => import('@/views/revitalisasi/RevitalisasiProgresPembangunan.vue'),
         meta: { roles: ['super_admin', 'admin'], title: 'Progres Pembangunan' },
       },
+      // ---- Revitalisasi SMP ----
+      {
+        path: 'revitalisasi-smp',
+        name: 'revitalisasi-smp-dashboard',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiDashboard.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Revitalisasi SMP' },
+      },
+      {
+        path: 'revitalisasi-smp/tukang',
+        name: 'revitalisasi-smp-tukang',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiTukangList.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Data Tukang SMP' },
+      },
+      {
+        path: 'revitalisasi-smp/absen-tukang',
+        name: 'revitalisasi-smp-absen-tukang',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiAbsenTukang.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Absen Tukang SMP' },
+      },
+      {
+        path: 'revitalisasi-smp/nota-material',
+        name: 'revitalisasi-smp-nota-material',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiNotaMaterial.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Nota Material SMP' },
+      },
+      {
+        path: 'revitalisasi-smp/nota-masuk',
+        name: 'revitalisasi-smp-nota-masuk',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiNotaMasuk.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Nota Masuk SMP' },
+      },
+      {
+        path: 'revitalisasi-smp/material-datang',
+        name: 'revitalisasi-smp-material-datang',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiMaterialDatang.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Material Datang SMP' },
+      },
+      {
+        path: 'revitalisasi-smp/progres-pembangunan',
+        name: 'revitalisasi-smp-progres-pembangunan',
+        component: () => import('@/views/revitalisasi-smp/RevitalisasiProgresPembangunan.vue'),
+        meta: { roles: ['super_admin', 'admin'], title: 'Progres Pembangunan SMP' },
+      },
       // ---- Prestasi ----
       {
         path: 'prestasi',

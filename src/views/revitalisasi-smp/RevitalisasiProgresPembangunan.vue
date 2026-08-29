@@ -2,66 +2,61 @@
   <div class="space-y-5">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
-        <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Revitalisasi SMA</p>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">Nota Masuk</h1>
+        <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Revitalisasi SMP</p>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900">Progres Pembangunan</h1>
       </div>
-      <button type="button" class="btn-primary w-full md:w-auto" @click="openCreateModal">+ Tambah Nota</button>
+      <button type="button" class="btn-primary w-full md:w-auto" @click="openCreateModal">+ Catat Progres</button>
     </div>
 
     <div class="glass-card p-4 md:p-5 rounded-2xl">
       <div class="flex flex-col md:flex-row gap-3">
         <div class="relative flex-1">
-          <input v-model="search" type="text" class="input-field !pl-10" placeholder="Cari nomor nota, sumber, keterangan..." />
+          <input v-model="search" type="text" class="input-field !pl-10" placeholder="Cari area atau catatan..." />
         </div>
       </div>
     </div>
 
-    <div v-if="loading" class="glass-card p-6 rounded-2xl text-sm text-gray-500">Memuat nota masuk...</div>
+    <div v-if="loading" class="glass-card p-6 rounded-2xl text-sm text-gray-500">Memuat progres pembangunan...</div>
 
     <div v-else class="grid grid-cols-1 gap-4">
       <div v-for="item in filteredItems" :key="item.id" class="glass-card p-4 rounded-2xl">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-gray-400">{{ item.nomor_nota }}</p>
-            <h3 class="text-lg font-bold text-gray-900">{{ item.sumber }}</h3>
+            <p class="text-xs uppercase tracking-[0.2em] text-gray-400">{{ formatDate(item.tanggal) }}</p>
+            <h3 class="text-lg font-bold text-gray-900">{{ item.nama_area }}</h3>
           </div>
           <div class="flex gap-2">
-            <button type="button" class="btn-secondary !py-2 !px-3 !text-xs" @click="openDetailModal(item)">Detail</button>
+            <span :class="['px-2.5 py-1 rounded-full text-[11px] font-semibold', statusClass(progressStatus(item.persentase))]">{{ progressStatus(item.persentase) }}</span>
             <button type="button" class="btn-secondary !py-2 !px-3 !text-xs" @click="openEditModal(item)">Edit</button>
             <button type="button" class="btn-danger !py-2 !px-3 !text-xs" @click="deleteItem(item.id)">Hapus</button>
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
-          <div class="rounded-xl bg-gray-50 p-2.5">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Tanggal</p>
-            <p class="mt-1 font-medium">{{ formatDate(item.tanggal) }}</p>
+        <div class="mt-4 space-y-2">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-600">Progress</span>
+            <span class="font-bold text-primary">{{ item.persentase }}%</span>
           </div>
-          <div class="rounded-xl bg-gray-50 p-2.5">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Jumlah</p>
-            <p class="mt-1 font-medium">{{ formatNumber(item.jumlah) }}</p>
-          </div>
-          <div class="rounded-xl bg-gray-50 p-2.5">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Dokumentasi</p>
-            <button v-if="item.photo_path" type="button" @click="openPhotoModal(item.photo_path)" class="mt-1 font-medium text-primary underline">Lihat foto</button>
-            <span v-else class="mt-1 font-medium text-gray-500">Belum ada</span>
+          <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div class="h-full rounded-full bg-gradient-to-r from-primary to-emerald-500" :style="{ width: item.persentase + '%' }"></div>
           </div>
         </div>
 
-        <p v-if="item.keterangan" class="mt-4 text-sm text-gray-600">{{ item.keterangan }}</p>
+        <p v-if="item.catatan" class="mt-4 text-sm text-gray-600">{{ item.catatan }}</p>
+        <button v-if="item.photo_path" type="button" @click="openPhotoModal(item.photo_path)" class="mt-4 inline-flex text-primary text-sm font-semibold underline">Lihat dokumentasi foto</button>
       </div>
     </div>
 
     <div v-if="!filteredItems.length && !loading" class="glass-card p-8 rounded-2xl text-center text-gray-500">
-      Belum ada nota masuk.
+      Belum ada catatan progres pembangunan.
     </div>
 
     <div v-if="showModal" class="fixed inset-0 z-40 overflow-y-auto bg-black/50 flex items-end md:items-center justify-center p-3 md:p-6">
       <div class="w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain bg-white rounded-2xl shadow-2xl p-4 md:p-6 animate-fade-in">
         <div class="flex items-center justify-between mb-5">
           <div>
-            <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Nota</p>
-            <h2 class="text-xl font-extrabold text-gray-900">{{ editingId ? 'Edit Nota' : 'Tambah Nota' }}</h2>
+            <p class="text-xs uppercase tracking-[0.2em] text-primary font-bold">Progres</p>
+            <h2 class="text-xl font-extrabold text-gray-900">{{ editingId ? 'Edit Progres' : 'Catat Progres' }}</h2>
           </div>
           <button type="button" @click="showModal = false" class="p-2 rounded-xl hover:bg-gray-100">✕</button>
         </div>
@@ -72,26 +67,27 @@
             <input v-model="form.tanggal" type="date" class="input-field" />
           </div>
           <div>
-            <label class="label-field">Nomor nota</label>
-            <input v-model="form.nomor_nota" type="text" class="input-field" placeholder="NM-001" />
+            <label class="label-field">Area</label>
+            <input v-model="form.nama_area" type="text" class="input-field" placeholder="Gedung Utama" />
           </div>
           <div class="md:col-span-2">
-            <label class="label-field">Sumber</label>
-            <input v-model="form.sumber" type="text" class="input-field" placeholder="Nama donor / instansi / pihak" />
+            <label class="label-field">Persentase progress</label>
+            <input v-model.number="form.persentase" type="range" min="0" max="100" class="w-full" />
+            <div class="mt-2 text-sm font-semibold text-primary">{{ form.persentase }}%</div>
           </div>
-          <div>
-            <label class="label-field">Jumlah</label>
-            <input :value="formatNumberDisplay(form.jumlah)" @input="handleNumberInput('jumlah', $event)" type="text" inputmode="numeric" class="input-field" placeholder="0" />
+          <div class="md:col-span-2">
+            <label class="label-field">Catatan</label>
+            <textarea v-model="form.catatan" rows="3" class="input-field" placeholder="Deskripsi kegiatan / kendala / update"></textarea>
           </div>
-          <div>
-            <label class="label-field">Foto bukti</label>
+          <div class="md:col-span-2">
+            <label class="label-field">Foto dokumentasi</label>
             <div class="upload-card">
               <label class="upload-dropzone" :class="{ 'has-file': selectedFiles.length || selectedFileName }">
                 <input type="file" accept="image/*" multiple @change="onPhotoSelected" />
                 <div class="upload-content">
                   <span class="upload-icon">IMG</span>
                   <div class="upload-copy">
-                    <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : 'Pilih foto bukti' }}</span>
+                    <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : 'Pilih foto dokumentasi' }}</span>
                     <span class="upload-subtitle">JPG, PNG • bisa tambah lebih dari satu</span>
                   </div>
                 </div>
@@ -103,16 +99,12 @@
                 </div>
               </div>
               <div v-if="previewUrl" class="upload-preview">
-                <img :src="previewUrl" alt="Foto bukti" />
+                <img :src="previewUrl" alt="Foto dokumentasi" />
               </div>
               <div v-else-if="existingPhotoPreviewUrl" class="upload-preview">
                 <img :src="existingPhotoPreviewUrl" alt="Foto lama" />
               </div>
             </div>
-          </div>
-          <div class="md:col-span-2">
-            <label class="label-field">Keterangan</label>
-            <textarea v-model="form.keterangan" rows="3" class="input-field" placeholder="Catatan tambahan"></textarea>
           </div>
         </div>
 
@@ -137,45 +129,18 @@
         </div>
       </div>
     </div>
-
-    <div v-if="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div class="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl">
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-xl font-extrabold text-gray-900">Detail Nota Masuk</h3>
-          <button type="button" @click="closeDetailModal" class="rounded-xl p-2 hover:bg-gray-100">✕</button>
-        </div>
-        <div v-if="detailItem" class="space-y-4 text-sm text-gray-700">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Nomor Nota</p><p class="mt-1 font-medium text-gray-900">{{ detailItem.nomor_nota || '-' }}</p></div>
-            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Tanggal</p><p class="mt-1 font-medium text-gray-900">{{ formatDate(detailItem.tanggal) }}</p></div>
-            <div class="rounded-xl bg-gray-50 p-3 md:col-span-2"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Sumber</p><p class="mt-1 font-medium text-gray-900">{{ detailItem.sumber || '-' }}</p></div>
-            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Jumlah</p><p class="mt-1 font-medium text-gray-900">{{ formatNumber(detailItem.jumlah) }}</p></div>
-            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Dokumentasi</p><p class="mt-1 font-medium text-gray-900">{{ detailPhotos.length ? `${detailPhotos.length} foto` : 'Tidak ada' }}</p></div>
-          </div>
-          <div v-if="detailItem.keterangan" class="rounded-xl border border-gray-200 p-3">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Keterangan</p>
-            <p class="mt-2 whitespace-pre-line text-gray-700">{{ detailItem.keterangan }}</p>
-          </div>
-          <div v-if="detailPhotos.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div v-for="(photo, index) in detailPhotos" :key="photo + index" class="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-              <img :src="imageUrl(photo)" class="h-48 w-full object-cover" alt="Detail foto" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import {
-  createRevitalisasiNotaMasuk,
-  deleteRevitalisasiNotaMasuk,
-  fetchRevitalisasiNotaMasuk,
-  updateRevitalisasiNotaMasuk,
-} from '@/api/revitalisasi'
 import { compressImageFile } from '@/utils/imageCompression'
+import {
+  createRevitalisasiSmpProgres,
+  deleteRevitalisasiSmpProgres,
+  fetchRevitalisasiSmpProgres,
+  updateRevitalisasiSmpProgres,
+} from '@/api/revitalisasiSmp'
 
 const search = ref('')
 const loading = ref(false)
@@ -189,22 +154,19 @@ const selectedFiles = ref([])
 const showImageModal = ref(false)
 const activeImageUrl = ref('')
 const existingPhotoPreviewUrl = ref('')
-const showDetailModal = ref(false)
-const detailItem = ref(null)
 
 const form = ref({
   tanggal: new Date().toISOString().slice(0, 10),
-  nomor_nota: '',
-  sumber: '',
-  jumlah: 0,
-  keterangan: '',
+  nama_area: '',
+  persentase: 0,
+  catatan: '',
 })
 
 const filteredItems = computed(() => {
   const query = search.value.trim().toLowerCase()
   if (!query) return list.value
   return list.value.filter((item) => {
-    const text = [item.nomor_nota, item.sumber, item.keterangan].join(' ').toLowerCase()
+    const text = [item.nama_area, item.catatan].join(' ').toLowerCase()
     return text.includes(query)
   })
 })
@@ -214,37 +176,6 @@ function formatDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function formatRupiah(value) {
-  const number = Number(value || 0)
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
-}
-
-function formatNumber(value) {
-  const number = Number(value || 0)
-  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number)
-}
-
-function formatNumberDisplay(value) {
-  const number = Number(String(value || 0).replace(/\D/g, '')) || 0
-  if (!number) return ''
-  return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number)
-}
-
-function handleNumberInput(field, event) {
-  const digits = String(event.target.value).replace(/\D/g, '')
-  form.value[field] = digits ? Number(digits) : 0
-}
-
-function handleCurrencyInput(field, event) {
-  const digits = String(event.target.value).replace(/\D/g, '')
-  form.value[field] = digits ? Number(digits) : 0
-}
-
-function splitPhotoPaths(value) {
-  if (!value) return []
-  return String(value).split(';').map((part) => part.trim()).filter(Boolean)
 }
 
 function imageUrl(path) {
@@ -263,29 +194,29 @@ function closeImageModal() {
   activeImageUrl.value = ''
 }
 
-function openDetailModal(item) {
-  detailItem.value = item
-  showDetailModal.value = true
+function progressStatus(percent) {
+  if (percent >= 100) return 'selesai'
+  if (percent >= 40) return 'proses'
+  return 'belum mulai'
 }
 
-function closeDetailModal() {
-  showDetailModal.value = false
-  detailItem.value = null
+function statusClass(status) {
+  const map = {
+    proses: 'bg-emerald-50 text-emerald-700',
+    'belum mulai': 'bg-amber-50 text-amber-700',
+    selesai: 'bg-sky-50 text-sky-700',
+  }
+  return map[status] || 'bg-gray-100 text-gray-700'
 }
-
-const detailPhotos = computed(() => {
-  if (!detailItem.value) return []
-  return splitPhotoPaths(detailItem.value.photo_path)
-})
 
 async function loadData() {
   loading.value = true
   try {
-    const response = await fetchRevitalisasiNotaMasuk({ search: search.value })
+    const response = await fetchRevitalisasiSmpProgres({ search: search.value })
     list.value = Array.isArray(response?.data) ? response.data : []
   } catch (error) {
     console.error(error)
-    alert('Gagal memuat nota masuk.')
+    alert('Gagal memuat progres pembangunan.')
   } finally {
     loading.value = false
   }
@@ -301,10 +232,9 @@ function openCreateModal() {
   existingPhotoPreviewUrl.value = ''
   form.value = {
     tanggal: new Date().toISOString().slice(0, 10),
-    nomor_nota: '',
-    sumber: '',
-    jumlah: 0,
-    keterangan: '',
+    nama_area: '',
+    persentase: 0,
+    catatan: '',
   }
   showModal.value = true
 }
@@ -317,10 +247,9 @@ function openEditModal(item) {
   existingPhotoPreviewUrl.value = item.photo_path ? imageUrl(item.photo_path) : ''
   form.value = {
     tanggal: item.tanggal ? new Date(item.tanggal).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-    nomor_nota: item.nomor_nota || '',
-    sumber: item.sumber || '',
-    jumlah: Number(item.jumlah || 0),
-    keterangan: item.keterangan || '',
+    nama_area: item.nama_area || '',
+    persentase: Number(item.persentase || 0),
+    catatan: item.catatan || '',
   }
   showModal.value = true
 }
@@ -353,42 +282,41 @@ async function onPhotoSelected(event) {
 }
 
 async function saveItem() {
-  if (!form.value.tanggal || !form.value.nomor_nota || !form.value.sumber) {
-    alert('Tanggal, nomor nota, dan sumber wajib diisi.')
+  if (!form.value.tanggal || !form.value.nama_area) {
+    alert('Tanggal dan area wajib diisi.')
     return
   }
 
   try {
     const payload = new FormData()
     payload.append('tanggal', form.value.tanggal)
-    payload.append('nomor_nota', form.value.nomor_nota)
-    payload.append('sumber', form.value.sumber)
-    payload.append('jumlah', String(form.value.jumlah || 0))
-    payload.append('keterangan', form.value.keterangan || '')
+    payload.append('nama_area', form.value.nama_area)
+    payload.append('persentase', String(form.value.persentase || 0))
+    payload.append('catatan', form.value.catatan || '')
     selectedFiles.value.forEach((file) => {
       payload.append('photo', file)
     })
 
     if (editingId.value) {
-      await updateRevitalisasiNotaMasuk(editingId.value, payload)
+      await updateRevitalisasiSmpProgres(editingId.value, payload)
     } else {
-      await createRevitalisasiNotaMasuk(payload)
+      await createRevitalisasiSmpProgres(payload)
     }
     showModal.value = false
     await loadData()
   } catch (error) {
     console.error(error)
-    alert('Gagal menyimpan nota masuk.')
+    alert('Gagal menyimpan progres pembangunan.')
   }
 }
 
 async function deleteItem(id) {
   try {
-    await deleteRevitalisasiNotaMasuk(id)
+    await deleteRevitalisasiSmpProgres(id)
     await loadData()
   } catch (error) {
     console.error(error)
-    alert('Gagal menghapus nota masuk.')
+    alert('Gagal menghapus progres pembangunan.')
   }
 }
 </script>
