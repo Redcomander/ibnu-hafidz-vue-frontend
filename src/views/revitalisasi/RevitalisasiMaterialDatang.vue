@@ -278,6 +278,12 @@ function formatNumberDisplay(value) {
   return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number)
 }
 
+function formatRupiahDisplay(value) {
+  const number = Number(String(value || 0).replace(/\D/g, '')) || 0
+  if (!number) return ''
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
+}
+
 function handleNumberInput(field, event) {
   const digits = String(event.target.value).replace(/\D/g, '')
   form.value[field] = digits ? Number(digits) : 0
