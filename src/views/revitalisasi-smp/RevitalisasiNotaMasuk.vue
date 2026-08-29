@@ -38,8 +38,8 @@
             <p class="mt-1 font-medium">{{ formatDate(item.tanggal) }}</p>
           </div>
           <div class="rounded-xl bg-gray-50 p-2.5">
-            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Jumlah</p>
-            <p class="mt-1 font-medium">{{ formatNumber(item.jumlah) }}</p>
+            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Total Nilai</p>
+            <p class="mt-1 font-medium">{{ formatRupiah(item.jumlah) }}</p>
           </div>
           <div class="rounded-xl bg-gray-50 p-2.5">
             <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Dokumentasi</p>
@@ -80,8 +80,8 @@
             <input v-model="form.sumber" type="text" class="input-field" placeholder="Nama donor / instansi / pihak" />
           </div>
           <div>
-            <label class="label-field">Jumlah</label>
-            <input :value="formatNumberDisplay(form.jumlah)" @input="handleNumberInput('jumlah', $event)" type="text" inputmode="numeric" class="input-field" placeholder="0" />
+            <label class="label-field">Total Nilai</label>
+            <input :value="formatRupiahDisplay(form.jumlah)" @input="handleCurrencyInput('jumlah', $event)" type="text" inputmode="numeric" class="input-field" placeholder="Rp 0" />
           </div>
           <div>
             <label class="label-field">Foto bukti</label>
@@ -149,7 +149,7 @@
             <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Nomor Nota</p><p class="mt-1 font-medium text-gray-900">{{ detailItem.nomor_nota || '-' }}</p></div>
             <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Tanggal</p><p class="mt-1 font-medium text-gray-900">{{ formatDate(detailItem.tanggal) }}</p></div>
             <div class="rounded-xl bg-gray-50 p-3 md:col-span-2"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Sumber</p><p class="mt-1 font-medium text-gray-900">{{ detailItem.sumber || '-' }}</p></div>
-            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Jumlah</p><p class="mt-1 font-medium text-gray-900">{{ formatNumber(detailItem.jumlah) }}</p></div>
+            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Total Nilai</p><p class="mt-1 font-medium text-gray-900">{{ formatRupiah(detailItem.jumlah) }}</p></div>
             <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Dokumentasi</p><p class="mt-1 font-medium text-gray-900">{{ detailPhotos.length ? `${detailPhotos.length} foto` : 'Tidak ada' }}</p></div>
           </div>
           <div v-if="detailItem.keterangan" class="rounded-xl border border-gray-200 p-3">
@@ -230,6 +230,12 @@ function formatNumberDisplay(value) {
   const number = Number(String(value || 0).replace(/\D/g, '')) || 0
   if (!number) return ''
   return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(number)
+}
+
+function formatRupiahDisplay(value) {
+  const number = Number(String(value || 0).replace(/\D/g, '')) || 0
+  if (!number) return ''
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
 }
 
 function handleNumberInput(field, event) {
