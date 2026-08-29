@@ -131,21 +131,27 @@
         </div>
 
         <div class="space-y-3">
-          <div v-for="item in priorityItems" :key="item.id" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/80">
-            <div class="flex items-start gap-3">
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <input v-model="item.judul" class="input-field !py-2 !text-sm" />
-                  <select v-model="item.tingkat" class="input-field !py-2 !text-sm w-28">
-                    <option value="high">Tinggi</option>
-                    <option value="medium">Sedang</option>
-                    <option value="low">Rendah</option>
-                  </select>
+          <div v-if="priorityItems.length">
+            <div v-for="item in priorityItems" :key="item.id" class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/80">
+              <div class="flex items-start gap-3">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <input v-model="item.judul" class="input-field !py-2 !text-sm" />
+                    <select v-model="item.tingkat" class="input-field !py-2 !text-sm w-28">
+                      <option value="high">Tinggi</option>
+                      <option value="medium">Sedang</option>
+                      <option value="low">Rendah</option>
+                    </select>
+                  </div>
+                  <textarea v-model="item.deskripsi" rows="2" class="input-field mt-2 !py-2 !text-sm" placeholder="Keterangan prioritas..." />
                 </div>
-                <textarea v-model="item.deskripsi" rows="2" class="input-field mt-2 !py-2 !text-sm" placeholder="Keterangan prioritas..." />
+                <button type="button" class="btn-danger !py-2 !px-3 !text-xs" @click="deletePriority(item.id)">Hapus</button>
               </div>
-              <button type="button" class="btn-danger !py-2 !px-3 !text-xs" @click="deletePriority(item.id)">Hapus</button>
             </div>
+          </div>
+          <div v-else class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center dark:border-slate-700 dark:bg-slate-800/60">
+            <p class="text-sm font-semibold text-gray-700 dark:text-slate-200">Belum ada prioritas</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-slate-400">Tambahkan prioritas baru di form di bawah ini.</p>
           </div>
 
           <div class="rounded-2xl border border-dashed border-slate-300 p-4 dark:border-slate-700">
@@ -314,6 +320,12 @@ async function savePriorityChanges() {
 
 async function deletePriority(id) {
   if (!id) return
+
+  if (String(id).startsWith('auto-')) {
+    priorityItems.value = priorityItems.value.filter((item) => String(item.id) !== String(id))
+    return
+  }
+
   try {
     await deleteRevitalisasiPrioritas(id)
     await loadPrioritas()
@@ -386,25 +398,6 @@ async function loadDashboard() {
     ]
 
     summaryStatus.value = avgProgress >= 70 ? 'On track' : avgProgress >= 45 ? 'Cautious' : 'Needs attention'
-
-    if (!priorityItems.value.length) {
-      priorityItems.value = [
-        {
-          id: 'auto-watch',
-          judul: lowProgressAreas ? 'Update area kritis' : 'Area dalam kondisi stabil',
-          deskripsi: lowProgressAreas ? `${lowProgressAreas} area masih di bawah 40% progres.` : 'Semua area utama sudah dalam kondisi stabil.',
-          tingkat: lowProgressAreas ? 'high' : 'low',
-          is_active: true,
-        },
-        {
-          id: 'auto-material',
-          judul: 'Dokumen material',
-          deskripsi: materials.length ? 'Ada catatan material yang perlu ditinjau untuk pengeluaran dan dokumen.' : 'Belum ada material masuk terbaru.',
-          tingkat: materials.length ? 'medium' : 'low',
-          is_active: true,
-        },
-      ]
-    }
 
     const timeline = [
       ...absensi.map((item) => ({
