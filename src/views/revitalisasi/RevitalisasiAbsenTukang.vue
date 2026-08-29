@@ -10,7 +10,7 @@
       </button>
     </div>
 
-    <div class="glass-card p-4 md:p-5 rounded-2xl">
+    <form class="glass-card p-4 md:p-5 rounded-2xl" @submit.prevent="saveAttendance">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="label-field">Tanggal</label>
@@ -42,16 +42,22 @@
         <div>
           <label class="label-field">Foto bukti</label>
           <div class="upload-card">
-            <label class="upload-dropzone" :class="{ 'has-file': selectedFileName }">
-              <input type="file" accept="image/*" @change="onPhotoSelected" />
+            <label class="upload-dropzone" :class="{ 'has-file': selectedFiles.length || selectedFileName }">
+              <input type="file" accept="image/*" multiple @change="onPhotoSelected" />
               <div class="upload-content">
                 <span class="upload-icon">IMG</span>
                 <div class="upload-copy">
-                  <span class="upload-title">{{ selectedFileName || 'Pilih foto dokumentasi' }}</span>
-                  <span class="upload-subtitle">JPG, PNG • otomatis dikompresi</span>
+                  <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : 'Pilih foto dokumentasi' }}</span>
+                  <span class="upload-subtitle">JPG, PNG • bisa tambah lebih dari satu</span>
                 </div>
               </div>
             </label>
+            <div v-if="selectedFiles.length" class="space-y-2">
+              <div v-for="(file, index) in selectedFiles" :key="index" class="flex items-center justify-between rounded-lg border border-slate-200 bg-white/60 px-2 py-1 text-xs text-slate-700">
+                <span class="truncate">{{ file.name }}</span>
+                <button type="button" class="text-red-500 font-semibold" @click="removeSelectedFile(index)">Hapus</button>
+              </div>
+            </div>
             <div v-if="previewUrl" class="upload-preview">
               <img :src="previewUrl" alt="Foto bukti" />
             </div>
@@ -61,9 +67,9 @@
       </div>
 
       <div class="mt-5 flex justify-end">
-        <button type="button" class="btn-primary" @click="saveAttendance">Simpan Absen</button>
+        <button type="submit" class="btn-primary">Simpan Absen</button>
       </div>
-    </div>
+    </form>
 
     <div class="glass-card p-4 md:p-5 rounded-2xl">
       <div class="flex items-center justify-between mb-4">
@@ -144,6 +150,7 @@ const form = ref({
 const previewUrl = ref('')
 const compressedPhoto = ref(null)
 const selectedFileName = ref('')
+const selectedFiles = ref([])
 const showImageModal = ref(false)
 const activeImageUrl = ref('')
 
@@ -208,27 +215,24 @@ onMounted(async () => {
   await loadRecords()
 })
 
-async function onPhotoSelected(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
+async function saveAttendance() {
+  const tukangId = Number(form.value.tukang_id)
+  if (!form.value.date || !tukangId || !form.value.status) {
+    alert('Tanggal, nama tukang, dan status wajib diisi.')
+    return
+  }
+
+  const payload = new FormData()
+  payload.append('tanggal', form.value.date)
+  payload.append('tukang_id', String(tukangId))
+  payload.append('status', form.value.status)
+  payload.append('note', form.value.note || '')
+
+  selectedFiles.value.forEach((file) => {
+    payload.append('photo', file)
+  })
 
   try {
-    const compressed = await compressImageFile(file, {
-      maxWidth: 1280,
-      maxHeight: 1280,
-      quality: 0.8,
-      maxSizeMB: 1.5,
-    })
-
-    compressedPhoto.value = compressed
-    previewUrl.value = URL.createObjectURL(compressed)
-    selectedFileName.value = file.name
-    payload.append('tanggal', form.value.date)
-    payload.append('tukang_id', String(form.value.tukang_id))
-    payload.append('status', form.value.status)
-    payload.append('note', form.value.note || '')
-    if (compressedPhoto.value) payload.append('photo', compressedPhoto.value)
-
     await createRevitalisasiAbsen(payload)
     form.value = {
       date: new Date().toISOString().slice(0, 10),
@@ -239,11 +243,52 @@ async function onPhotoSelected(event) {
     previewUrl.value = ''
     compressedPhoto.value = null
     selectedFileName.value = ''
+    selectedFiles.value = []
     await loadRecords()
   } catch (error) {
     console.error(error)
     alert('Gagal menyimpan absensi tukang.')
   }
+}
+
+function removeSelectedFile(index) {
+  selectedFiles.value.splice(index, 1)
+  if (!selectedFiles.value.length) {
+    previewUrl.value = ''
+    selectedFileName.value = ''
+    compressedPhoto.value = null
+  }
+}
+
+async function onPhotoSelected(event) {
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  const processed = []
+  for (const file of files) {
+    try {
+      const compressed = await compressImageFile(file, {
+        maxWidth: 1280,
+        maxHeight: 1280,
+        quality: 0.8,
+        maxSizeMB: 1.5,
+      })
+      processed.push(compressed)
+    } catch (error) {
+      console.error(error)
+      alert(`Gagal mengompresi foto ${file.name}.`)
+    }
+  }
+
+  if (!processed.length) return
+
+  selectedFiles.value = [...selectedFiles.value, ...processed]
+  selectedFileName.value = selectedFiles.value.length ? `${selectedFiles.value.length} file siap dikirim` : ''
+  const firstFile = processed[0]
+  if (firstFile) {
+    previewUrl.value = URL.createObjectURL(firstFile)
+  }
+  event.target.value = ''
 }
 
 async function deleteRecord(id) {

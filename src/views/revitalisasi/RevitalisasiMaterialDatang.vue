@@ -103,16 +103,22 @@
           <div class="md:col-span-2">
             <label class="label-field">Foto dokumentasi</label>
             <div class="upload-card">
-              <label class="upload-dropzone" :class="{ 'has-file': selectedFileName }">
-                <input type="file" accept="image/*" @change="onPhotoSelected" />
+              <label class="upload-dropzone" :class="{ 'has-file': selectedFiles.length || selectedFileName }">
+                <input type="file" accept="image/*" multiple @change="onPhotoSelected" />
                 <div class="upload-content">
                   <span class="upload-icon">IMG</span>
                   <div class="upload-copy">
-                    <span class="upload-title">{{ selectedFileName || 'Pilih foto dokumentasi' }}</span>
-                    <span class="upload-subtitle">JPG, PNG • otomatis dikompresi</span>
+                    <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : 'Pilih foto dokumentasi' }}</span>
+                    <span class="upload-subtitle">JPG, PNG • bisa tambah lebih dari satu</span>
                   </div>
                 </div>
               </label>
+              <div v-if="selectedFiles.length" class="space-y-2">
+                <div v-for="(file, index) in selectedFiles" :key="index" class="flex items-center justify-between rounded-lg border border-slate-200 bg-white/60 px-2 py-1 text-xs text-slate-700">
+                  <span class="truncate">{{ file.name }}</span>
+                  <button type="button" class="text-red-500 font-semibold" @click="removeSelectedFile(index)">Hapus</button>
+                </div>
+              </div>
               <div v-if="previewUrl" class="upload-preview">
                 <img :src="previewUrl" alt="Foto dokumentasi" />
               </div>
@@ -124,16 +130,22 @@
           <div class="md:col-span-2">
             <label class="label-field">Nota pengeluaran</label>
             <div class="upload-card">
-              <label class="upload-dropzone" :class="{ 'has-file': selectedNotaFileName }">
-                <input type="file" accept="image/*" @change="onNotaPengeluaranSelected" />
+              <label class="upload-dropzone" :class="{ 'has-file': selectedNotaFiles.length || selectedNotaFileName }">
+                <input type="file" accept="image/*" multiple @change="onNotaPengeluaranSelected" />
                 <div class="upload-content">
                   <span class="upload-icon">PDF</span>
                   <div class="upload-copy">
-                    <span class="upload-title">{{ selectedNotaFileName || 'Pilih foto nota pengeluaran' }}</span>
-                    <span class="upload-subtitle">Foto nota • otomatis dikompresi</span>
+                    <span class="upload-title">{{ selectedNotaFiles.length ? `${selectedNotaFiles.length} nota dipilih` : 'Pilih foto nota pengeluaran' }}</span>
+                    <span class="upload-subtitle">Foto nota • bisa tambah lebih dari satu</span>
                   </div>
                 </div>
               </label>
+              <div v-if="selectedNotaFiles.length" class="space-y-2">
+                <div v-for="(file, index) in selectedNotaFiles" :key="index" class="flex items-center justify-between rounded-lg border border-slate-200 bg-white/60 px-2 py-1 text-xs text-slate-700">
+                  <span class="truncate">{{ file.name }}</span>
+                  <button type="button" class="text-red-500 font-semibold" @click="removeSelectedNotaFile(index)">Hapus</button>
+                </div>
+              </div>
               <div v-if="notaPreviewUrl" class="upload-preview">
                 <img :src="notaPreviewUrl" alt="Nota pengeluaran" />
               </div>
@@ -185,6 +197,8 @@ const currentNotaPengeluaran = ref(null)
 const previewUrl = ref('')
 const notaPreviewUrl = ref('')
 const selectedFileName = ref('')
+const selectedFiles = ref([])
+const selectedNotaFiles = ref([])
 const selectedNotaFileName = ref('')
 const showImageModal = ref(false)
 const activeImageUrl = ref('')
@@ -292,22 +306,58 @@ function openEditModal(item) {
   showModal.value = true
 }
 
+function removeSelectedFile(index) {
+  selectedFiles.value.splice(index, 1)
+  if (!selectedFiles.value.length) {
+    previewUrl.value = ''
+    selectedFileName.value = ''
+    currentPhoto.value = null
+  }
+}
+
+function removeSelectedNotaFile(index) {
+  selectedNotaFiles.value.splice(index, 1)
+  if (!selectedNotaFiles.value.length) {
+    notaPreviewUrl.value = ''
+    selectedNotaFileName.value = ''
+    currentNotaPengeluaran.value = null
+  }
+}
+
 async function onPhotoSelected(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8, maxSizeMB: 1.2 })
-  currentPhoto.value = compressed
-  previewUrl.value = URL.createObjectURL(compressed)
-  selectedFileName.value = file.name
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  const processed = []
+  for (const file of files) {
+    const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8, maxSizeMB: 1.2 })
+    processed.push(compressed)
+  }
+
+  selectedFiles.value = [...selectedFiles.value, ...processed]
+  selectedFileName.value = selectedFiles.value.length ? `${selectedFiles.value.length} file siap dikirim` : ''
+  if (processed[0]) {
+    previewUrl.value = URL.createObjectURL(processed[0])
+  }
+  event.target.value = ''
 }
 
 async function onNotaPengeluaranSelected(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8, maxSizeMB: 1.2 })
-  currentNotaPengeluaran.value = compressed
-  notaPreviewUrl.value = URL.createObjectURL(compressed)
-  selectedNotaFileName.value = file.name
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  const processed = []
+  for (const file of files) {
+    const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8, maxSizeMB: 1.2 })
+    processed.push(compressed)
+  }
+
+  selectedNotaFiles.value = [...selectedNotaFiles.value, ...processed]
+  selectedNotaFileName.value = selectedNotaFiles.value.length ? `${selectedNotaFiles.value.length} file siap dikirim` : ''
+  if (processed[0]) {
+    notaPreviewUrl.value = URL.createObjectURL(processed[0])
+  }
+  event.target.value = ''
 }
 
 async function saveItem() {
@@ -326,8 +376,12 @@ async function saveItem() {
     payload.append('catatan', form.value.catatan || '')
     payload.append('nomor_nota_pengeluaran', form.value.nomor_nota_pengeluaran || '')
     payload.append('total_pengeluaran', String(form.value.total_pengeluaran || 0))
-    if (currentPhoto.value) payload.append('photo', currentPhoto.value)
-    if (currentNotaPengeluaran.value) payload.append('nota_pengeluaran', currentNotaPengeluaran.value)
+    selectedFiles.value.forEach((file) => {
+      payload.append('photo', file)
+    })
+    selectedNotaFiles.value.forEach((file) => {
+      payload.append('nota_pengeluaran', file)
+    })
 
     if (editingId.value) {
       await updateRevitalisasiMaterialDatang(editingId.value, payload)

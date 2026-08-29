@@ -85,16 +85,22 @@
           <div>
             <label class="label-field">Foto nota</label>
             <div class="upload-card">
-              <label class="upload-dropzone" :class="{ 'has-file': selectedFileName }">
-                <input type="file" accept="image/*" @change="onPhotoSelected" />
+              <label class="upload-dropzone" :class="{ 'has-file': selectedFiles.length || selectedFileName }">
+                <input type="file" accept="image/*" multiple @change="onPhotoSelected" />
                 <div class="upload-content">
                   <span class="upload-icon">IMG</span>
                   <div class="upload-copy">
-                    <span class="upload-title">{{ selectedFileName || 'Pilih foto nota' }}</span>
-                    <span class="upload-subtitle">JPG, PNG • otomatis dikompresi</span>
+                    <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : 'Pilih foto nota' }}</span>
+                    <span class="upload-subtitle">JPG, PNG • bisa tambah lebih dari satu</span>
                   </div>
                 </div>
               </label>
+              <div v-if="selectedFiles.length" class="space-y-2">
+                <div v-for="(file, index) in selectedFiles" :key="index" class="flex items-center justify-between rounded-lg border border-slate-200 bg-white/60 px-2 py-1 text-xs text-slate-700">
+                  <span class="truncate">{{ file.name }}</span>
+                  <button type="button" class="text-red-500 font-semibold" @click="removeSelectedFile(index)">Hapus</button>
+                </div>
+              </div>
               <div v-if="previewUrl" class="upload-preview">
                 <img :src="previewUrl" alt="Foto nota" />
               </div>
@@ -151,6 +157,7 @@ const list = ref([])
 const currentPhoto = ref(null)
 const previewUrl = ref('')
 const selectedFileName = ref('')
+const selectedFiles = ref([])
 const showImageModal = ref(false)
 const activeImageUrl = ref('')
 const existingPhotoPreviewUrl = ref('')
@@ -242,13 +249,31 @@ function openEditModal(item) {
   showModal.value = true
 }
 
+function removeSelectedFile(index) {
+  selectedFiles.value.splice(index, 1)
+  if (!selectedFiles.value.length) {
+    previewUrl.value = ''
+    selectedFileName.value = ''
+    currentPhoto.value = null
+  }
+}
+
 async function onPhotoSelected(event) {
-  const file = event.target.files?.[0]
-  if (!file) return
-  const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8, maxSizeMB: 1.2 })
-  currentPhoto.value = compressed
-  previewUrl.value = URL.createObjectURL(compressed)
-  selectedFileName.value = file.name
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  const processed = []
+  for (const file of files) {
+    const compressed = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.8, maxSizeMB: 1.2 })
+    processed.push(compressed)
+  }
+
+  selectedFiles.value = [...selectedFiles.value, ...processed]
+  selectedFileName.value = selectedFiles.value.length ? `${selectedFiles.value.length} file siap dikirim` : ''
+  if (processed[0]) {
+    previewUrl.value = URL.createObjectURL(processed[0])
+  }
+  event.target.value = ''
 }
 
 async function saveItem() {
@@ -264,7 +289,9 @@ async function saveItem() {
     payload.append('supplier', form.value.supplier)
     payload.append('keterangan', form.value.keterangan || '')
     payload.append('total_nilai', String(form.value.total_nilai || 0))
-    if (currentPhoto.value) payload.append('photo', currentPhoto.value)
+    selectedFiles.value.forEach((file) => {
+      payload.append('photo', file)
+    })
 
     if (editingId.value) {
       await updateRevitalisasiNotaMaterial(editingId.value, payload)
