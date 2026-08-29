@@ -26,6 +26,7 @@
             <h3 class="text-lg font-bold text-gray-900">{{ item.supplier }}</h3>
           </div>
           <div class="flex gap-2">
+            <button type="button" class="btn-secondary !py-2 !px-3 !text-xs" @click="openDetailModal(item)">Detail</button>
             <button type="button" class="btn-secondary !py-2 !px-3 !text-xs" @click="openEditModal(item)">Edit</button>
             <button type="button" class="btn-danger !py-2 !px-3 !text-xs" @click="deleteItem(item.id)">Hapus</button>
           </div>
@@ -80,7 +81,7 @@
           </div>
           <div>
             <label class="label-field">Total nilai</label>
-            <input v-model.number="form.total_nilai" type="number" min="0" class="input-field" placeholder="0" />
+            <input :value="formatRupiahDisplay(form.total_nilai)" @input="handleCurrencyInput('total_nilai', $event)" type="text" inputmode="numeric" class="input-field" placeholder="Rp 0" />
           </div>
           <div>
             <label class="label-field">Foto nota</label>
@@ -136,6 +137,33 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showDetailModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div class="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-2xl">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="text-xl font-extrabold text-gray-900">Detail Nota Material</h3>
+          <button type="button" @click="closeDetailModal" class="rounded-xl p-2 hover:bg-gray-100">✕</button>
+        </div>
+        <div v-if="detailItem" class="space-y-4 text-sm text-gray-700">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Nomor Nota</p><p class="mt-1 font-medium text-gray-900">{{ detailItem.nomor_nota || '-' }}</p></div>
+            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Tanggal</p><p class="mt-1 font-medium text-gray-900">{{ formatDate(detailItem.tanggal) }}</p></div>
+            <div class="rounded-xl bg-gray-50 p-3 md:col-span-2"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Supplier</p><p class="mt-1 font-medium text-gray-900">{{ detailItem.supplier || '-' }}</p></div>
+            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Total Nilai</p><p class="mt-1 font-medium text-gray-900">{{ formatRupiah(detailItem.total_nilai) }}</p></div>
+            <div class="rounded-xl bg-gray-50 p-3"><p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Dokumentasi</p><p class="mt-1 font-medium text-gray-900">{{ detailPhotos.length ? `${detailPhotos.length} foto` : 'Tidak ada' }}</p></div>
+          </div>
+          <div v-if="detailItem.keterangan" class="rounded-xl border border-gray-200 p-3">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Keterangan</p>
+            <p class="mt-2 whitespace-pre-line text-gray-700">{{ detailItem.keterangan }}</p>
+          </div>
+          <div v-if="detailPhotos.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div v-for="(photo, index) in detailPhotos" :key="photo + index" class="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+              <img :src="imageUrl(photo)" class="h-48 w-full object-cover" alt="Detail foto" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -161,6 +189,8 @@ const selectedFiles = ref([])
 const showImageModal = ref(false)
 const activeImageUrl = ref('')
 const existingPhotoPreviewUrl = ref('')
+const showDetailModal = ref(false)
+const detailItem = ref(null)
 
 const form = ref({
   tanggal: new Date().toISOString().slice(0, 10),
@@ -186,6 +216,27 @@ function formatDate(value) {
   return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function formatRupiah(value) {
+  const number = Number(value || 0)
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
+}
+
+function formatRupiahDisplay(value) {
+  const number = Number(String(value || 0).replace(/[^\d]/g, ''))
+  if (!number) return ''
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
+}
+
+function handleCurrencyInput(field, event) {
+  const digits = Number(String(event.target.value).replace(/[^\d]/g, '')) || 0
+  form.value[field] = digits
+}
+
+function splitPhotoPaths(value) {
+  if (!value) return []
+  return String(value).split(';').map((part) => part.trim()).filter(Boolean)
+}
+
 function imageUrl(path) {
   if (!path) return ''
   return `${window.location.origin}/uploads/${path}`
@@ -201,6 +252,21 @@ function closeImageModal() {
   showImageModal.value = false
   activeImageUrl.value = ''
 }
+
+function openDetailModal(item) {
+  detailItem.value = item
+  showDetailModal.value = true
+}
+
+function closeDetailModal() {
+  showDetailModal.value = false
+  detailItem.value = null
+}
+
+const detailPhotos = computed(() => {
+  if (!detailItem.value) return []
+  return splitPhotoPaths(detailItem.value.photo_path)
+})
 
 async function loadData() {
   loading.value = true

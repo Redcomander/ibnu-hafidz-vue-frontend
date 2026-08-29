@@ -42,16 +42,22 @@
         <div>
           <label class="label-field">Foto bukti</label>
           <div class="upload-card">
-            <label class="upload-dropzone" :class="{ 'has-file': selectedFiles.length || selectedFileName }">
+            <label class="upload-dropzone" :class="{ 'has-file': selectedFiles.length || selectedFileName || existingPhotoPaths.length }">
               <input type="file" accept="image/*" multiple @change="onPhotoSelected" />
               <div class="upload-content">
                 <span class="upload-icon">IMG</span>
                 <div class="upload-copy">
-                  <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : 'Pilih foto dokumentasi' }}</span>
+                  <span class="upload-title">{{ selectedFiles.length ? `${selectedFiles.length} foto dipilih` : (existingPhotoPaths.length ? `${existingPhotoPaths.length} foto tersimpan` : 'Pilih foto dokumentasi') }}</span>
                   <span class="upload-subtitle">JPG, PNG • bisa tambah lebih dari satu</span>
                 </div>
               </div>
             </label>
+            <div v-if="existingPhotoPaths.length" class="space-y-2">
+              <div v-for="(photoPath, index) in existingPhotoPaths" :key="photoPath" class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white/60 px-2 py-1 text-xs text-slate-700">
+                <button type="button" class="truncate text-left text-primary underline" @click="openPhotoModal(photoPath)">{{ filenameFromPath(photoPath) }}</button>
+                <button type="button" class="text-red-500 font-semibold" @click="removeExistingPhoto(index)">Hapus</button>
+              </div>
+            </div>
             <div v-if="selectedFiles.length" class="space-y-2">
               <div v-for="(file, index) in selectedFiles" :key="index" class="flex items-center justify-between rounded-lg border border-slate-200 bg-white/60 px-2 py-1 text-xs text-slate-700">
                 <span class="truncate">{{ file.name }}</span>
@@ -66,8 +72,9 @@
         </div>
       </div>
 
-      <div class="mt-5 flex justify-end">
-        <button type="submit" class="btn-primary">Simpan Absen</button>
+      <div class="mt-5 flex justify-end gap-3">
+        <button v-if="isEditing" type="button" class="btn-secondary" @click="resetForm">Batal edit</button>
+        <button type="submit" class="btn-primary">{{ isEditing ? 'Update Absen' : 'Simpan Absen' }}</button>
       </div>
     </form>
 
@@ -102,7 +109,10 @@
                 <span v-else class="text-gray-400 text-xs">-</span>
               </td>
               <td class="py-3">
-                <button type="button" class="text-red-600 text-xs font-semibold" @click="deleteRecord(row.id)">Hapus</button>
+                <div class="flex items-center gap-2">
+                  <button type="button" class="text-blue-600 text-xs font-semibold" @click="openEditRecord(row)">Edit</button>
+                  <button type="button" class="text-red-600 text-xs font-semibold" @click="deleteRecord(row.id)">Hapus</button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -135,6 +145,7 @@ import {
   deleteRevitalisasiAbsen,
   fetchRevitalisasiAbsen,
   fetchRevitalisasiTukang,
+  updateRevitalisasiAbsen,
 } from '@/api/revitalisasi'
 
 const tukangList = ref([])
@@ -153,6 +164,10 @@ const selectedFileName = ref('')
 const selectedFiles = ref([])
 const showImageModal = ref(false)
 const activeImageUrl = ref('')
+const isEditing = ref(false)
+const editingId = ref(null)
+const existingPhotoPaths = ref([])
+const removePhotoPaths = ref([])
 
 function formatDate(value) {
   if (!value) return '-'
@@ -179,6 +194,61 @@ function closeImageModal() {
 
 function getTukangName(id) {
   return tukangList.value.find((item) => item.id === Number(id))?.name || '-'
+}
+
+function filenameFromPath(path) {
+  if (!path) return 'Foto'
+  return path.split('/').pop() || 'Foto'
+}
+
+function splitPhotoPaths(value) {
+  if (!value) return []
+  return String(value)
+    .split(';')
+    .map((path) => path.trim())
+    .filter(Boolean)
+}
+
+function resetForm() {
+  isEditing.value = false
+  editingId.value = null
+  existingPhotoPaths.value = []
+  removePhotoPaths.value = []
+  form.value = {
+    date: new Date().toISOString().slice(0, 10),
+    tukang_id: '',
+    status: 'hadir',
+    note: '',
+  }
+  previewUrl.value = ''
+  compressedPhoto.value = null
+  selectedFileName.value = ''
+  selectedFiles.value = []
+}
+
+function openEditRecord(row) {
+  isEditing.value = true
+  editingId.value = row.id
+  existingPhotoPaths.value = splitPhotoPaths(row.photo_path)
+  removePhotoPaths.value = []
+  form.value = {
+    date: row.tanggal ? new Date(row.tanggal).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    tukang_id: row.tukang_id ? String(row.tukang_id) : '',
+    status: row.status || 'hadir',
+    note: row.note || '',
+  }
+  previewUrl.value = ''
+  compressedPhoto.value = null
+  selectedFileName.value = ''
+  selectedFiles.value = []
+}
+
+function removeExistingPhoto(index) {
+  const removed = existingPhotoPaths.value[index]
+  if (removed) {
+    removePhotoPaths.value.push(removed)
+  }
+  existingPhotoPaths.value.splice(index, 1)
 }
 
 function statusClass(status) {
@@ -228,22 +298,21 @@ async function saveAttendance() {
   payload.append('status', form.value.status)
   payload.append('note', form.value.note || '')
 
+  removePhotoPaths.value.forEach((path) => {
+    payload.append('remove_photo', path)
+  })
+
   selectedFiles.value.forEach((file) => {
     payload.append('photo', file)
   })
 
   try {
-    await createRevitalisasiAbsen(payload)
-    form.value = {
-      date: new Date().toISOString().slice(0, 10),
-      tukang_id: '',
-      status: 'hadir',
-      note: '',
+    if (isEditing.value && editingId.value) {
+      await updateRevitalisasiAbsen(editingId.value, payload)
+    } else {
+      await createRevitalisasiAbsen(payload)
     }
-    previewUrl.value = ''
-    compressedPhoto.value = null
-    selectedFileName.value = ''
-    selectedFiles.value = []
+    resetForm()
     await loadRecords()
   } catch (error) {
     console.error(error)
