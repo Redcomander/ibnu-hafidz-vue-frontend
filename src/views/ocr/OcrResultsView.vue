@@ -524,8 +524,12 @@ async function deleteResult(item) {
   const resultId = Number(item?.id || 0)
   if (!resultId) return
 
-  const ok = window.confirm(`Hapus hasil OCR #${resultId}?`)
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus hasil OCR',
+    message: `Hapus hasil OCR #${resultId}?`,
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
 
   deletingByResult[resultId] = true
   mappingErrorByResult[resultId] = ''

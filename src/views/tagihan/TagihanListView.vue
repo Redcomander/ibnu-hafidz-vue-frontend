@@ -189,6 +189,7 @@ import { fetchTemplateList } from '@/api/kontak'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import KontakFilterBar from '@/components/kontak/KontakFilterBar.vue'
+import { confirmDelete } from '@/utils/confirmDialog'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -368,7 +369,12 @@ function toggleSelectAllPage(event) {
 }
 
 async function handleDelete(id) {
-  if (!window.confirm('Hapus tagihan ini?')) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus tagihan',
+    message: 'Hapus tagihan ini?',
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   try {
     await deleteTagihan(id)
     selectedIds.value = selectedIds.value.filter((val) => val !== id)
@@ -381,7 +387,12 @@ async function handleDelete(id) {
 
 async function handleBulkDelete() {
   if (!selectedIds.value.length) return
-  if (!window.confirm(`Hapus ${selectedIds.value.length} tagihan terpilih?`)) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus tagihan terpilih',
+    message: `Hapus ${selectedIds.value.length} tagihan terpilih?`,
+    confirmText: 'Hapus Terpilih',
+  })
+  if (!confirmed) return
   try {
     await bulkDeleteTagihan(selectedIds.value)
     selectedIds.value = []
@@ -395,7 +406,12 @@ async function handleBulkDelete() {
 async function handleDeleteSource() {
   const source = filters.sumber_data
   if (!source) return
-  if (!window.confirm(`Hapus semua tagihan dengan sumber "${source}"?`)) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus sumber tagihan',
+    message: `Hapus semua tagihan dengan sumber "${source}"?`,
+    confirmText: 'Hapus Sumber',
+  })
+  if (!confirmed) return
   try {
     await deleteTagihanSource(source)
     // keep the current source selection until the user intentionally clears it

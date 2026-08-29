@@ -375,7 +375,12 @@ async function handleAddStudents() {
 }
 
 async function removeMember(member) {
-  if (!confirm(`Keluarkan ${member.nama_lengkap} dari grup?`)) return;
+  const confirmed = await confirmDelete({
+    title: 'Keluarkan santri',
+    message: `Keluarkan ${member.nama_lengkap} dari grup?`,
+    confirmText: 'Keluarkan',
+  });
+  if (!confirmed) return;
   try {
     await api.delete(`/absensi-ekstra/groups/${groupId.value}/students/${member.student_id}`);
     toast.success("Santri berhasil dikeluarkan");
@@ -402,7 +407,12 @@ async function handleAddSupervisor() {
 }
 
 async function removeSupervisor(sup) {
-  if (!confirm(`Hapus ${sup.name} dari supervisor?`)) return;
+  const confirmed = await confirmDelete({
+    title: 'Hapus supervisor',
+    message: `Hapus ${sup.name} dari supervisor?`,
+    confirmText: 'Hapus',
+  });
+  if (!confirmed) return;
   try {
     await api.delete(`/absensi-ekstra/groups/${groupId.value}/supervisors/${sup.user_id}`);
     toast.success("Supervisor berhasil dihapus");

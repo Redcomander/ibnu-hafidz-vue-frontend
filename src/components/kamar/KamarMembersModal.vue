@@ -243,7 +243,12 @@ async function addStudent(student) {
 }
 
 async function removeStudent(student) {
-  if (!confirm(`Keluarkan ${student.nama_lengkap} dari kamar ini?`)) return;
+  const confirmed = await confirmDelete({
+    title: 'Keluarkan santri',
+    message: `Keluarkan ${student.nama_lengkap} dari kamar ini?`,
+    confirmText: 'Keluarkan',
+  });
+  if (!confirmed) return;
 
   if (processingId.value) return;
   processingId.value = student.id;

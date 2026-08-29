@@ -141,6 +141,7 @@ import api from '@/api'
 import Modal from '@/components/ui/Modal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { confirmDelete } from '@/utils/confirmDialog'
 
 const authStore = useAuthStore()
 const toast = useToastStore()
@@ -331,7 +332,12 @@ async function saveEdit() {
 }
 
 async function deleteJournal(row) {
-  if (!window.confirm(`Hapus jurnal mengajar ${row.lesson_name} pada ${formatDate(row.tanggal)}?`)) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus jurnal mengajar',
+    message: `Hapus jurnal mengajar ${row.lesson_name} pada ${formatDate(row.tanggal)}?`,
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   try {
     await api.delete(`/attendance/journals/${row.jadwal_id}/${row.tanggal}`)
     selectedRows.value = selectedRows.value.filter(key => key !== row.journal_key)

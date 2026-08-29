@@ -209,6 +209,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { compressImageFile } from '@/utils/imageCompression'
+import { confirmDelete } from '@/utils/confirmDialog'
 import {
   createRevitalisasiSmpMaterialDatang,
   deleteRevitalisasiSmpMaterialDatang,
@@ -480,6 +481,14 @@ async function saveItem() {
 }
 
 async function deleteItem(id) {
+  const confirmed = await confirmDelete({
+    title: 'Hapus material datang?',
+    message: 'Catatan material datang ini akan dihapus. Lanjutkan?',
+    confirmText: 'Hapus',
+  })
+
+  if (!confirmed) return
+
   try {
     await deleteRevitalisasiSmpMaterialDatang(id)
     await loadData()

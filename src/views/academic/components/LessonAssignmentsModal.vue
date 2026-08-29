@@ -196,7 +196,12 @@ const handleAssign = async () => {
 };
 
 const handleUnassign = async (id) => {
-   if (!confirm("Hapus assignment kelas ini?")) return;
+   const confirmed = await confirmDelete({
+      title: 'Hapus assignment kelas',
+      message: 'Hapus assignment kelas ini?',
+      confirmText: 'Hapus',
+   });
+   if (!confirmed) return;
    try {
       await ltStore.unassignTeacher(id, props.type);
       toast.success("Assignment dihapus");

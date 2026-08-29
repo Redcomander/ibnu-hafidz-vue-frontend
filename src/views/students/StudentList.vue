@@ -647,7 +647,12 @@ async function exportStudents() {
 
 async function handleMassDelete() {
   if (!selectedIds.value.length) return;
-  if (!window.confirm(`Hapus ${selectedIds.value.length} santri terpilih?`)) return;
+  const confirmed = await confirmDelete({
+    title: 'Hapus santri terpilih',
+    message: `Hapus ${selectedIds.value.length} santri terpilih? Tindakan ini tidak dapat dibatalkan.`,
+    confirmText: 'Hapus Terpilih',
+  });
+  if (!confirmed) return;
   try {
     await api.post("/students/mass-delete", { ids: selectedIds.value });
     toast.success("Santri terpilih berhasil dihapus");
@@ -705,7 +710,12 @@ function handleSaved(studentData) {
 
 async function graduateStudent(student) {
   if (!student?.id) return;
-  if (!window.confirm(`Luluskan santri ${student.nama_lengkap}?`)) return;
+  const confirmed = await confirmDelete({
+    title: 'Luluskan santri',
+    message: `Luluskan santri ${student.nama_lengkap}?`,
+    confirmText: 'Luluskan',
+  });
+  if (!confirmed) return;
 
   try {
     await api.put(`/students/${student.id}/graduate`);

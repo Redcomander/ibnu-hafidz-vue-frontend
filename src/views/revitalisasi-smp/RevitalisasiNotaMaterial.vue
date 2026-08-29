@@ -175,6 +175,7 @@ import {
   fetchRevitalisasiSmpNotaMaterial,
   updateRevitalisasiSmpNotaMaterial,
 } from '@/api/revitalisasiSmp'
+import { confirmDelete } from '@/utils/confirmDialog'
 import { compressImageFile } from '@/utils/imageCompression'
 
 const search = ref('')
@@ -373,6 +374,14 @@ async function saveItem() {
 }
 
 async function deleteItem(id) {
+  const confirmed = await confirmDelete({
+    title: 'Hapus nota material?',
+    message: 'Catatan nota material ini akan dihapus dari sistem. Lanjutkan?',
+    confirmText: 'Hapus',
+  })
+
+  if (!confirmed) return
+
   try {
     await deleteRevitalisasiSmpNotaMaterial(id)
     await loadData()

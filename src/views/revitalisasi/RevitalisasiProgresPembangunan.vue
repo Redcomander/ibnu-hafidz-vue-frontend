@@ -135,6 +135,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { compressImageFile } from '@/utils/imageCompression'
+import { confirmDelete } from '@/utils/confirmDialog'
 import {
   createRevitalisasiProgres,
   deleteRevitalisasiProgres,
@@ -311,6 +312,14 @@ async function saveItem() {
 }
 
 async function deleteItem(id) {
+  const confirmed = await confirmDelete({
+    title: 'Hapus progres?',
+    message: 'Data progres pembangunan ini akan dihapus. Lanjutkan?',
+    confirmText: 'Hapus',
+  })
+
+  if (!confirmed) return
+
   try {
     await deleteRevitalisasiProgres(id)
     await loadData()

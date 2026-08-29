@@ -746,8 +746,12 @@ async function saveAbsenceEdit() {
 
 async function deleteAbsenceRecord(item) {
   if (!isSuperAdmin.value || !item?.id) return
-  const ok = window.confirm(`Hapus data absensi ${item.teacher} (${item.status}) pada ${formatDate(item.date)}?`)
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus data absensi',
+    message: `Hapus data absensi ${item.teacher} (${item.status}) pada ${formatDate(item.date)}?`,
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   deletingAbsenceId.value = item.id
   try {
     await api.delete(`/attendance/teacher-record/${item.id}`, {
@@ -767,8 +771,12 @@ async function deleteAbsenceRecord(item) {
 
 async function deleteSubstituteHistory(item) {
   if (!isSuperAdmin.value || !item?.id) return
-  const ok = window.confirm('Hapus riwayat guru pengganti ini?')
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus riwayat guru pengganti',
+    message: 'Hapus riwayat guru pengganti ini?',
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
 
   deletingHistoryId.value = item.id
   try {

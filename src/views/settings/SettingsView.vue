@@ -182,6 +182,7 @@ import { useRoute } from 'vue-router';
 import api from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
+import { confirmDelete } from '@/utils/confirmDialog';
 import { fetchSidebarMenuSettings, updateSidebarMenuSettings } from '@/api/sidebarMenuSettings';
 
 const auth = useAuthStore();
@@ -398,8 +399,12 @@ async function deleteAccount() {
     return;
   }
 
-  const ok = window.confirm('Yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan.');
-  if (!ok) return;
+  const confirmed = await confirmDelete({
+    title: 'Hapus akun',
+    message: 'Yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan.',
+    confirmText: 'Hapus Akun',
+  });
+  if (!confirmed) return;
 
   deleting.value = true;
   try {

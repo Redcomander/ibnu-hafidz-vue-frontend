@@ -252,7 +252,11 @@ async function toggleBlockStatus() {
   if (!props.account?.id || blockLoading.value) return;
 
   const actionText = isBlocked.value ? "membuka blokir" : "memblokir";
-  const confirmed = window.confirm(`Apakah Anda yakin ingin ${actionText} akun ini?`);
+  const confirmed = await confirmDelete({
+    title: isBlocked.value ? 'Aktifkan akun' : 'Blokir akun',
+    message: `Apakah Anda yakin ingin ${actionText} akun ini?`,
+    confirmText: isBlocked.value ? 'Aktifkan' : 'Blokir',
+  });
   if (!confirmed) return;
 
   blockLoading.value = true;

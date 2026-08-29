@@ -129,6 +129,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { createTemplate, deleteTemplate, fetchTemplateList, updateTemplate } from '@/api/kontak'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { confirmDelete } from '@/utils/confirmDialog'
 
 const auth = useAuthStore()
 const toast = useToastStore()
@@ -203,7 +204,12 @@ async function submitForm() {
 }
 
 async function removeTemplate(id) {
-  if (!window.confirm('Hapus template ini?')) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus template',
+    message: 'Hapus template ini?',
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   try {
     await deleteTemplate(id)
     toast.success('Template berhasil dihapus')

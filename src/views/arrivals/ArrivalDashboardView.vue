@@ -267,8 +267,12 @@ async function saveDeadline() {
 }
 
 async function confirmResetStudents() {
-  const ok = window.confirm('Reset semua data kedatangan santri dan kosongkan batas waktu?')
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Reset kedatangan santri',
+    message: 'Reset semua data kedatangan santri dan kosongkan batas waktu?',
+    confirmText: 'Reset Semua',
+  })
+  if (!confirmed) return
 
   try {
     await resetStudentArrivals()

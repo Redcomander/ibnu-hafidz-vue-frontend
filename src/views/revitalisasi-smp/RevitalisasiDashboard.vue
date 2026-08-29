@@ -194,6 +194,7 @@ import {
   fetchRevitalisasiSmpTukang,
   updateRevitalisasiSmpPrioritas,
 } from '@/api/revitalisasiSmp'
+import { confirmDelete } from '@/utils/confirmDialog'
 
 const loading = ref(false)
 const metrics = ref([
@@ -323,6 +324,14 @@ async function savePriorityChanges() {
 
 async function deletePriority(id) {
   if (!id) return
+
+  const confirmed = await confirmDelete({
+    title: 'Hapus prioritas?',
+    message: 'Prioritas yang dihapus tidak bisa dikembalikan. Lanjutkan?',
+    confirmText: 'Hapus',
+  })
+
+  if (!confirmed) return
 
   if (String(id).startsWith('auto-')) {
     priorityItems.value = priorityItems.value.filter((item) => String(item.id) !== String(id))

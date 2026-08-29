@@ -586,8 +586,12 @@ async function saveAbsenceEdit() {
 
 async function deleteAbsenceRecord(item) {
   if (!isSuperAdmin.value || !item?.id) return
-  const ok = window.confirm(`Hapus data absensi ${item.teacher} (${item.status}) pada ${formatDate(item.date)}?`)
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus data absensi',
+    message: `Hapus data absensi ${item.teacher} (${item.status}) pada ${formatDate(item.date)}?`,
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   deletingAbsenceId.value = item.id
   try {
     const source = item.source || 'teacher_attendance'
@@ -605,8 +609,12 @@ async function deleteAbsenceRecord(item) {
 
 const deleteHistoryItem = async (item) => {
   if (!isSuperAdmin.value || !item?.id) return
-  const ok = window.confirm('Hapus riwayat guru pengganti halaqoh ini?')
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus riwayat guru pengganti',
+    message: 'Hapus riwayat guru pengganti halaqoh ini?',
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
 
   deletingHistoryId.value = item.id
   try {

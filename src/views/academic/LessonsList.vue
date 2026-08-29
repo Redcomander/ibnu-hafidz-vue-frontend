@@ -99,6 +99,7 @@ import { useLessonStore } from '@/stores/lesson';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
+import { confirmDelete } from '@/utils/confirmDialog';
 import LessonForm from './components/LessonForm.vue';
 import LessonAssignmentsModal from './components/LessonAssignmentsModal.vue';
 import { useRoute } from 'vue-router';
@@ -158,7 +159,12 @@ const handleSubmit = async (formData) => {
 };
 
 const handleDelete = async (id) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus pelajaran ini?")) return;
+    const confirmed = await confirmDelete({
+        title: 'Hapus pelajaran',
+        message: 'Apakah Anda yakin ingin menghapus pelajaran ini?',
+        confirmText: 'Hapus',
+    });
+    if (!confirmed) return;
 
     try {
         await store.deleteLesson(id, activeTab.value);

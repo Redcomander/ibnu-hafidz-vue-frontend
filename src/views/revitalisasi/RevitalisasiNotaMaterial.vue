@@ -175,6 +175,7 @@ import {
   fetchRevitalisasiNotaMaterial,
   updateRevitalisasiNotaMaterial,
 } from '@/api/revitalisasi'
+import { confirmDelete } from '@/utils/confirmDialog'
 import { compressImageFile } from '@/utils/imageCompression'
 
 const search = ref('')
@@ -373,6 +374,14 @@ async function saveItem() {
 }
 
 async function deleteItem(id) {
+  const confirmed = await confirmDelete({
+    title: 'Hapus nota material?',
+    message: 'Catatan nota material ini akan dihapus dari sistem. Lanjutkan?',
+    confirmText: 'Hapus',
+  })
+
+  if (!confirmed) return
+
   try {
     await deleteRevitalisasiNotaMaterial(id)
     await loadData()

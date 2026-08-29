@@ -307,7 +307,12 @@ async function fetchData() {
 }
 
 async function removeStudent(student) {
-  if (!confirm(`Keluarkan ${student.nama_lengkap} dari kelas ini?`)) return;
+  const confirmed = await confirmDelete({
+    title: 'Keluarkan santri',
+    message: `Keluarkan ${student.nama_lengkap} dari kelas ini?`,
+    confirmText: 'Keluarkan',
+  });
+  if (!confirmed) return;
 
   try {
     await api.delete(`/kelas/${kelas.value.id}/students/${student.id}`);

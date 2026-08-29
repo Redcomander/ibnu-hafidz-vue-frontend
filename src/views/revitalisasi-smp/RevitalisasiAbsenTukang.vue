@@ -140,6 +140,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { compressImageFile } from '@/utils/imageCompression'
+import { confirmDelete } from '@/utils/confirmDialog'
 import {
   createRevitalisasiSmpAbsen,
   deleteRevitalisasiSmpAbsen,
@@ -361,6 +362,14 @@ async function onPhotoSelected(event) {
 }
 
 async function deleteRecord(id) {
+  const confirmed = await confirmDelete({
+    title: 'Hapus absensi tukang?',
+    message: 'Data absensi tukang ini akan dihapus. Lanjutkan?',
+    confirmText: 'Hapus',
+  })
+
+  if (!confirmed) return
+
   try {
     await deleteRevitalisasiSmpAbsen(id)
     await loadRecords()

@@ -216,7 +216,12 @@ async function handleSave() {
 }
 
 async function handleClose() {
-  if (!confirm("Apakah Anda yakin ingin menutup sesi ini?")) return;
+  const confirmed = await confirmDelete({
+    title: 'Tutup sesi',
+    message: 'Apakah Anda yakin ingin menutup sesi ini?',
+    confirmText: 'Tutup Sesi',
+  });
+  if (!confirmed) return;
   try {
     await api.post(`/absensi-ekstra/sessions/${sessionId.value}/close`);
     toast.success("Sesi berhasil ditutup");

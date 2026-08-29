@@ -2820,8 +2820,12 @@ async function loadSavedResultLinks() {
 async function deleteSavedResultLink(item) {
   const id = Number(item?.id)
   if (!Number.isFinite(id) || id <= 0) return
-  const ok = window.confirm(`Hapus riwayat scan #${id}?`)
-  if (!ok) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus riwayat scan',
+    message: `Hapus riwayat scan #${id}?`,
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
 
   deletingResultLinkId.value = id
   scanError.value = null
@@ -3183,7 +3187,12 @@ async function saveNewAnswerKey() {
 }
 
 async function deleteAnswerKey(id) {
-  if (!confirm('Hapus kunci jawaban ini?')) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus kunci jawaban',
+    message: 'Hapus kunci jawaban ini?',
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   try {
     await ocrDeleteAnswerKey(id)
     if (selectedAnswerKeyId.value === id) selectedAnswerKeyId.value = null

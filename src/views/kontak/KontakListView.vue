@@ -504,6 +504,7 @@ import { fetchWAStatus, sendWAMessage } from '@/api/wa'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import KontakFilterBar from '@/components/kontak/KontakFilterBar.vue'
+import { confirmDelete } from '@/utils/confirmDialog'
 import StatusBadge from '@/components/kontak/StatusBadge.vue'
 import WhatsAppButton from '@/components/kontak/WhatsAppButton.vue'
 import HandlerAssignModal from '@/components/kontak/HandlerAssignModal.vue'
@@ -761,7 +762,12 @@ async function refreshAfterWAInteraction() {
 async function handleDeleteSource() {
   const source = filters.sumber_data
   if (!source) return
-  if (!window.confirm(`Hapus semua kontak dengan sumber "${source}"?`)) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus sumber kontak',
+    message: `Hapus semua kontak dengan sumber "${source}"?`,
+    confirmText: 'Hapus Sumber',
+  })
+  if (!confirmed) return
 
   try {
     await deleteKontakSource(source)
@@ -1002,7 +1008,12 @@ function toggleSelectAllPage(event) {
 }
 
 async function handleDelete(id) {
-  if (!window.confirm('Hapus kontak ini?')) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus kontak',
+    message: 'Hapus kontak ini?',
+    confirmText: 'Hapus',
+  })
+  if (!confirmed) return
   try {
     await deleteKontak(id)
     selectedIds.value = selectedIds.value.filter((val) => val !== id)
@@ -1015,7 +1026,12 @@ async function handleDelete(id) {
 
 async function handleBulkDelete() {
   if (!selectedIds.value.length) return
-  if (!window.confirm(`Hapus ${selectedIds.value.length} kontak terpilih?`)) return
+  const confirmed = await confirmDelete({
+    title: 'Hapus kontak terpilih',
+    message: `Hapus ${selectedIds.value.length} kontak terpilih?`,
+    confirmText: 'Hapus Terpilih',
+  })
+  if (!confirmed) return
   try {
     await bulkDeleteKontak(selectedIds.value)
     selectedIds.value = []
