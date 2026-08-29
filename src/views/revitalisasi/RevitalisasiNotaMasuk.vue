@@ -39,7 +39,7 @@
           </div>
           <div class="rounded-xl bg-gray-50 p-2.5">
             <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Jumlah</p>
-            <p class="mt-1 font-medium">Rp {{ Number(item.jumlah || 0).toLocaleString('id-ID') }}</p>
+            <p class="mt-1 font-medium">{{ formatRupiah(item.jumlah) }}</p>
           </div>
           <div class="rounded-xl bg-gray-50 p-2.5">
             <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Dokumentasi</p>
@@ -222,14 +222,14 @@ function formatRupiah(value) {
 }
 
 function formatRupiahDisplay(value) {
-  const number = Number(String(value || 0).replace(/[^\d]/g, ''))
+  const number = Number(String(value || 0).replace(/\D/g, '')) || 0
   if (!number) return ''
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
 }
 
 function handleCurrencyInput(field, event) {
-  const digits = Number(String(event.target.value).replace(/[^\d]/g, '')) || 0
-  form.value[field] = digits
+  const digits = String(event.target.value).replace(/\D/g, '')
+  form.value[field] = digits ? Number(digits) : 0
 }
 
 function splitPhotoPaths(value) {
