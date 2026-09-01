@@ -197,7 +197,7 @@ onMounted(async () => {
   // Fetch teachers + students
   try {
     const [loadedTeachers, loadedStudents] = await Promise.all([
-      fetchAllPages('/users'),
+      fetchAllPages('/teachers'),
       fetchAllPages('/students'),
     ])
     teachers.value = loadedTeachers
