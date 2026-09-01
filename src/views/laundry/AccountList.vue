@@ -476,6 +476,15 @@ function exportAllAccountsPdf() {
   if (filters.owner_status && filters.owner_status !== 'all') {
     queryParams.append('owner_status', filters.owner_status);
   }
+  if (filters.date_from) {
+    queryParams.append('date_from', filters.date_from);
+  }
+  if (filters.date_to) {
+    queryParams.append('date_to', filters.date_to);
+  }
+  if (search.value) {
+    queryParams.append('search', search.value);
+  }
   if (token) {
     queryParams.append('token', token);
   }

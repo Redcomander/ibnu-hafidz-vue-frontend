@@ -32,11 +32,16 @@
           class="input-field !py-2"
         />
       </div>
-      <select v-model="filters.status" class="input-field !py-2 w-auto">
+      <select v-model="filters.status" class="input-field !py-2 w-auto" @change="fetchData">
         <option value="">Status Transaksi (Semua)</option>
         <option value="pending">Sedang Dicuci (Pending)</option>
         <option value="picked_up">Sudah Diambil (Picked Up)</option>
       </select>
+      <div class="flex items-center gap-2">
+        <input type="date" v-model="filters.date_from" @change="fetchData" class="input-field !py-2" />
+        <span class="text-gray-400">-</span>
+        <input type="date" v-model="filters.date_to" @change="fetchData" class="input-field !py-2" />
+      </div>
     </div>
 
     <!-- Data Table -->
@@ -282,11 +287,19 @@ const showDeleteModal = ref(false);
 const transactionToDelete = ref(null);
 const deleteLoading = ref(false);
 
+const now = new Date();
+const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
 const { data, loading, meta, search, filters, fetchData, setPage } =
   useTable("/laundry/transactions", {
     defaultSort: "created_at",
     defaultOrder: "desc",
-    initialFilters: { status: "" },
+    initialFilters: {
+      status: "",
+      date_from: firstDay,
+      date_to: lastDay,
+    },
   });
 
 function formatNumber(num) {
