@@ -442,6 +442,7 @@ import SvgIcon from '@/components/ui/SvgIcon.vue'
 import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import { confirmDelete } from '@/utils/confirmDialog'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 
