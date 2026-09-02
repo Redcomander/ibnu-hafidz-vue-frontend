@@ -112,6 +112,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import SearchableSelect from '@/components/ui/SearchableSelect.vue';
 import api from '@/api';
+import { confirmDelete } from '@/utils/confirmDialog';
 import { useLessonTeacherStore } from '@/stores/lessonTeacher';
 import { useToastStore } from '@/stores/toast';
 

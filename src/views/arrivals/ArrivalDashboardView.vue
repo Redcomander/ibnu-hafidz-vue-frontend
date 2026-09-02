@@ -225,6 +225,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { fetchArrivalDashboard, resetStudentArrivals, updateArrivalDeadline } from '@/api/arrivals'
+import { confirmDelete } from '@/utils/confirmDialog'
 
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const selectedGender = ref('')

@@ -143,6 +143,7 @@ import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 import { useToastStore } from "@/stores/toast";
+import { confirmDelete } from "@/utils/confirmDialog";
 
 const toast = useToastStore();
 const route = useRoute();

@@ -313,6 +313,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/api'
+import { confirmDelete } from '@/utils/confirmDialog'
 import { ocrDeleteResultLink, ocrGetAnswerKeys, ocrGetResultLinks, ocrUpdateResultLink, ocrUpdateResultLinkStudent } from '@/api/ocr'
 
 const loading = ref(false)

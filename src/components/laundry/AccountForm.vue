@@ -163,6 +163,7 @@ import {
 } from "@headlessui/vue";
 import api from "@/api";
 import { useToastStore } from "@/stores/toast";
+import { confirmDelete } from "@/utils/confirmDialog";
 import SearchableSelect from "@/components/ui/SearchableSelect.vue";
 
 const props = defineProps({

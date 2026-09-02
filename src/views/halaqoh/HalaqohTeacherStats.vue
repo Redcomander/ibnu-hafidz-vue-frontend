@@ -405,8 +405,7 @@ import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-
-
+import { confirmDelete } from '@/utils/confirmDialog'
 
 const authStore = useAuthStore()
 const toast = useToastStore()

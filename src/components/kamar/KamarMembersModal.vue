@@ -150,6 +150,7 @@
 import { ref, watch, computed } from "vue";
 import api from "@/api";
 import { useToastStore } from "@/stores/toast";
+import { confirmDelete } from "@/utils/confirmDialog";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 
 const props = defineProps({

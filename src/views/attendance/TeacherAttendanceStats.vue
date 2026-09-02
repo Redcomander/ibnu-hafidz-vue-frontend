@@ -464,10 +464,17 @@ const kelasList = ref([])
 const teacherList = ref([])
 const lessonList = ref([])
 
+const toDateInputValue = (date = new Date()) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Filters — default to current month
 const now = new Date()
-const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
-const today = now.toISOString().slice(0, 10)
+const firstDay = toDateInputValue(new Date(now.getFullYear(), now.getMonth(), 1))
+const today = toDateInputValue(now)
 
 const filters = ref({
   start_date: firstDay,
@@ -802,7 +809,7 @@ async function openSubstituteModal(item = null) {
   substituteModal.value.open = true
   substituteModal.value.editingId = item?.id || null
   substituteForm.value = {
-    date: item?.date ? String(item.date).slice(0, 10) : today,
+    date: item?.date ? String(item.date).slice(0, 10) : toDateInputValue(new Date()),
     jadwal_id: item?.jadwal_id || '',
     lesson: item?.lesson || '',
     kelas: item?.kelas || '',

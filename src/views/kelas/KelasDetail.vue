@@ -257,6 +257,7 @@ import { useRoute } from "vue-router";
 import api from "@/api";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toast";
+import { confirmDelete } from "@/utils/confirmDialog";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 import KelasForm from "@/components/kelas/KelasForm.vue";
 import KelasMembersModal from "@/components/kelas/KelasMembersModal.vue";

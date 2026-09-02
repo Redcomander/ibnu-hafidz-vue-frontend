@@ -240,6 +240,7 @@ import { useRoute, useRouter } from "vue-router";
 import api from "@/api";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
 import Modal from "@/components/ui/Modal.vue";
+import { confirmDelete } from "@/utils/confirmDialog";
 import { useToastStore } from "@/stores/toast";
 
 const toast = useToastStore();

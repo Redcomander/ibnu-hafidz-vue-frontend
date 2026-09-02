@@ -1360,6 +1360,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import api from '@/api'
+import { confirmDelete } from '@/utils/confirmDialog'
 import {
   ocrHealth, ocrScan, ocrScanBulk, ocrScanHardware,
   ocrScannerDevices, ocrCapabilities, ocrGetAnswerKeys, ocrSaveAnswerKey, ocrDeleteAnswerKey, ocrGetCalibration,
