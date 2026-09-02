@@ -175,9 +175,23 @@ const filteredStudents = computed(() => {
   )
 })
 
+function normalizeTeacherOption(teacher) {
+  if (!teacher) return teacher
+  const displayName = teacher.name || teacher.username || teacher.email || 'Tanpa nama'
+  return {
+    ...teacher,
+    name: displayName,
+    display_name: displayName,
+  }
+}
+
 const helperTeacherOptions = computed(() => {
   const options = [{ id: null, name: '-- Tidak Ada --' }]
-  return options.concat(teachers.value.filter((t) => t.id !== form.value.user_id))
+  return options.concat(
+    teachers.value
+      .map(normalizeTeacherOption)
+      .filter((t) => String(t.id) !== String(form.value.user_id))
+  )
 })
 
 watch(studentSearch, (value) => {
@@ -200,7 +214,7 @@ onMounted(async () => {
       fetchAllPages('/teachers'),
       fetchAllPages('/students'),
     ])
-    teachers.value = loadedTeachers
+    teachers.value = loadedTeachers.map(normalizeTeacherOption)
     allStudents.value = loadedStudents
 
     // Build assigned set from all groups
