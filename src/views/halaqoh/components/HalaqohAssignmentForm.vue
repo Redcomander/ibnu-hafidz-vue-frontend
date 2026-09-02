@@ -168,6 +168,11 @@ async function fetchAllPages(path, perPage = 1000) {
   return Array.from(uniqueMap.values())
 }
 
+async function loadTeacherOptions() {
+  const { data } = await api.get('/users', { params: { per_page: 1000 } })
+  return normalizePaginatedItems(data).map(normalizeTeacherOption)
+}
+
 const filteredStudents = computed(() => {
   const q = debouncedStudentSearch.value.toLowerCase()
   return allStudents.value.filter(
@@ -177,7 +182,7 @@ const filteredStudents = computed(() => {
 
 function normalizeTeacherOption(teacher) {
   if (!teacher) return teacher
-  const displayName = teacher.name || teacher.username || teacher.email || 'Tanpa nama'
+  const displayName = teacher.name || teacher.username || teacher.email || teacher.display_name || 'Tanpa nama'
   return {
     ...teacher,
     name: displayName,
@@ -211,10 +216,10 @@ onMounted(async () => {
   // Fetch teachers + students
   try {
     const [loadedTeachers, loadedStudents] = await Promise.all([
-      fetchAllPages('/teachers'),
+      loadTeacherOptions(),
       fetchAllPages('/students'),
     ])
-    teachers.value = loadedTeachers.map(normalizeTeacherOption)
+    teachers.value = loadedTeachers
     allStudents.value = loadedStudents
 
     // Build assigned set from all groups
