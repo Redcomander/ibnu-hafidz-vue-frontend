@@ -56,7 +56,7 @@
               type="button"
               @click="select(option)"
               class="w-full text-left px-4 py-3 hover:bg-green-50 dark:hover:bg-slate-800/80 flex items-start justify-between gap-3 group transition-colors border-b border-gray-100 dark:border-slate-800 last:border-b-0"
-              :class="{ 'bg-green-50 dark:bg-emerald-900/25': modelValue === getValue(option) }"
+              :class="{ 'bg-green-50 dark:bg-emerald-900/25': isSameValue(getValue(option), modelValue) }"
             >
               <div class="min-w-0">
                 <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 break-words leading-snug">
@@ -67,7 +67,7 @@
                 </div>
               </div>
               <SvgIcon
-                v-if="modelValue === getValue(option)"
+                v-if="isSameValue(getValue(option), modelValue)"
                 name="check"
                 :size="16"
                 class="text-green-600 dark:text-emerald-400 shrink-0 mt-0.5"
@@ -157,7 +157,11 @@ function getValue(opt) {
   return opt[props.valueKey]
 }
 
-const selectedOption = computed(() => props.options.find((opt) => getValue(opt) === props.modelValue))
+function isSameValue(optionValue, modelValue) {
+  return String(optionValue ?? '') === String(modelValue ?? '')
+}
+
+const selectedOption = computed(() => props.options.find((opt) => isSameValue(getValue(opt), props.modelValue)))
 
 const filteredOptions = computed(() => {
   if (!debouncedSearchQuery.value) return props.options
