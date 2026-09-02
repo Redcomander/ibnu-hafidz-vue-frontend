@@ -895,6 +895,8 @@ async function saveSubstituteHistory() {
   }
 }
 
+const getExportTimestamp = () => new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '')
+
 async function exportFile(format) {
   if (exporting.value) return
   exporting.value = format
@@ -909,13 +911,15 @@ async function exportFile(format) {
       if (v) query.append(k, v)
     })
 
+    const timestamp = getExportTimestamp()
+    const extension = format === 'excel' ? 'xlsx' : 'pdf'
     const url = `/attendance/export/teacher/${format}?${query.toString()}`
 
     const response = await api.get(url, { responseType: 'blob' })
     const urlBlob = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = urlBlob
-    link.setAttribute('download', `Rekapan_Absensi_Guru_${params.type}_${format.toUpperCase()}.${format === 'excel' ? 'xlsx' : 'pdf'}`)
+    link.setAttribute('download', `Rekapan_Absensi_Guru_${params.type}_${timestamp}_${format.toUpperCase()}.${extension}`)
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -942,13 +946,14 @@ async function exportMissingReport() {
       if (v) query.append(k, v)
     })
 
+    const timestamp = getExportTimestamp()
     const url = `/attendance/export/teacher/missing/pdf?${query.toString()}`
     const response = await api.get(url, { responseType: 'blob' })
 
     const urlBlob = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = urlBlob
-    link.setAttribute('download', `Laporan_Guru_Belum_Isi_Absensi_${params.type}_PDF.pdf`)
+    link.setAttribute('download', `Laporan_Guru_Belum_Isi_Absensi_${params.type}_${timestamp}.pdf`)
     document.body.appendChild(link)
     link.click()
     link.remove()
