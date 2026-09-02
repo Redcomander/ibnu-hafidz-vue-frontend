@@ -65,6 +65,17 @@ const routes = [
     ],
   },
 
+  // ---- External Redirects ----
+  {
+    path: '/pendaftaran',
+    name: 'pendaftaran-redirect',
+    beforeEnter: (to, from, next) => {
+      window.location.href = 'https://pendaftaran.ibnuhafidz.ponpes.id/'
+      next(false)
+    },
+    meta: { title: 'Pendaftaran', seo: publicSeo.home },
+  },
+
   // ---- Auth (public) ----
   {
     path: '/login',
