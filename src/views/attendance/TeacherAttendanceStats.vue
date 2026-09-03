@@ -566,16 +566,40 @@ const teacherSearchOptions = computed(() => {
     .filter((t) => !!t.id && !!t.name)
 })
 
+const normalizeTeacherCounts = (source = {}) => {
+  const counts = source || {}
+  return {
+    Hadir: Number(counts.Hadir ?? counts.hadir ?? 0),
+    Izin: Number(counts.Izin ?? counts.izin ?? 0),
+    Sakit: Number(counts.Sakit ?? counts.sakit ?? 0),
+    Alpha: Number(counts.Alpha ?? counts.alpha ?? 0),
+    Substitute: Number(counts.Substitute ?? counts.substitute ?? 0),
+  }
+}
+
+const teacherCounts = computed(() => {
+  const normalized = normalizeTeacherCounts(data.value.teacher_counts)
+  const summaryTotal = (data.value.teacher_summary || []).reduce((acc, item) => {
+    acc.Substitute += Number(item.substitute || 0)
+    return acc
+  }, { Substitute: 0 })
+
+  return {
+    ...normalized,
+    Substitute: normalized.Substitute || summaryTotal.Substitute || 0,
+  }
+})
+
 const teacherCards = computed(() => [
-  { label: 'Hadir', count: data.value.teacher_counts.Hadir || 0,  icon: 'check-circle', bg: 'bg-gradient-to-br from-green-500 to-emerald-600' },
-  { label: 'Izin',  count: data.value.teacher_counts.Izin || 0,   icon: 'clock',        bg: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
-  { label: 'Sakit', count: data.value.teacher_counts.Sakit || 0,  icon: 'heart',        bg: 'bg-gradient-to-br from-amber-400 to-orange-500' },
-  { label: 'Alpha', count: data.value.teacher_counts.Alpha || 0,  icon: 'x-circle',     bg: 'bg-gradient-to-br from-rose-500 to-red-600' },
-  { label: 'Substitute', count: data.value.teacher_counts.Substitute || 0,  icon: 'users', bg: 'bg-gradient-to-br from-purple-500 to-fuchsia-600' },
+  { label: 'Hadir', count: teacherCounts.value.Hadir || 0,  icon: 'check-circle', bg: 'bg-gradient-to-br from-green-500 to-emerald-600' },
+  { label: 'Izin',  count: teacherCounts.value.Izin || 0,   icon: 'clock',        bg: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
+  { label: 'Sakit', count: teacherCounts.value.Sakit || 0,  icon: 'heart',        bg: 'bg-gradient-to-br from-amber-400 to-orange-500' },
+  { label: 'Alpha', count: teacherCounts.value.Alpha || 0,  icon: 'x-circle',     bg: 'bg-gradient-to-br from-rose-500 to-red-600' },
+  { label: 'Substitute', count: teacherCounts.value.Substitute || 0,  icon: 'users', bg: 'bg-gradient-to-br from-purple-500 to-fuchsia-600' },
 ])
 
 const teacherTotal = computed(() => {
-  const tc = data.value.teacher_counts || {}
+  const tc = teacherCounts.value
   return (tc.Hadir || 0) + (tc.Izin || 0) + (tc.Sakit || 0) + (tc.Alpha || 0)
 })
 
