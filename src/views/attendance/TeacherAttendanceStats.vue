@@ -486,7 +486,7 @@ const filters = ref({
 
 // Stats data
 const data = ref({
-  teacher_counts: { Hadir: 0, Izin: 0, Sakit: 0, Alpha: 0, Substitute: 0 },
+  teacher_counts: { Hadir: 0, Izin: 0, Sakit: 0, Alpha: 0, Dinas: 0, Substitute: 0 },
   teacher_summary: [],
   substitute_history: [],
   absence_history: [],
@@ -573,6 +573,7 @@ const normalizeTeacherCounts = (source = {}) => {
     Izin: Number(counts.Izin ?? counts.izin ?? 0),
     Sakit: Number(counts.Sakit ?? counts.sakit ?? 0),
     Alpha: Number(counts.Alpha ?? counts.alpha ?? 0),
+    Dinas: Number(counts.Dinas ?? counts.dinas ?? 0),
     Substitute: Number(counts.Substitute ?? counts.substitute ?? 0),
   }
 }
@@ -595,6 +596,7 @@ const teacherCards = computed(() => [
   { label: 'Izin',  count: teacherCounts.value.Izin || 0,   icon: 'clock',        bg: 'bg-gradient-to-br from-blue-500 to-indigo-600' },
   { label: 'Sakit', count: teacherCounts.value.Sakit || 0,  icon: 'heart',        bg: 'bg-gradient-to-br from-amber-400 to-orange-500' },
   { label: 'Alpha', count: teacherCounts.value.Alpha || 0,  icon: 'x-circle',     bg: 'bg-gradient-to-br from-rose-500 to-red-600' },
+  { label: 'Dinas', count: teacherCounts.value.Dinas || 0,  icon: 'briefcase',   bg: 'bg-gradient-to-br from-violet-500 to-purple-600' },
   { label: 'Substitute', count: teacherCounts.value.Substitute || 0,  icon: 'users', bg: 'bg-gradient-to-br from-purple-500 to-fuchsia-600' },
 ])
 
