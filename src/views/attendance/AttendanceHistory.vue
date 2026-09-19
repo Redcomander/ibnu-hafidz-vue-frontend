@@ -765,6 +765,45 @@ async function fetchHistory() {
   }
 }
 
+function getSelectedKelasLabel() {
+  const kelasId = filters.value.kelas_id
+  if (!kelasId) return 'Semua Kelas'
+
+  const selected = kelasList.value.find(item => String(item.id) === String(kelasId))
+  if (!selected) return 'Kelas Terpilih'
+
+  const parts = [selected.nama, selected.tingkat].filter(Boolean)
+  if (!parts.length) return 'Kelas Terpilih'
+
+  return `Kelas ${parts.join(' ')}`
+}
+
+function sanitizeExportLabel(value) {
+  return String(value || '')
+    .replace(/[\\/:*?"<>|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildExportFilename(format) {
+  const ext = format === 'excel' ? 'xlsx' : 'pdf'
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')
+
+  const startDate = filters.value.start_date || ''
+  const endDate = filters.value.end_date || ''
+  let dateLabel = 'Semua Periode'
+  if (startDate && endDate) {
+    dateLabel = `${startDate} s/d ${endDate}`
+  } else if (startDate) {
+    dateLabel = startDate
+  } else if (endDate) {
+    dateLabel = endDate
+  }
+
+  const kelasLabel = sanitizeExportLabel(getSelectedKelasLabel())
+  return `Rekapan ${kelasLabel} (${sanitizeExportLabel(dateLabel)}) (${timestamp}).${ext}`
+}
+
 async function exportFile(format) {
   exporting.value = format
   try {
@@ -777,11 +816,10 @@ async function exportFile(format) {
       params,
       responseType: 'blob',
     })
-    const ext = format === 'excel' ? 'xlsx' : 'pdf'
     const url = window.URL.createObjectURL(new Blob([res.data]))
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `absensi_${params.type}_${params.start_date || 'all'}_${params.end_date || 'all'}.${ext}`)
+    link.setAttribute('download', buildExportFilename(format))
     document.body.appendChild(link)
     link.click()
     link.remove()
