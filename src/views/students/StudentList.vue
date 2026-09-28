@@ -113,45 +113,122 @@
           <option value="Pindahan">Pindahan</option>
           <option value="Lulus">Lulus</option>
         </select>
-        <select
-          v-model="filters.kelas_status"
-          :class="[
-            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
-            theme.isDark
-              ? 'border-slate-700 bg-slate-800 text-slate-100'
-              : 'border-slate-200 bg-slate-50/80 text-slate-900'
-          ]"
-        >
-          <option value="">Semua Kelas</option>
-          <option value="ada">Kelas Ada</option>
-          <option value="kosong">Kelas Kosong</option>
-        </select>
-        <select
-          v-model="filters.laundry_status"
-          :class="[
-            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
-            theme.isDark
-              ? 'border-slate-700 bg-slate-800 text-slate-100'
-              : 'border-slate-200 bg-slate-50/80 text-slate-900'
-          ]"
-        >
-          <option value="">Semua Laundry</option>
-          <option value="ada">Laundry Ada</option>
-          <option value="kosong">Laundry Kosong</option>
-        </select>
-        <select
-          v-model="filters.halaqoh_status"
-          :class="[
-            'input-field !py-2.5 !w-auto min-w-[150px] rounded-xl',
-            theme.isDark
-              ? 'border-slate-700 bg-slate-800 text-slate-100'
-              : 'border-slate-200 bg-slate-50/80 text-slate-900'
-          ]"
-        >
-          <option value="">Semua Halaqoh</option>
-          <option value="ada">Halaqoh Ada</option>
-          <option value="kosong">Halaqoh Kosong</option>
-        </select>
+        <div class="flex flex-wrap items-center gap-2">
+          <div
+            :class="[
+              'flex items-center gap-1 rounded-lg border px-1.5 py-1 text-xs',
+              theme.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'
+            ]"
+          >
+            <span :class="['mr-1', theme.isDark ? 'text-slate-300' : 'text-slate-600']">Kelas</span>
+            <label
+              :class="[
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-1 border cursor-pointer',
+                membershipSelection.kelas.ada
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                  : theme.isDark
+                    ? 'border-slate-600 bg-slate-700 text-slate-300'
+                    : 'border-slate-200 bg-white text-slate-600'
+              ]"
+            >
+              <input v-model="membershipSelection.kelas.ada" type="checkbox" class="sr-only" />
+              <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 fill-none stroke-current stroke-[2.5]">
+                <path d="M3 8.5L6.2 11.7L13 4.9" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </label>
+            <label
+              :class="[
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-1 border cursor-pointer',
+                membershipSelection.kelas.kosong
+                  ? 'border-rose-500 bg-rose-500/10 text-rose-600'
+                  : theme.isDark
+                    ? 'border-slate-600 bg-slate-700 text-slate-300'
+                    : 'border-slate-200 bg-white text-slate-600'
+              ]"
+            >
+              <input v-model="membershipSelection.kelas.kosong" type="checkbox" class="sr-only" />
+              <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 fill-none stroke-current stroke-[2.5]">
+                <path d="M4 4L12 12M12 4L4 12" stroke-linecap="round" />
+              </svg>
+            </label>
+          </div>
+          <div
+            :class="[
+              'flex items-center gap-1 rounded-lg border px-1.5 py-1 text-xs',
+              theme.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'
+            ]"
+          >
+            <span :class="['mr-1', theme.isDark ? 'text-slate-300' : 'text-slate-600']">Laundry</span>
+            <label
+              :class="[
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-1 border cursor-pointer',
+                membershipSelection.laundry.ada
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                  : theme.isDark
+                    ? 'border-slate-600 bg-slate-700 text-slate-300'
+                    : 'border-slate-200 bg-white text-slate-600'
+              ]"
+            >
+              <input v-model="membershipSelection.laundry.ada" type="checkbox" class="sr-only" />
+              <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 fill-none stroke-current stroke-[2.5]">
+                <path d="M3 8.5L6.2 11.7L13 4.9" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </label>
+            <label
+              :class="[
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-1 border cursor-pointer',
+                membershipSelection.laundry.kosong
+                  ? 'border-rose-500 bg-rose-500/10 text-rose-600'
+                  : theme.isDark
+                    ? 'border-slate-600 bg-slate-700 text-slate-300'
+                    : 'border-slate-200 bg-white text-slate-600'
+              ]"
+            >
+              <input v-model="membershipSelection.laundry.kosong" type="checkbox" class="sr-only" />
+              <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 fill-none stroke-current stroke-[2.5]">
+                <path d="M4 4L12 12M12 4L4 12" stroke-linecap="round" />
+              </svg>
+            </label>
+          </div>
+          <div
+            :class="[
+              'flex items-center gap-1 rounded-lg border px-1.5 py-1 text-xs',
+              theme.isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'
+            ]"
+          >
+            <span :class="['mr-1', theme.isDark ? 'text-slate-300' : 'text-slate-600']">Halaqoh</span>
+            <label
+              :class="[
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-1 border cursor-pointer',
+                membershipSelection.halaqoh.ada
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
+                  : theme.isDark
+                    ? 'border-slate-600 bg-slate-700 text-slate-300'
+                    : 'border-slate-200 bg-white text-slate-600'
+              ]"
+            >
+              <input v-model="membershipSelection.halaqoh.ada" type="checkbox" class="sr-only" />
+              <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 fill-none stroke-current stroke-[2.5]">
+                <path d="M3 8.5L6.2 11.7L13 4.9" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </label>
+            <label
+              :class="[
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-1 border cursor-pointer',
+                membershipSelection.halaqoh.kosong
+                  ? 'border-rose-500 bg-rose-500/10 text-rose-600'
+                  : theme.isDark
+                    ? 'border-slate-600 bg-slate-700 text-slate-300'
+                    : 'border-slate-200 bg-white text-slate-600'
+              ]"
+            >
+              <input v-model="membershipSelection.halaqoh.kosong" type="checkbox" class="sr-only" />
+              <svg viewBox="0 0 16 16" class="w-3.5 h-3.5 fill-none stroke-current stroke-[2.5]">
+                <path d="M4 4L12 12M12 4L4 12" stroke-linecap="round" />
+              </svg>
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -498,15 +575,6 @@ const theme = useThemeStore();
 
 const isAlumniPage = computed(() => route.name === "alumni");
 
-// Form state
-const showForm = ref(false);
-const selectedStudent = ref(null);
-const showDeleteModal = ref(false);
-const studentToDelete = ref(null);
-const deleteLoading = ref(false);
-const selectedIds = ref([]);
-const importInput = ref(null);
-
 // useTable — gives us search, filter, sort, pagination for free!
 const {
   data,
@@ -528,6 +596,67 @@ const {
     halaqoh_status: "",
   },
 });
+
+const membershipSelection = ref({
+  kelas: { ada: false, kosong: false },
+  laundry: { ada: false, kosong: false },
+  halaqoh: { ada: false, kosong: false },
+});
+
+function syncMembershipSelectionFromFields() {
+  membershipSelection.value = {
+    kelas: {
+      ada: filters.kelas_status === "ada",
+      kosong: filters.kelas_status === "kosong",
+    },
+    laundry: {
+      ada: filters.laundry_status === "ada",
+      kosong: filters.laundry_status === "kosong",
+    },
+    halaqoh: {
+      ada: filters.halaqoh_status === "ada",
+      kosong: filters.halaqoh_status === "kosong",
+    },
+  };
+}
+
+watch(
+  membershipSelection,
+  (selection) => {
+    const syncRelation = (key) => {
+      const value = selection[key];
+      if (value.ada && !value.kosong) {
+        filters[`${key}_status`] = "ada";
+        return;
+      }
+      if (!value.ada && value.kosong) {
+        filters[`${key}_status`] = "kosong";
+        return;
+      }
+      filters[`${key}_status`] = "";
+    };
+
+    syncRelation("kelas");
+    syncRelation("laundry");
+    syncRelation("halaqoh");
+  },
+  { deep: true }
+);
+
+watch(
+  () => [filters.kelas_status, filters.laundry_status, filters.halaqoh_status],
+  () => syncMembershipSelectionFromFields(),
+  { immediate: true }
+);
+
+// Form state
+const showForm = ref(false);
+const selectedStudent = ref(null);
+const showDeleteModal = ref(false);
+const studentToDelete = ref(null);
+const deleteLoading = ref(false);
+const selectedIds = ref([]);
+const importInput = ref(null);
 
 watch(
   () => isAlumniPage.value,
