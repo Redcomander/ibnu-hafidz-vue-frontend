@@ -464,6 +464,14 @@ const navItems = [
     menuKey: 'jadwal_formal',
   },
   {
+    to: "/dashboard/jadwal-builder",
+    icon: "calendar",
+    label: "Jadwal Builder",
+    permission: null,
+    activeOn: ["/dashboard/jadwal-builder"],
+    menuKey: 'jadwal_builder',
+  },
+  {
     to: "/dashboard/jadwal-ramadhan",
     icon: "clock",
     label: "Jadwal Formal Ramadhan",

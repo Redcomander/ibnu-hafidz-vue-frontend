@@ -259,6 +259,11 @@ const dc = (d) => dayColors[d] || dayColors['Senin'];
                 <p class="text-sm text-gray-500 mt-0.5">{{ formattedDate }} · {{ totalSchedules }} jadwal {{ activeTab }}</p>
             </div>
             <div class="flex items-center gap-2">
+                <router-link :to="{ name: 'schedule-builder' }"
+                    class="inline-flex items-center px-4 py-2 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg>
+                    Builder
+                </router-link>
                 <router-link :to="{ name: activeTab === 'formal' ? 'attendance-formal' : activeTab === 'ramadhan' ? 'attendance-ramadhan' : 'attendance-diniyyah' }"
                     class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

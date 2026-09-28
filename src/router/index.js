@@ -164,6 +164,12 @@ const routes = [
         meta: { title: 'Jadwal Formal' },
       },
       {
+        path: 'jadwal-builder',
+        name: 'schedule-builder',
+        component: () => import('@/views/academic/JadwalBuilder.vue'),
+        meta: { title: 'Jadwal Builder' },
+      },
+      {
         path: 'jadwal-ramadhan',
         name: 'schedule-ramadhan',
         component: () => import('@/views/academic/ScheduleList.vue'),

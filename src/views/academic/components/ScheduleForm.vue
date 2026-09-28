@@ -38,20 +38,29 @@
         </select>
       </div>
 
+      <!-- Session preset -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Preset Sesi</label>
+        <select v-model="sessionPreset" class="input-field" required>
+          <option value="4">4 sesi: 08:00-08:45, 08:45-09:30, 10:00-10:45, 10:45-11:30</option>
+          <option value="2">2 sesi: 08:00-09:30, 10:00-11:30</option>
+        </select>
+      </div>
+
       <!-- Time Range -->
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Jam Mulai</label>
           <select v-model="form.start_time" class="input-field" required>
             <option value="" disabled>Pilih Jam Mulai</option>
-            <option v-for="time in timeOptions" :key="'s'+time" :value="time">{{ time }}</option>
+            <option v-for="time in startTimeOptions" :key="'s'+time" :value="time">{{ time }}</option>
           </select>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Jam Selesai</label>
           <select v-model="form.end_time" class="input-field" required>
             <option value="" disabled>Pilih Jam Selesai</option>
-            <option v-for="time in timeOptions" :key="'e'+time" :value="time">{{ time }}</option>
+            <option v-for="time in endTimeOptions" :key="'e'+time" :value="time">{{ time }}</option>
           </select>
         </div>
       </div>
@@ -86,21 +95,26 @@ const ltStore = useLessonTeacherStore();
 
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
 
-// More comprehensive time options
-const timeOptions = [
-  '06:00', '06:15', '06:30', '06:45',
-  '07:00', '07:15', '07:30', '07:45',
-  '08:00', '08:15', '08:30', '08:45',
-  '09:00', '09:15', '09:30', '09:45',
-  '10:00', '10:15', '10:30', '10:45',
-  '11:00', '11:15', '11:30', '11:45',
-  '12:00', '12:15', '12:30', '12:45',
-  '13:00', '13:15', '13:30', '13:45',
-  '14:00', '14:15', '14:30', '14:45',
-  '15:00', '15:15', '15:30', '15:45',
-  '16:00', '16:15', '16:30', '16:45',
-  '17:00',
-];
+const sessionPatterns = {
+  '4': [
+    { start_time: '08:00', end_time: '08:45' },
+    { start_time: '08:45', end_time: '09:30' },
+    { start_time: '10:00', end_time: '10:45' },
+    { start_time: '10:45', end_time: '11:30' },
+  ],
+  '2': [
+    { start_time: '08:00', end_time: '09:30' },
+    { start_time: '10:00', end_time: '11:30' },
+  ],
+};
+
+const sessionPreset = ref('4');
+const startTimeOptions = computed(() => sessionPatterns[sessionPreset.value].map((entry) => entry.start_time));
+const endTimeOptions = computed(() => {
+  const selectedStart = form.value.start_time;
+  const match = sessionPatterns[sessionPreset.value].find((entry) => entry.start_time === selectedStart);
+  return match ? [match.end_time] : [];
+});
 
 // ── State ──
 const loadingKelas = ref(false);
@@ -167,6 +181,30 @@ const assignmentOptions = computed(() =>
 watch(selectedClassId, (newVal) => {
   form.value.assignment_id = null; // Reset assignment
   fetchAssignments(newVal);
+});
+
+watch(sessionPreset, () => {
+  const allowed = sessionPatterns[sessionPreset.value];
+  const firstEntry = allowed[0];
+  if (!firstEntry) return;
+
+  if (!allowed.some((entry) => entry.start_time === form.value.start_time && entry.end_time === form.value.end_time)) {
+    form.value.start_time = firstEntry.start_time;
+    form.value.end_time = firstEntry.end_time;
+  }
+});
+
+watch(() => form.value.start_time, (newStart) => {
+  const allowed = sessionPatterns[sessionPreset.value];
+  const match = allowed.find((entry) => entry.start_time === newStart);
+  if (!match) {
+    form.value.end_time = '';
+    return;
+  }
+
+  if (form.value.end_time !== match.end_time) {
+    form.value.end_time = match.end_time;
+  }
 });
 
 // ── When modal opens: fetch kelas + populate form if editing ──
