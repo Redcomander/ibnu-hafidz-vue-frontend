@@ -210,8 +210,13 @@ const className = computed(() => {
     return c ? `${c.nama} ${c.tingkat}` : '-';
 });
 
+const isSubstituteActiveForDate = (schedule, selectedDate) => {
+    if (!schedule?.substitute_teacher || !schedule?.substitute_date) return false;
+    return String(schedule.substitute_date).slice(0, 10) === String(selectedDate || '').slice(0, 10);
+};
+
 const teacherName = computed(() => {
-    if (props.schedule?.substitute_teacher) {
+    if (isSubstituteActiveForDate(props.schedule, date.value)) {
         return `${props.schedule.substitute_teacher.name} (Pengganti)`;
     }
     return (
