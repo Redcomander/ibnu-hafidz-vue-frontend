@@ -3,7 +3,7 @@
     <!-- Hero Section -->
     <section class="relative flex items-center overflow-hidden text-white bg-slate-900">
       <div class="absolute inset-0 bg-[linear-gradient(135deg,rgba(13,77,38,0.92),rgba(33,123,52,0.85))] z-0"></div>
-      <div class="absolute top-0 right-0 w-full h-full bg-cover bg-center opacity-30 mix-blend-overlay z-0" :style="{ backgroundImage: 'url(/welcome2.JPG)' }"></div>
+      <div class="absolute top-0 right-0 w-full h-full bg-cover bg-center opacity-30 mix-blend-overlay z-0" :style="{ backgroundImage: 'url(/welcome2.jpeg)' }"></div>
       
       <div class="relative z-10 mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-8 mt-12 md:mt-24 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:py-32">
         <div class="text-center lg:text-left">
@@ -47,7 +47,7 @@
            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-[120%] aspect-square bg-emerald-500 rounded-full blur-[100px] opacity-20"></div>
            <div class="grid grid-cols-2 gap-4 relative z-10 transform rotate-[-3deg] hover:rotate-0 transition-transform duration-500">
               <img :src="'/welcome5.jpeg'" alt="Kegiatan Santri" class="mt-12 w-full h-48 md:h-64 object-cover rounded-2xl shadow-2xl border-4 border-white/10" @error="$event.target.style.display='none'"/>
-              <img :src="'/welcome2.JPG'" alt="Santri Hafidz" class="w-full h-48 md:h-64 object-cover rounded-2xl shadow-2xl border-4 border-white/10" @error="$event.target.style.display='none'"/>
+              <img :src="'/welcome2.jpeg'" alt="Santri Hafidz" class="w-full h-48 md:h-64 object-cover rounded-2xl shadow-2xl border-4 border-white/10" @error="$event.target.style.display='none'"/>
            </div>
         </div>
       </div>
@@ -141,7 +141,7 @@
         <!-- Top Track -->
         <div class="flex animate-marquee whitespace-nowrap w-max">
           <div v-for="(img, idx) in marqueeTrack1" :key="idx" class="mx-3 w-64 md:w-80 flex-none rounded-2xl md:rounded-[32px] overflow-hidden shadow-lg border-2 border-white/50 bg-white">
-            <img :src="img.src" :alt="img.alt" loading="lazy" decoding="async" class="w-full h-48 md:h-64 object-cover" onerror="this.src='/welcome2.JPG'"/>
+            <img :src="img.src" :alt="img.alt" loading="lazy" decoding="async" class="w-full h-48 md:h-64 object-cover" onerror="this.src='/welcome2.jpeg'"/>
           </div>
         </div>
       </div>
@@ -249,7 +249,7 @@ const homeContent = ref({
 })
 
 const fallbackHeroImages = [
-  { src: '/welcome2.JPG', alt: 'Santri Tahfidz' },
+  { src: '/welcome2.jpeg', alt: 'Santri Tahfidz' },
   { src: '/welcome5.jpeg', alt: 'Kegiatan Pondok' },
   { src: '/drone2.JPG', alt: 'Area Pesantren' },
   { src: '/tahfidz.webp', alt: 'Setoran Hafalan' },
@@ -264,7 +264,7 @@ const marqueeTrack1 = computed(() => {
 })
 
 function getArticleImage(path) {
-  return normalizePublicMediaUrl(path, '/welcome2.JPG')
+  return normalizePublicMediaUrl(path, '/welcome2.jpeg')
 }
 
 const displayedArticles = computed(() => articles.value.slice(0, 3))
@@ -281,7 +281,7 @@ function formatDate(dateValue) {
 }
 
 function getProgramImage(title) {
-  return programImageMap[title] || '/welcome2.JPG'
+  return programImageMap[title] || '/welcome2.jpeg'
 }
 
 onMounted(async () => {
