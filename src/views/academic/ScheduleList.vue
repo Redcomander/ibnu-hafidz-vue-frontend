@@ -68,6 +68,7 @@ const hasRole = (r) => authStore.userRoles?.some(role => role.name === r) || fal
 const canCreate = computed(() => authStore.hasPermission('schedule.create') || hasRole('super_admin') || hasRole('admin') || hasRole('staff'));
 const canManage = computed(() => hasRole('super_admin') || hasRole('admin') || hasRole('staff') || hasRole('tim_presensi'));
 const canFilterDate = computed(() => hasRole('super_admin') || hasRole('admin') || hasRole('staff') || hasRole('tim_presensi'));
+const canManageTeacherAttendance = computed(() => hasRole('super_admin') || hasRole('admin') || hasRole('tim_presensi'));
 const isSuperAdmin = computed(() => hasRole('super_admin'));
 const isAdmin = computed(() => hasRole('admin') || hasRole('super_admin'));
 const isStaff = computed(() => hasRole('staff') || hasRole('tim_presensi'));
@@ -192,12 +193,8 @@ const canAccessStudentAbsensi = (item) => {
     return now.isBetween(start.subtract(15, 'minute'), end.add(15, 'minute'));
 };
 const canAccessTeacherAbsensi = (item) => {
-    if (canManage.value) return true;
-    const userId = authStore.user?.id;
-    if (!userId) return false;
-    const isAssigned = userId === item.assignment?.teacher?.id;
-    const isSubstitute = userId === item.substitute_teacher?.id && isSubstituteActive(item);
-    return isAssigned || isSubstitute;
+    if (!canManageTeacherAttendance.value) return false;
+    return true;
 };
 
 const openStudentAttendance = (item) => {
@@ -445,12 +442,12 @@ const dc = (d) => dayColors[d] || dayColors['Senin'];
                                         :title="canAccessStudentAbsensi(item) ? (item.has_attendance_today ? 'Edit Absensi' : 'Isi Absensi') : 'Diluar jam pelajaran'">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                                     </button>
-                                    <button v-if="authStore.user && canAccessTeacherAbsensi(item)"
+                                    <button v-if="authStore.user && canManageTeacherAttendance"
                                         @click="openTeacherAttendance(item)"
                                         :disabled="!canAccessTeacherAbsensi(item)"
                                         :class="['w-7 h-7 rounded flex items-center justify-center transition text-xs',
                                             canAccessTeacherAbsensi(item) ? (item.has_teacher_attendance_today ? 'text-purple-600 hover:bg-purple-50' : 'text-blue-600 hover:bg-blue-50') : 'text-gray-300 cursor-not-allowed']"
-                                        :title="canAccessTeacherAbsensi(item) ? 'Absensi Guru' : 'Diluar jam pelajaran'">
+                                        :title="canAccessTeacherAbsensi(item) ? 'Absensi Guru' : 'Hanya untuk admin / tim presensi'">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                     </button>
                                 </div>
