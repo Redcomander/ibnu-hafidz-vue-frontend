@@ -28,7 +28,7 @@
         <input
           v-model="search"
           type="text"
-          placeholder="Cari nomor laundry atau catatan..."
+          placeholder="Cari nama, nomor laundry, atau catatan..."
           class="input-field !py-2"
         />
       </div>
