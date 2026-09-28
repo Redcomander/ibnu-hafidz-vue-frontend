@@ -506,6 +506,12 @@ function getCellModeBadge(schedule) {
 
 function getCellShortLabel(schedule) {
   const lessonName = schedule.assignment?.lesson?.name || schedule.assignment?.diniyyah_lesson?.name || 'Mapel'
+  const trimmedLessonName = lessonName.trim()
+
+  if (isMergedSessionEntry(schedule)) {
+    return trimmedLessonName.length > 18 ? `${trimmedLessonName.slice(0, 18)}...` : trimmedLessonName
+  }
+
   const short = lessonName.split(' ').slice(0, 2).join(' ')
   if (selectedSessionPreset.value === '4') {
     const start = schedule.start_time ? schedule.start_time.slice(0, 5) : ''
