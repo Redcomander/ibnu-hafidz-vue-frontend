@@ -101,41 +101,56 @@
           </thead>
 
           <tbody>
-            <tr v-for="slot in timeSlots" :key="slot" v-if="shouldRenderTimeRow(slot)" class="align-top">
+            <tr v-for="timeSlot in timeSlots" :key="timeSlot" v-if="shouldRenderTimeRow(timeSlot)" class="align-top">
               <th class="sticky left-0 z-10 border-r border-b border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                {{ getSessionRowLabel(slot) }}
+                {{ getSessionRowLabel(timeSlot) }}
               </th>
 
-              <template v-for="kelas in classList" :key="`${kelas.id}-${slot}`">
+              <template v-for="kelas in classList" :key="`${kelas.id}-${timeSlot}`">
                 <td
-                  v-if="shouldRenderCell(kelas.id, slot)"
-                  :rowspan="getCellRowspan(kelas.id, slot)"
-                  class="border-b border-r border-slate-200 p-2 align-middle dark:border-slate-700"
+                  v-if="shouldRenderCell(kelas.id, timeSlot)"
+                  :rowspan="getCellRowspan(kelas.id, timeSlot)"
+                  class="border-b border-r border-slate-200 p-1.5 align-middle dark:border-slate-700"
                 >
-                  <button
-                    type="button"
-                    @click="openEditor(kelas.id, slot)"
-                    class="flex h-full min-h-[84px] w-full items-center justify-center rounded-2xl border p-2 text-center transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-slate-800/80"
-                    :class="getCellClasses(kelas.id, slot)"
-                  >
-                    <div class="flex w-full flex-col items-center justify-center text-center">
-                      <template v-if="getCellEntry(kelas.id, slot)">
-                        <span
-                          class="text-[10px] font-semibold uppercase tracking-[0.2em]"
-                          :class="isCellConflict(kelas.id, slot) ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'"
-                        >
-                          {{ isCellConflict(kelas.id, slot) ? 'Bentrok' : getCellModeBadge(getCellEntry(kelas.id, slot)) }}
-                        </span>
-                        <span class="mt-2 text-sm font-bold leading-snug text-slate-800 dark:text-slate-100">{{ getCellShortLabel(getCellEntry(kelas.id, slot)) }}</span>
-                        <span class="mt-1 text-[11px] text-slate-500 dark:text-slate-300">{{ getCellTeacherName(getCellEntry(kelas.id, slot)) }}</span>
-                      </template>
-                      <template v-else>
-                        <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Kosong</span>
-                        <span class="mt-2 text-sm font-semibold text-slate-500 dark:text-slate-300">Assign jadwal</span>
-                        <span class="mt-1 text-[11px] text-slate-400 dark:text-slate-500">Klik untuk pilih guru & mapel</span>
-                      </template>
+                  <div class="relative">
+                    <button
+                      type="button"
+                      @click="openEditor(kelas.id, timeSlot)"
+                      class="flex h-full min-h-[72px] w-full items-center justify-center rounded-2xl border p-2 text-center transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:border-emerald-600 dark:hover:bg-slate-800/80"
+                      :class="getCellClasses(kelas.id, timeSlot)"
+                    >
+                      <div class="flex w-full flex-col items-center justify-center text-center">
+                        <template v-if="getCellEntry(kelas.id, timeSlot)">
+                          <span
+                            class="text-[9px] font-semibold uppercase tracking-[0.18em]"
+                            :class="isCellConflict(kelas.id, timeSlot) ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'"
+                          >
+                            {{ isCellConflict(kelas.id, timeSlot) ? 'Bentrok' : getCellModeBadge(getCellEntry(kelas.id, timeSlot)) }}
+                          </span>
+                          <span class="mt-1.5 text-sm font-bold leading-snug text-slate-800 dark:text-slate-100">{{ getCellShortLabel(getCellEntry(kelas.id, timeSlot)) }}</span>
+                          <span class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-300">{{ getCellTeacherName(getCellEntry(kelas.id, timeSlot)) }}</span>
+                        </template>
+                        <template v-else>
+                          <span class="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Kosong</span>
+                          <span class="mt-1.5 text-sm font-semibold text-slate-500 dark:text-slate-300">Assign</span>
+                          <span class="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">Klik untuk edit</span>
+                        </template>
+                      </div>
+                    </button>
+
+                    <div
+                      v-if="getCellEntry(kelas.id, timeSlot)"
+                      class="absolute bottom-1.5 right-1.5 flex items-center gap-1"
+                    >
+                      <button
+                        type="button"
+                        @click.stop="openQuickEdit(kelas.id, timeSlot, 'teacher')"
+                        class="rounded-md border border-slate-300 bg-white/90 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-700 shadow-sm transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+                      >
+                        Guru
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 </td>
               </template>
             </tr>
@@ -148,26 +163,59 @@
       Memuat daftar kelas...
     </div>
 
-    <Modal :show="editorOpen" title="Assign Jadwal" max-width="lg" @close="editorOpen = false">
+    <Modal :show="editorOpen" :title="editor.scheduleId ? 'Edit Lesson Kelas Guru' : 'Assign Jadwal'" max-width="lg" @close="editorOpen = false">
       <div v-if="editor.classId" class="space-y-5">
         <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Slot</div>
+          <div class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Kelas & Slot</div>
           <div class="mt-1 text-base font-bold text-slate-800">
             {{ formatKelasLabel(getKelasById(editor.classId)) }} · {{ editor.startTime }} - {{ editor.endTime }}
           </div>
         </div>
 
-        <div>
+        <div class="grid gap-3 md:grid-cols-2">
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Mapel</div>
+            <div class="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ getCurrentAssignmentLessonName(editor.classId, editor.startTime) || 'Belum ditentukan' }}
+            </div>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Hari</div>
+            <div class="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
+              {{ selectedDay }}
+            </div>
+          </div>
+        </div>
+
+        <div v-if="editor.quickEdit">
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Ganti Guru</label>
+          <SearchableSelect
+            v-model="editor.teacherId"
+            :options="quickEditOptions"
+            label-key="name"
+            value-key="id"
+            :placeholder="quickEditOptions.length ? 'Pilih guru...' : 'Tidak ada guru untuk mapel ini'"
+            :disabled="!quickEditOptions.length"
+          />
+        </div>
+
+        <div v-else>
           <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Mapel & Guru</label>
           <SearchableSelect
             v-model="editor.assignmentId"
             :options="assignmentOptions"
-            :placeholder="assignmentOptions.length ? 'Pilih mapel dan guru...' : 'Belum ada assignment untuk kelas ini'"
+            label-key="name"
+            value-key="id"
+            :placeholder="assignmentOptions.length ? 'Pilih mapel & guru...' : 'Belum ada mapel untuk kelas ini'"
             :disabled="!assignmentOptions.length"
           />
         </div>
 
-        <div>
+        <div v-if="editor.quickEdit" class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+          Pengubahan guru hanya akan mengganti pengajar untuk lesson-kelas-teacher yang sama.
+        </div>
+
+        <div v-if="!editor.quickEdit">
           <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Session</label>
           <select v-model="editor.sessionKey" class="input-field w-full">
             <option v-for="session in sessionOptions" :key="session.value" :value="session.value">
@@ -188,7 +236,7 @@
           <button type="button" @click="editorOpen = false" class="btn-secondary">
             Batal
           </button>
-          <button type="button" @click="saveEditor" :disabled="!editor.assignmentId || saving" class="btn-primary">
+          <button type="button" @click="saveEditor" :disabled="saving || (!editor.assignmentId || (editor.quickEdit && !editor.teacherId))" class="btn-primary">
             {{ saving ? 'Menyimpan...' : editor.scheduleId ? 'Update Jadwal' : 'Simpan Jadwal' }}
           </button>
         </div>
@@ -265,6 +313,7 @@ const sessionOptions = computed(() => {
 
 const classList = ref([])
 const assignmentsByClass = ref({})
+const allTeachers = ref([])
 const selectedType = ref('formal')
 const selectedDay = ref(getCurrentDayName())
 const selectedDate = ref(getDateForDayName(getCurrentDayName()))
@@ -273,10 +322,13 @@ const saving = ref(false)
 const editor = ref({
   classId: null,
   assignmentId: null,
+  teacherId: null,
   scheduleId: null,
   sessionKey: '',
   startTime: '07:00',
   endTime: '08:00',
+  quickEdit: false,
+  quickField: null,
 })
 
 watch(selectedDay, () => {
@@ -377,6 +429,19 @@ const assignmentOptions = computed(() => {
     id: assignment.id,
     name: `${assignment.lesson?.name || assignment.diniyyah_lesson?.name || 'Mapel'} — ${assignment.teacher?.name || assignment.user?.name || 'Guru belum diatur'}`,
   }))
+})
+
+const quickEditOptions = computed(() => {
+  if (!allTeachers.value.length) return []
+
+  const uniqueTeachers = new Map()
+  for (const teacher of allTeachers.value) {
+    if (!teacher || !teacher.id) continue
+    const name = teacher.name || teacher.full_name || 'Guru belum diatur'
+    uniqueTeachers.set(String(teacher.id), { id: teacher.id, name })
+  }
+
+  return [...uniqueTeachers.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), 'id'))
 })
 
 function getSessionEndTime(startTime) {
@@ -526,6 +591,12 @@ function getCellTeacherName(schedule) {
   return schedule.assignment?.teacher?.name || schedule.assignment?.user?.name || 'Guru belum diatur'
 }
 
+function getCurrentAssignmentLessonName(classId, startTime) {
+  const entry = getCellEntry(classId, startTime)
+  if (!entry) return ''
+  return entry.assignment?.lesson?.name || entry.assignment?.diniyyah_lesson?.name || 'Mapel'
+}
+
 function isMergedSessionEntry(entry) {
   if (!entry) return false
   const start = entry.start_time ? entry.start_time.slice(0, 5) : ''
@@ -610,6 +681,17 @@ async function fetchAssignmentsForClass(classId) {
   }
 }
 
+async function fetchTeachers() {
+  try {
+    const response = await api.get('/users', { params: { role: 'guru', per_page: 500 } })
+    const users = response.data?.data || response.data || []
+    allTeachers.value = Array.isArray(users) ? users : []
+  } catch (error) {
+    console.error('Failed to fetch teachers:', error)
+    allTeachers.value = []
+  }
+}
+
 async function loadAssignmentsForAllClasses() {
   if (!classList.value.length) return
   await Promise.all(classList.value.map((kelas) => fetchAssignmentsForClass(kelas.id)))
@@ -627,7 +709,7 @@ async function refreshSchedules() {
   }
 }
 
-async function openEditor(classId, startTime) {
+async function openEditor(classId, startTime, isQuickEdit = false) {
   const existingEntry = getCellEntry(classId, startTime)
   const assignmentList = assignmentsByClass.value[classId] || []
 
@@ -637,27 +719,65 @@ async function openEditor(classId, startTime) {
 
   const sessionMatch = sessionOptions.value.find((option) => option.startTime === (existingEntry?.start_time || startTime).slice(0, 5) && option.endTime === (existingEntry?.end_time || nextSlotTime(startTime)).slice(0, 5))
 
+  const currentAssignmentId = existingEntry?.assignment?.id || existingEntry?.lesson_teacher_id || null
+  const currentTeacherId = existingEntry?.assignment?.teacher?.id || existingEntry?.assignment?.user?.id || null
+
   editor.value = {
     classId,
-    assignmentId: existingEntry?.assignment?.id || existingEntry?.lesson_teacher_id || null,
+    assignmentId: currentAssignmentId,
+    teacherId: currentTeacherId,
     scheduleId: existingEntry?.id || null,
     sessionKey: sessionMatch?.value || sessionOptions.value[0]?.value || '',
     startTime: existingEntry?.start_time ? existingEntry.start_time.slice(0, 5) : startTime,
     endTime: existingEntry?.end_time ? existingEntry.end_time.slice(0, 5) : nextSlotTime(startTime),
+    quickEdit: isQuickEdit,
+    quickField: null,
   }
 
   editorOpen.value = true
 }
 
-async function saveEditor() {
-  if (!editor.value.classId || !editor.value.assignmentId) {
-    toast.error('Pilih mapel dan guru terlebih dahulu')
-    return
+async function openQuickEdit(classId, startTime, field) {
+  await openEditor(classId, startTime, true)
+  editor.value.quickField = field
+  const currentEntry = getCellEntry(classId, startTime)
+  const currentAssignmentId = currentEntry?.assignment?.id || currentEntry?.lesson_teacher_id || null
+  const currentTeacherId = currentEntry?.assignment?.teacher?.id || currentEntry?.assignment?.user?.id || null
+  if (currentAssignmentId) {
+    editor.value.assignmentId = currentAssignmentId
   }
+  if (currentTeacherId) {
+    editor.value.teacherId = currentTeacherId
+  }
+}
 
+async function saveEditor() {
   saving.value = true
 
   try {
+    if (editor.value.quickEdit) {
+      if (!editor.value.assignmentId) {
+        toast.error('Tidak ada relasi mapel-kelas yang aktif untuk slot ini')
+        return
+      }
+      if (!editor.value.teacherId) {
+        toast.error('Pilih guru baru terlebih dahulu')
+        return
+      }
+
+      await lessonTeacherStore.updateAssignmentTeacher(editor.value.assignmentId, editor.value.teacherId, selectedType.value)
+      toast.success('Guru berhasil diganti')
+      editorOpen.value = false
+      await fetchAssignmentsForClass(editor.value.classId)
+      await refreshSchedules()
+      return
+    }
+
+    if (!editor.value.classId || !editor.value.assignmentId) {
+      toast.error('Pilih mapel dan guru terlebih dahulu')
+      return
+    }
+
     const selectedSession = getSessionOptionByKey(editor.value.sessionKey)
     const payload = {
       type: selectedType.value,
@@ -699,6 +819,7 @@ async function deleteCurrentSchedule() {
 
 onMounted(async () => {
   await fetchClasses()
+  await fetchTeachers()
   await loadAssignmentsForAllClasses()
   await refreshSchedules()
 })

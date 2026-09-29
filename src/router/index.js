@@ -170,6 +170,12 @@ const routes = [
         meta: { title: 'Jadwal Builder' },
       },
       {
+        path: 'jadwal-trash',
+        name: 'schedule-trash',
+        component: () => import('@/views/academic/ScheduleTrash.vue'),
+        meta: { title: 'Tong Sampah Jadwal' },
+      },
+      {
         path: 'jadwal-ramadhan',
         name: 'schedule-ramadhan',
         component: () => import('@/views/academic/ScheduleList.vue'),

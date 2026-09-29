@@ -472,6 +472,14 @@ const navItems = [
     menuKey: 'jadwal_builder',
   },
   {
+    to: "/dashboard/jadwal-trash",
+    icon: "trash",
+    label: "Tong Sampah Jadwal",
+    permission: null,
+    activeOn: ["/dashboard/jadwal-trash"],
+    menuKey: 'jadwal_trash',
+  },
+  {
     to: "/dashboard/jadwal-ramadhan",
     icon: "clock",
     label: "Jadwal Formal Ramadhan",

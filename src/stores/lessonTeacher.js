@@ -41,6 +41,18 @@ export const useLessonTeacherStore = defineStore('lessonTeacher', {
             }
         },
 
+        async updateAssignmentTeacher(assignmentId, teacherId, type = 'formal') {
+            this.loading = true;
+            try {
+                await api.put(`/lessons/assignments/${assignmentId}`, { teacher_id: teacherId, type });
+            } catch (err) {
+                this.error = err.response?.data?.error || 'Failed to update teacher';
+                throw err;
+            } finally {
+                this.loading = false;
+            }
+        },
+
         async unassignTeacher(assignmentId, type = 'formal') {
             this.loading = true;
             try {
