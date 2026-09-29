@@ -548,9 +548,24 @@ function sortKelasList(items = []) {
   })
 }
 
+function getKelasGenderLabel(gender) {
+  if (!gender) return ''
+  if (String(gender).toLowerCase() === 'banin') return 'Banin'
+  if (String(gender).toLowerCase() === 'banat') return 'Banat'
+  return ''
+}
+
 function formatKelasLabel(kelas) {
   if (!kelas) return ''
-  return `${kelas.nama || ''} ${kelas.tingkat || ''}`.trim()
+
+  const className = `${kelas.nama || kelas.kelas_nama || ''}`.trim()
+  const tingkat = `${kelas.tingkat || kelas.kelas_tingkat || ''}`.trim()
+  const genderText = getKelasGenderLabel(kelas.gender || kelas.kelas_gender)
+
+  const parts = [className, tingkat].filter(Boolean)
+  const label = parts.join(' ')
+
+  return genderText ? `${label} • ${genderText}` : label
 }
 
 function getKelasById(classId) {
