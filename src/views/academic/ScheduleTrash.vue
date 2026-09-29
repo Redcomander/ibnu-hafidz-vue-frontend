@@ -13,11 +13,21 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <select v-model="selectedType" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
           <option value="formal">Formal</option>
           <option value="diniyyah">Diniyyah</option>
         </select>
+
+        <div class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <label for="rows-per-page" class="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">Tampilkan</label>
+          <select id="rows-per-page" v-model="rowsPerPage" class="rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+            <option :value="5">5</option>
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -53,8 +63,8 @@
                   <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
                     <input
                       type="checkbox"
-                      :checked="selectedIds.length === items.length && items.length > 0"
-                      :indeterminate="selectedIds.length > 0 && selectedIds.length < items.length"
+                      :checked="paginatedItems.length > 0 && paginatedItems.every((item) => selectedIds.includes(item.id))"
+                      :indeterminate="selectedIds.length > 0 && !paginatedItems.every((item) => selectedIds.includes(item.id)) && paginatedItems.some((item) => selectedIds.includes(item.id))"
                       @change="toggleSelectAll"
                       class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                     />
@@ -69,7 +79,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-900">
-                <tr v-for="item in items" :key="item.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                <tr v-for="item in paginatedItems" :key="item.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                   <td class="px-3 py-3">
                     <input
                       type="checkbox"
@@ -110,6 +120,49 @@
               </tbody>
             </table>
           </div>
+
+          <div class="flex flex-col gap-3 border-t border-slate-200 px-3 py-3 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+            <div class="text-sm text-slate-500 dark:text-slate-400">
+              Menampilkan {{ paginatedItems.length ? (currentPage - 1) * rowsPerPage + 1 : 0 }}-{{ Math.min(currentPage * rowsPerPage, items.length) }} dari {{ items.length }} data
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                @click="currentPage = Math.max(1, currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Prev
+              </button>
+
+              <div class="flex items-center gap-1">
+                <button
+                  v-for="page in pageNumbers"
+                  :key="page"
+                  type="button"
+                  @click="currentPage = page"
+                  :class="[
+                    'min-w-9 rounded-lg border px-2.5 py-1.5 text-sm font-medium transition',
+                    page === currentPage
+                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                      : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                  ]"
+                >
+                  {{ page }}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                :disabled="currentPage === totalPages"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -128,7 +181,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import api from '@/api';
 import SvgIcon from '@/components/ui/SvgIcon.vue';
 import ConfirmModal from '@/components/ui/ConfirmModal.vue';
@@ -139,6 +192,31 @@ const items = ref([]);
 const loading = ref(true);
 const selectedType = ref('formal');
 const selectedIds = ref([]);
+const rowsPerPage = ref(10);
+const currentPage = ref(1);
+
+const totalPages = computed(() => Math.max(1, Math.ceil(items.value.length / rowsPerPage.value)));
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * rowsPerPage.value;
+  const end = start + rowsPerPage.value;
+  return items.value.slice(start, end);
+});
+const pageNumbers = computed(() => {
+  const pages = [];
+  const maxVisible = 5;
+  let startPage = Math.max(1, currentPage.value - Math.floor(maxVisible / 2));
+  let endPage = Math.min(totalPages.value, startPage + maxVisible - 1);
+
+  if (endPage - startPage + 1 < maxVisible) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  for (let page = startPage; page <= endPage; page++) {
+    pages.push(page);
+  }
+
+  return pages;
+});
 
 const showConfirmModal = ref(false);
 const actionType = ref('');
@@ -174,11 +252,11 @@ function toggleSelect(id) {
 
 function toggleSelectAll(event) {
   if (event.target.checked) {
-    selectedIds.value = items.value.map((item) => item.id);
+    selectedIds.value = [...new Set([...selectedIds.value, ...paginatedItems.value.map((item) => item.id)])];
     return;
   }
 
-  selectedIds.value = [];
+  selectedIds.value = selectedIds.value.filter((id) => !paginatedItems.value.some((item) => item.id === id));
 }
 
 function confirmBulkRestore() {
@@ -212,7 +290,19 @@ onMounted(() => {
 });
 
 watch(selectedType, () => {
+  currentPage.value = 1;
   fetchTrashed();
+});
+
+watch(rowsPerPage, () => {
+  currentPage.value = 1;
+});
+
+watch(currentPage, () => {
+  const lastPage = totalPages.value;
+  if (currentPage.value > lastPage) {
+    currentPage.value = lastPage;
+  }
 });
 
 function formatDateTime(dateStr) {
