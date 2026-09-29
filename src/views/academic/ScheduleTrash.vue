@@ -365,16 +365,12 @@ async function handleConfirmAction() {
   try {
     if (actionType.value === 'bulk_restore') {
       const selectedItems = items.value.filter((item) => selectedIds.value.includes(item.id));
-      for (const item of selectedItems) {
-        await api.put(`/schedules/${item.id}/restore`, {}, { params: { type: selectedType.value } });
-      }
+      await api.post('/schedules/bulk-restore', { ids: selectedItems.map((item) => item.id) }, { params: { type: selectedType.value } });
       toast.success(`${selectedItems.length} jadwal berhasil dikembalikan`);
       selectedIds.value = [];
     } else if (actionType.value === 'bulk_force_delete') {
       const selectedItems = items.value.filter((item) => selectedIds.value.includes(item.id));
-      for (const item of selectedItems) {
-        await api.delete(`/schedules/${item.id}/force`, { params: { type: selectedType.value } });
-      }
+      await api.post('/schedules/bulk-force-delete', { ids: selectedItems.map((item) => item.id) }, { params: { type: selectedType.value } });
       toast.success(`${selectedItems.length} jadwal berhasil dihapus permanen`);
       selectedIds.value = [];
     } else if (selectedItem.value) {
