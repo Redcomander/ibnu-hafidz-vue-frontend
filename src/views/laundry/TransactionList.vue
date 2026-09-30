@@ -370,22 +370,13 @@ async function handleDelete() {
   }
 }
 
-function handleSaved(savedDate) {
+function handleSaved() {
   selectedTransaction.value = null;
-
-  if (savedDate) {
-    const date = new Date(`${savedDate}T00:00:00`);
-    if (!Number.isNaN(date.getTime())) {
-      const from = new Date(date);
-      from.setDate(date.getDate() - 7);
-      const to = new Date(date);
-      to.setDate(date.getDate() + 7);
-
-      filters.date_from = from.toISOString().split('T')[0];
-      filters.date_to = to.toISOString().split('T')[0];
-    }
-  }
-
+  search.value = "";
+  filters.status = "";
+  filters.date_from = "";
+  filters.date_to = "";
+  meta.page = 1;
   fetchData();
 }
 </script>
