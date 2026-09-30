@@ -441,7 +441,7 @@ async function saveTransaction() {
       await api.post("/laundry/transactions", payload);
       toast.success("Transaksi berhasil ditambahkan");
     }
-    emit("saved");
+    emit("saved", form.value.tanggal);
     closeModal();
   } catch (err) {
     console.error(err);
