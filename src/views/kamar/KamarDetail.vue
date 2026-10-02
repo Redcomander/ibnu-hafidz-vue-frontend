@@ -4,7 +4,7 @@
       <div>
         <div class="flex items-center gap-2 mb-1">
           <router-link
-            to="/kamar"
+            to="/dashboard/kamar"
             class="text-gray-500 hover:text-primary transition flex items-center gap-1 text-sm"
           >
             <SvgIcon name="chevron-left" :size="16" />
