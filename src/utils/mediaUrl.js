@@ -8,7 +8,14 @@ export function normalizePublicMediaUrl(path, fallback = '/welcome2.JPG') {
     return value
   }
 
-  if (value.startsWith('/')) return value
+  const normalized = value.replace(/\\/g, '/').replace(/^\.+\//, '').replace(/^\/+/, '')
 
-  return '/' + value.replace(/^\/+/, '')
+  if (!normalized) return fallback
+
+  if (normalized.startsWith('uploads/')) return `/${normalized}`
+  if (normalized.startsWith('avatars/')) return `/uploads/${normalized}`
+  if (normalized.startsWith('gallery/')) return `/uploads/${normalized}`
+  if (normalized.startsWith('files/')) return `/uploads/${normalized}`
+
+  return `/uploads/${normalized}`
 }

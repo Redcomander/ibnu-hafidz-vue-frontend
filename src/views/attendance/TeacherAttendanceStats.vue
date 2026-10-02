@@ -138,7 +138,7 @@
                 <td class="px-4 py-3 text-gray-400 text-xs">{{ i + 1 }}</td>
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-2">
-                    <img v-if="t.avatar" :src="t.avatar" class="w-6 h-6 rounded-full bg-gray-100 object-cover" />
+                    <img v-if="t.avatar" :src="getAvatarUrl(t.avatar)" class="w-6 h-6 rounded-full bg-gray-100 object-cover" />
                     <div v-else class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary italic">
                       {{ t.name.charAt(0) }}
                     </div>
@@ -443,6 +443,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import { confirmDelete } from '@/utils/confirmDialog'
+import { normalizePublicMediaUrl } from '@/utils/mediaUrl'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 
@@ -457,6 +458,7 @@ const isRamadhan = computed(() => route.name === 'attendance-guru-ramadhan')
 const attendanceType = computed(() => isDiniyyah.value ? 'diniyyah' : isRamadhan.value ? 'ramadhan' : 'formal')
 const attendanceTypeLabel = computed(() => isDiniyyah.value ? 'diniyyah' : isRamadhan.value ? 'ramadhan' : 'formal')
 const title = computed(() => route.meta.title || 'Rekapan Kehadiran Guru')
+const getAvatarUrl = (value) => normalizePublicMediaUrl(value, '')
 
 const loading = ref(false)
 const exporting = ref(null)
