@@ -93,6 +93,13 @@
               </td>
               <td class="text-right">
                 <div class="flex items-center justify-end gap-2">
+                  <router-link
+                    :to="`/kamar/${item.id}`"
+                    class="text-gray-500 hover:text-primary transition text-sm px-2 py-1 rounded hover:bg-gray-100"
+                    title="Detail Kamar"
+                  >
+                    <SvgIcon name="eye" :size="16" />
+                  </router-link>
                   <button
                     v-if="auth.hasPermission('kamar.edit')"
                     @click="openMembersModal(item)"
@@ -152,7 +159,14 @@
                 {{ item.kapasitas }} Orang
               </span>
             </div>
-            <div class="flex justify-end gap-2 mt-3">
+            <div class="flex justify-end gap-2 mt-3 flex-wrap">
+              <router-link
+                :to="`/kamar/${item.id}`"
+                class="text-gray-600 hover:text-primary text-sm px-3 py-1.5 bg-gray-100 rounded-md flex items-center gap-1"
+              >
+                <SvgIcon name="eye" :size="14" />
+                Detail
+              </router-link>
               <button
                 v-if="auth.hasPermission('kamar.edit')"
                 @click="openMembersModal(item)"

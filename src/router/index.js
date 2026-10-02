@@ -139,6 +139,12 @@ const routes = [
         meta: { permission: 'kamar.view', title: 'Data Kamar' },
       },
       {
+        path: 'kamar/:id',
+        name: 'kamar-detail',
+        component: () => import('@/views/kamar/KamarDetail.vue'),
+        meta: { permission: 'kamar.view', title: 'Detail Kamar' },
+      },
+      {
         path: 'kelas',
         name: 'kelas',
         component: () => import('@/views/kelas/KelasList.vue'),
