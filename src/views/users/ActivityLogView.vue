@@ -2,8 +2,8 @@
   <div class="space-y-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <h1 class="text-2xl font-bold text-primary-dark tracking-tight">Log Aktivitas</h1>
-        <p class="text-sm text-gray-500 mt-1">Riwayat aktivitas pengguna berdasarkan request API.</p>
+        <h1 class="text-2xl font-bold text-primary-dark tracking-tight">{{ pageTitle }}</h1>
+        <p class="text-sm text-gray-500 mt-1">{{ pageDescription }}</p>
       </div>
       <button @click="fetchLogs" class="btn-secondary px-4 py-2">Refresh</button>
     </div>
@@ -76,13 +76,19 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '@/api';
 import { useToastStore } from '@/stores/toast';
 
+const route = useRoute();
 const toast = useToastStore();
 const loading = ref(false);
 const isFetching = ref(false);
+const pageTitle = computed(() => route.name === 'request-logs' ? 'Log Request Sistem' : 'Log Aktivitas');
+const pageDescription = computed(() => route.name === 'request-logs'
+  ? 'Semua request API yang masuk ke sistem untuk keperluan audit dan keamanan.'
+  : 'Riwayat aktivitas pengguna berdasarkan request API.');
 const logs = ref([]);
 const meta = reactive({ page: 1, per_page: 20, total_pages: 1, total: 0 });
 const filters = reactive({ search: '', method: '', user_name: '' });

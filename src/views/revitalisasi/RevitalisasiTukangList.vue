@@ -50,10 +50,14 @@
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm text-gray-600">
           <div class="rounded-xl bg-gray-50 p-2.5">
             <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">HP</p>
             <p class="mt-1 font-medium">{{ item.phone || '-' }}</p>
+          </div>
+          <div class="rounded-xl bg-gray-50 p-2.5">
+            <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Gaji Harian</p>
+            <p class="mt-1 font-medium">{{ formatRupiah(item.gaji_harian) }}</p>
           </div>
           <div class="rounded-xl bg-gray-50 p-2.5">
             <p class="text-[10px] uppercase tracking-[0.2em] text-gray-400">Keterangan</p>
@@ -95,6 +99,10 @@
           <div>
             <label class="label-field">Area kerja</label>
             <input v-model="form.area" type="text" class="input-field" placeholder="Contoh: Gedung Utama" />
+          </div>
+          <div>
+            <label class="label-field">Gaji harian</label>
+            <input :value="formatRupiahDisplay(form.gaji_harian)" @input="handleCurrencyInput('gaji_harian', $event)" type="text" inputmode="numeric" class="input-field" placeholder="Rp 0" />
           </div>
           <div>
             <label class="label-field">Nomor HP</label>
@@ -141,6 +149,7 @@ const form = ref({
   name: '',
   divisi: '',
   area: '',
+  gaji_harian: 0,
   phone: '',
   note: '',
   is_active: true,
@@ -160,6 +169,23 @@ function formatDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function formatRupiah(value) {
+  const number = Number(value || 0)
+  if (!Number.isFinite(number)) return 'Rp 0'
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
+}
+
+function formatRupiahDisplay(value) {
+  const number = Number(String(value || 0).replace(/\D/g, '')) || 0
+  if (!number) return ''
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number)
+}
+
+function handleCurrencyInput(field, event) {
+  const digits = String(event.target.value).replace(/\D/g, '')
+  form.value[field] = digits ? Number(digits) : 0
 }
 
 async function loadData() {
@@ -183,6 +209,7 @@ function openCreateModal() {
     name: '',
     divisi: '',
     area: '',
+    gaji_harian: 0,
     phone: '',
     note: '',
     is_active: true,

@@ -127,6 +127,12 @@ const routes = [
         meta: { permission: 'users.view', title: 'Log Aktivitas Pengguna' },
       },
       {
+        path: 'request-logs',
+        name: 'request-logs',
+        component: () => import('@/views/users/ActivityLogView.vue'),
+        meta: { roles: ['super_admin'], title: 'Log Request Sistem' },
+      },
+      {
         path: 'roles',
         name: 'roles',
         component: () => import('@/views/roles/RoleList.vue'),

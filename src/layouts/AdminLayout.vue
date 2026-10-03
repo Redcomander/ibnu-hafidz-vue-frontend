@@ -821,6 +821,14 @@ const navItems = [
     permission: "roles.view",
   },
   {
+    to: "/dashboard/request-logs",
+    icon: "clock",
+    label: "Log Request Sistem",
+    roles: ['super_admin'],
+    menuKey: 'request_logs',
+    activeOn: ["/dashboard/request-logs"],
+  },
+  {
     to: "/dashboard/settings",
     icon: "settings",
     label: "Pengaturan",

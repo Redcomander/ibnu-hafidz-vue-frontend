@@ -125,6 +125,34 @@
       </form>
     </div>
 
+    <div v-if="!isSidebarSettingsPage" class="glass-card p-6 rounded-xl border border-gray-100">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-800">Riwayat Login Perangkat</h2>
+          <p class="text-sm text-gray-500 mt-1">Login terakhir dari perangkat yang Anda pakai.</p>
+        </div>
+        <button type="button" class="btn-secondary px-3 py-2" :disabled="loadingDeviceLoginHistory" @click="fetchDeviceLoginHistory">
+          {{ loadingDeviceLoginHistory ? 'Memuat...' : 'Refresh' }}
+        </button>
+      </div>
+
+      <div v-if="loadingDeviceLoginHistory" class="text-sm text-gray-500">Memuat riwayat login perangkat...</div>
+      <div v-else-if="deviceLoginHistory.length === 0" class="text-sm text-gray-500">Belum ada riwayat login tersimpan.</div>
+      <div v-else class="space-y-3">
+        <div v-for="entry in deviceLoginHistory" :key="entry.id" class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <div class="font-medium text-gray-800">{{ entry.device_name || 'Perangkat tidak diketahui' }}</div>
+            <span v-if="entry.is_current" class="badge badge-success">Perangkat saat ini</span>
+          </div>
+          <div class="mt-2 text-xs text-gray-500 space-y-1">
+            <p>IP: {{ entry.ip_address || '-' }}</p>
+            <p>Login: {{ formatDate(entry.created_at) }}</p>
+            <p v-if="entry.user_agent" class="break-all">User-Agent: {{ entry.user_agent }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="!isSidebarSettingsPage" class="glass-card p-6 rounded-xl border border-red-200">
       <h2 class="text-lg font-semibold text-red-600 mb-2">Zona Berbahaya</h2>
       <p class="text-sm text-gray-600 mb-4">
@@ -200,6 +228,8 @@ const avatarVersion = ref(0);
 const sidebarMenuSettings = ref([]);
 const loadingSidebarSettings = ref(false);
 const savingSidebarSettings = ref(false);
+const deviceLoginHistory = ref([]);
+const loadingDeviceLoginHistory = ref(false);
 
 const form = reactive({
   name: '',
@@ -234,6 +264,11 @@ const fillFromAuth = () => {
   form.new_password = '';
 };
 
+function formatDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('id-ID');
+}
+
 const avatarPreviewUrl = computed(() => {
   const raw = auth.user?.foto_guru;
   if (!raw) return '';
@@ -264,6 +299,7 @@ onMounted(async () => {
   fillFromAuth();
   if (!isSidebarSettingsPage.value) {
     await fetchRamadhanFlag();
+    await fetchDeviceLoginHistory();
   }
   if (isSuperAdmin.value) {
     await loadSidebarSettings();
@@ -276,12 +312,27 @@ watch(
     fillFromAuth();
     if (!isSidebarSettingsPage.value) {
       await fetchRamadhanFlag();
+      await fetchDeviceLoginHistory();
     }
     if (isSuperAdmin.value && sidebarMenuSettings.value.length === 0) {
       await loadSidebarSettings();
     }
   },
 );
+
+async function fetchDeviceLoginHistory() {
+  if (isSidebarSettingsPage.value) return;
+  loadingDeviceLoginHistory.value = true;
+  try {
+    const { data } = await api.get('/profile/device-login-history');
+    deviceLoginHistory.value = data?.data || [];
+  } catch (e) {
+    deviceLoginHistory.value = [];
+    toast.error(e.response?.data?.message || 'Gagal memuat riwayat login perangkat');
+  } finally {
+    loadingDeviceLoginHistory.value = false;
+  }
+}
 
 async function loadSidebarSettings() {
   loadingSidebarSettings.value = true;
