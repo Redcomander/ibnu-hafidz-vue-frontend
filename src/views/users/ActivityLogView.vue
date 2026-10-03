@@ -32,12 +32,14 @@
             <th>Path</th>
             <th>Status</th>
             <th>IP</th>
+            <th>Device</th>
+            <th>Country</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="item in logs" :key="item.id">
             <td class="text-gray-700">{{ formatDate(item.created_at) }}</td>
-            <td class="font-medium">{{ item.user?.name || ('User #' + item.user_id) }}</td>
+            <td class="font-medium">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }}</td>
             <td>
               <span class="badge" :class="methodClass(item.method)">{{ item.method }}</span>
             </td>
@@ -48,9 +50,11 @@
               </span>
             </td>
             <td class="text-gray-500">{{ item.ip_address || '-' }}</td>
+            <td class="text-gray-500">{{ item.device_name || item.user_agent ? (item.device_name || 'Browser') : '-' }}</td>
+            <td class="text-gray-500 uppercase">{{ item.country_code || '-' }}</td>
           </tr>
           <tr v-if="logs.length === 0">
-            <td colspan="6" class="text-center py-8 text-gray-400">Belum ada data log.</td>
+            <td colspan="8" class="text-center py-8 text-gray-400">Belum ada data log.</td>
           </tr>
         </tbody>
       </table>
@@ -58,8 +62,8 @@
       <div v-if="!loading" class="md:hidden p-4 space-y-3">
         <div v-for="item in logs" :key="item.id" class="border border-gray-100 rounded-lg p-3 bg-gray-50/50 space-y-1">
           <div class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</div>
-          <div class="font-medium">{{ item.user?.name || ('User #' + item.user_id) }} · {{ item.method }} {{ item.path }}</div>
-          <div class="text-xs text-gray-500">Status {{ item.status_code }} · IP {{ item.ip_address || '-' }}</div>
+          <div class="font-medium">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }} · {{ item.method }} {{ item.path }}</div>
+          <div class="text-xs text-gray-500">Status {{ item.status_code }} · IP {{ item.ip_address || '-' }} · {{ item.device_name || 'Perangkat tidak diketahui' }} · {{ item.country_code || 'Unknown' }}</div>
         </div>
         <div v-if="logs.length === 0" class="text-center text-gray-400 py-6">Belum ada data log.</div>
       </div>
