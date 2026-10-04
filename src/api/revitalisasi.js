@@ -7,6 +7,14 @@ export async function fetchRevitalisasiTukang(params = {}) {
   return data
 }
 
+export async function exportRevitalisasiPayrollReport(format = 'excel', params = {}) {
+  const response = await api.get(`${base}/export/gaji/${format}`, {
+    params,
+    responseType: 'blob',
+  })
+  return response
+}
+
 export async function createRevitalisasiTukang(payload) {
   const { data } = await api.post(`${base}/tukang`, payload)
   return data
@@ -19,6 +27,26 @@ export async function updateRevitalisasiTukang(id, payload) {
 
 export async function deleteRevitalisasiTukang(id) {
   const { data } = await api.delete(`${base}/tukang/${id}`)
+  return data
+}
+
+export async function fetchRevitalisasiKasbon(params = {}) {
+  const { data } = await api.get(`${base}/kasbon`, { params })
+  return data
+}
+
+export async function createRevitalisasiKasbon(payload) {
+  const { data } = await api.post(`${base}/kasbon`, payload)
+  return data
+}
+
+export async function updateRevitalisasiKasbon(id, payload) {
+  const { data } = await api.put(`${base}/kasbon/${id}`, payload)
+  return data
+}
+
+export async function deleteRevitalisasiKasbon(id) {
+  const { data } = await api.delete(`${base}/kasbon/${id}`)
   return data
 }
 
