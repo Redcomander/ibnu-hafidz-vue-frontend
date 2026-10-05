@@ -21,9 +21,9 @@
       <input v-model="filters.user_name" class="input-field !py-2 !w-auto min-w-[180px]" placeholder="Nama Pengguna" />
     </div>
 
-    <div class="glass-card overflow-hidden">
+    <div class="glass-card overflow-x-auto">
       <div v-if="loading" class="p-8 text-center text-gray-500">Memuat log aktivitas...</div>
-      <table v-else class="data-table hidden md:table">
+      <table v-else class="data-table hidden md:table min-w-[1200px]">
         <thead>
           <tr>
             <th>Waktu</th>
