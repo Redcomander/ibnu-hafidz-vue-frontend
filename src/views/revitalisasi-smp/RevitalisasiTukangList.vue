@@ -33,8 +33,40 @@
 
     <div v-if="loading" class="glass-card p-6 rounded-2xl text-sm text-gray-500">Memuat data tukang...</div>
 
-    <div v-else class="grid grid-cols-1 gap-4">
-      <div v-for="item in filteredList" :key="item.id" class="glass-card p-4 rounded-2xl">
+    <div v-else class="space-y-4">
+      <div v-if="filteredList.length" class="glass-card p-3 rounded-2xl">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div class="text-sm text-gray-600">
+            Menampilkan {{ showingStart }}-{{ showingEnd }} dari {{ filteredList.length }} data
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-600">
+            <label for="rows-per-page" class="whitespace-nowrap">Baris</label>
+            <select id="rows-per-page" v-model="rowsPerPage" class="input-field !py-2 !px-2 !text-xs !min-w-[74px]">
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center justify-center gap-1">
+          <button type="button" class="btn-secondary !px-3 !py-1.5 !text-xs disabled:opacity-40" :disabled="currentPage === 1" @click="currentPage--">Prev</button>
+          <button
+            v-for="page in pageNumbers"
+            :key="page"
+            type="button"
+            class="min-w-[36px] rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition"
+            :class="page === currentPage ? 'border-primary bg-primary text-white' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'"
+            @click="currentPage = page"
+          >
+            {{ page }}
+          </button>
+          <button type="button" class="btn-secondary !px-3 !py-1.5 !text-xs disabled:opacity-40" :disabled="currentPage >= totalPages" @click="currentPage++">Next</button>
+        </div>
+      </div>
+
+      <div v-for="item in paginatedList" :key="item.id" class="glass-card p-4 rounded-2xl">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black">
@@ -83,7 +115,7 @@
       </div>
     </div>
 
-    <div v-if="!filteredList.length && !loading" class="glass-card p-8 rounded-2xl text-center text-gray-500">
+    <div v-if="!paginatedList.length && !loading" class="glass-card p-8 rounded-2xl text-center text-gray-500">
       Belum ada data tukang.
     </div>
 
@@ -225,7 +257,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
 import {
   createRevitalisasiSmpKasbon,
@@ -242,6 +274,8 @@ const showModal = ref(false)
 const editingId = ref(null)
 const loading = ref(false)
 const list = ref([])
+const rowsPerPage = ref(10)
+const currentPage = ref(1)
 const kasbonModalOpen = ref(false)
 const selectedKasbonTukang = ref(null)
 const kasbonEntries = ref([])
@@ -268,6 +302,40 @@ const filteredList = computed(() => {
     const text = [item.name, item.divisi, item.area, item.phone, item.note].join(' ').toLowerCase()
     return text.includes(query)
   })
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredList.value.length / rowsPerPage.value)))
+const showingStart = computed(() => (filteredList.value.length ? (currentPage.value - 1) * rowsPerPage.value + 1 : 0))
+const showingEnd = computed(() => Math.min(currentPage.value * rowsPerPage.value, filteredList.value.length))
+const paginatedList = computed(() => {
+  const start = (currentPage.value - 1) * rowsPerPage.value
+  return filteredList.value.slice(start, start + rowsPerPage.value)
+})
+const pageNumbers = computed(() => {
+  const pages = []
+  const maxVisible = 5
+  let startPage = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  const endPage = Math.min(totalPages.value, startPage + maxVisible - 1)
+  startPage = Math.max(1, endPage - maxVisible + 1)
+
+  for (let page = startPage; page <= endPage; page += 1) {
+    pages.push(page)
+  }
+  return pages
+})
+
+watch(search, () => {
+  currentPage.value = 1
+})
+
+watch(rowsPerPage, () => {
+  currentPage.value = 1
+})
+
+watch(() => filteredList.value.length, () => {
+  if (currentPage.value > totalPages.value) {
+    currentPage.value = totalPages.value
+  }
 })
 
 const kasbonForm = ref({
