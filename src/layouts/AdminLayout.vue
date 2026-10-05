@@ -418,12 +418,6 @@ const navItems = [
     menuKey: 'teachers',
   },
   {
-    to: "/dashboard/users/activity-logs",
-    icon: "clock",
-    label: "Log Aktivitas",
-    permission: "users.view",
-  },
-  {
     to: "/dashboard/kelas",
     icon: "bookmark",
     label: "Kelas",

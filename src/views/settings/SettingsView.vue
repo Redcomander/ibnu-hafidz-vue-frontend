@@ -146,6 +146,7 @@
           </div>
           <div class="mt-2 text-xs text-gray-500 space-y-1">
             <p>IP: {{ entry.ip_address || '-' }}</p>
+            <p>Negara: {{ entry.country_code || '-' }}</p>
             <p>Login: {{ formatDate(entry.created_at) }}</p>
             <p v-if="entry.user_agent" class="break-all">User-Agent: {{ entry.user_agent }}</p>
           </div>

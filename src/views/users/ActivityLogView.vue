@@ -9,7 +9,7 @@
     </div>
 
     <div class="glass-card p-4 rounded-xl border border-gray-100 flex flex-wrap gap-3">
-      <input v-model="filters.search" class="input-field !py-2 min-w-[220px]" placeholder="Cari path/method..." />
+      <input v-model="filters.search" class="input-field !py-2 min-w-[220px]" placeholder="Cari route, path, atau method..." />
       <select v-model="filters.method" class="input-field !py-2 !w-auto min-w-[130px]">
         <option value="">Semua Method</option>
         <option value="GET">GET</option>
@@ -29,8 +29,9 @@
             <th>Waktu</th>
             <th>Pengguna</th>
             <th>Method</th>
-            <th>Path</th>
+            <th>Route</th>
             <th>Status</th>
+            <th>Duration</th>
             <th>IP</th>
             <th>Device</th>
             <th>Country</th>
@@ -38,32 +39,39 @@
         </thead>
         <tbody>
           <tr v-for="item in logs" :key="item.id">
-            <td class="text-gray-700">{{ formatDate(item.created_at) }}</td>
-            <td class="font-medium">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }}</td>
+            <td class="text-gray-700 whitespace-nowrap">{{ formatDate(item.created_at) }}</td>
+            <td class="font-medium whitespace-nowrap">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }}</td>
             <td>
               <span class="badge" :class="methodClass(item.method)">{{ item.method }}</span>
             </td>
-            <td class="font-mono text-xs text-gray-600">{{ item.path }}</td>
+            <td class="font-mono text-[11px] text-gray-600 max-w-[260px] truncate" :title="item.path">{{ item.path || '-' }}</td>
             <td>
               <span class="badge" :class="item.status_code >= 400 ? 'badge-danger' : 'badge-success'">
                 {{ item.status_code }}
               </span>
             </td>
-            <td class="text-gray-500">{{ item.ip_address || '-' }}</td>
-            <td class="text-gray-500">{{ item.device_name || item.user_agent ? (item.device_name || 'Browser') : '-' }}</td>
-            <td class="text-gray-500 uppercase">{{ item.country_code || '-' }}</td>
+            <td class="text-gray-600 whitespace-nowrap">{{ formatDuration(item.duration_ms) }}</td>
+            <td class="text-gray-500 whitespace-nowrap">{{ item.ip_address || '-' }}</td>
+            <td class="text-gray-500 max-w-[180px] truncate" :title="deviceLabel(item)">{{ deviceLabel(item) }}</td>
+            <td class="text-gray-500 uppercase whitespace-nowrap">{{ item.country_code || '-' }}</td>
           </tr>
           <tr v-if="logs.length === 0">
-            <td colspan="8" class="text-center py-8 text-gray-400">Belum ada data log.</td>
+            <td colspan="9" class="text-center py-8 text-gray-400">Belum ada data log.</td>
           </tr>
         </tbody>
       </table>
 
       <div v-if="!loading" class="md:hidden p-4 space-y-3">
-        <div v-for="item in logs" :key="item.id" class="border border-gray-100 rounded-lg p-3 bg-gray-50/50 space-y-1">
-          <div class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</div>
-          <div class="font-medium">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }} · {{ item.method }} {{ item.path }}</div>
-          <div class="text-xs text-gray-500">Status {{ item.status_code }} · IP {{ item.ip_address || '-' }} · {{ item.device_name || 'Perangkat tidak diketahui' }} · {{ item.country_code || 'Unknown' }}</div>
+        <div v-for="item in logs" :key="item.id" class="border border-gray-100 rounded-lg p-3 bg-gray-50/50 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-xs text-gray-500">{{ formatDate(item.created_at) }}</div>
+            <span class="badge" :class="item.status_code >= 400 ? 'badge-danger' : 'badge-success'">{{ item.status_code }}</span>
+          </div>
+          <div class="font-medium text-sm">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }} · {{ item.method }} {{ item.path }}</div>
+          <div class="text-xs text-gray-500 space-y-1">
+            <div>Duration: {{ formatDuration(item.duration_ms) }}</div>
+            <div>IP: {{ item.ip_address || '-' }} · {{ deviceLabel(item) }} · {{ item.country_code || 'Unknown' }}</div>
+          </div>
         </div>
         <div v-if="logs.length === 0" class="text-center text-gray-400 py-6">Belum ada data log.</div>
       </div>
@@ -111,6 +119,20 @@ function methodClass(method) {
 function formatDate(v) {
   if (!v) return '-';
   return new Date(v).toLocaleString('id-ID');
+}
+
+function formatDuration(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  const ms = Number(value);
+  if (!Number.isFinite(ms)) return '-';
+  if (ms < 1000) return `${ms} ms`;
+  return `${(ms / 1000).toFixed(2)} s`;
+}
+
+function deviceLabel(item) {
+  if (item.device_name) return item.device_name;
+  if (item.user_agent) return item.user_agent;
+  return 'Perangkat tidak diketahui';
 }
 
 async function fetchLogs({ silent = false } = {}) {
