@@ -30,6 +30,11 @@ export async function deleteRevitalisasiSmpTukang(id) {
   return data
 }
 
+export async function forceDeleteRevitalisasiSmpTukang(id) {
+  const { data } = await api.delete(`${base}/tukang/${id}/force`)
+  return data
+}
+
 export async function fetchRevitalisasiSmpKasbon(params = {}) {
   const { data } = await api.get(`${base}/kasbon`, { params })
   return data

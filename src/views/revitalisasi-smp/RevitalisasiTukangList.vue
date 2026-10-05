@@ -87,6 +87,9 @@
             <button type="button" class="btn-danger !py-2 !px-3 !text-xs" @click="toggleStatus(item)">
               {{ item.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
             </button>
+            <button type="button" class="btn-danger !py-2 !px-3 !text-xs bg-red-700 hover:bg-red-800" @click="forceDeleteItem(item)">
+              Hapus Permanen
+            </button>
           </div>
         </div>
 
@@ -265,8 +268,7 @@ import {
   deleteRevitalisasiSmpKasbon,
   exportRevitalisasiSmpPayrollReport,
   fetchRevitalisasiSmpKasbon,
-  fetchRevitalisasiSmpTukang,
-  updateRevitalisasiSmpTukang,
+  fetchRevitalisasiSmpTukang,  forceDeleteRevitalisasiSmpTukang,  updateRevitalisasiSmpTukang,
 } from '@/api/revitalisasiSmp'
 
 const search = ref('')
@@ -535,6 +537,20 @@ async function toggleStatus(item) {
   } catch (error) {
     console.error(error)
     alert('Gagal mengubah status tukang.')
+  }
+}
+
+async function forceDeleteItem(item) {
+  if (!item?.id) return
+  const confirmed = window.confirm(`Hapus permanen tukang ${item.name}? Semua riwayat absensi dan kasbon terkait akan ikut terhapus.`)
+  if (!confirmed) return
+
+  try {
+    await forceDeleteRevitalisasiSmpTukang(item.id)
+    await loadData()
+  } catch (error) {
+    console.error(error)
+    alert('Gagal menghapus permanen tukang.')
   }
 }
 </script>
