@@ -415,7 +415,8 @@ function openEditModal(item) {
   editingId.value = item.id
   form.value = {
     ...item,
-    kasbon: Number(item.kasbon || 0),
+    gaji_harian: Number(String(item.gaji_harian || 0).replace(/[^\d.-]/g, '')) || 0,
+    kasbon: Number(String(item.kasbon || 0).replace(/[^\d.-]/g, '')) || 0,
     cara_potong: item.cara_potong || 'langsung',
   }
   showModal.value = true
@@ -520,11 +521,18 @@ async function saveItem() {
     return
   }
 
+  const payload = {
+    ...form.value,
+    gaji_harian: Number(String(form.value.gaji_harian || 0).replace(/[^\d.-]/g, '')) || 0,
+    kasbon: Number(String(form.value.kasbon || 0).replace(/[^\d.-]/g, '')) || 0,
+    cara_potong: form.value.cara_potong || 'langsung',
+  }
+
   try {
     if (editingId.value) {
-      await updateRevitalisasiTukang(editingId.value, form.value)
+      await updateRevitalisasiTukang(editingId.value, payload)
     } else {
-      await createRevitalisasiTukang(form.value)
+      await createRevitalisasiTukang(payload)
     }
     showModal.value = false
     await loadData()
