@@ -38,13 +38,17 @@
           <label class="input-label">Sampai Tanggal</label>
           <input type="date" v-model="filters.end_date" @change="fetchStats" class="input-field text-sm" />
         </div>
-        <!-- Teacher Search (Server side string or local string filter? Let's use local filter via server input or dropdown) -->
+        <!-- Teacher Search -->
         <div class="col-span-2 sm:col-span-2">
           <label class="input-label">Guru</label>
-          <select v-model="filters.teacher_id" @change="fetchStats" class="input-field text-sm">
-            <option value="">Semua Guru</option>
-            <option v-for="t in teacherList" :key="t.id" :value="t.id">{{ t.name }}</option>
-          </select>
+          <SearchableSelect
+            v-model="filters.teacher_id"
+            :options="teacherFilterOptions"
+            placeholder="Cari guru..."
+            label-key="name"
+            value-key="id"
+            @update:model-value="fetchStats"
+          />
         </div>
         <!-- Gender -->
         <div>
@@ -465,6 +469,14 @@ const exporting = ref(null)
 const kelasList = ref([])
 const teacherList = ref([])
 const lessonList = ref([])
+
+const teacherFilterOptions = computed(() => [
+  { id: '', name: 'Semua Guru' },
+  ...teacherList.value.map((teacher) => ({
+    id: teacher.id,
+    name: teacher.name,
+  })),
+])
 
 const toDateInputValue = (date = new Date()) => {
   const year = date.getFullYear()
