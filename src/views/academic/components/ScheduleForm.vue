@@ -41,9 +41,12 @@
       <!-- Session preset -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Preset Sesi</label>
-        <select v-model="sessionPreset" class="input-field" required>
+        <select v-model="sessionPreset" :disabled="type === 'diniyyah'" class="input-field" required>
+          <option v-if="type === 'diniyyah'" value="diniyyah">1 sesi: 13:00-14:00</option>
+          <template v-else>
           <option value="4">4 sesi: 08:00-08:45, 08:45-09:30, 10:00-10:45, 10:45-11:30</option>
           <option value="2">2 sesi: 08:00-09:30, 10:00-11:30</option>
+          </template>
         </select>
       </div>
 
@@ -96,6 +99,7 @@ const ltStore = useLessonTeacherStore();
 const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad'];
 
 const sessionPatterns = {
+  diniyyah: [{ start_time: '13:00', end_time: '14:00' }],
   '4': [
     { start_time: '08:00', end_time: '08:45' },
     { start_time: '08:45', end_time: '09:30' },
@@ -108,7 +112,13 @@ const sessionPatterns = {
   ],
 };
 
-const sessionPreset = ref('4');
+const formalSessionPreset = ref('4');
+const sessionPreset = computed({
+  get: () => props.type === 'diniyyah' ? 'diniyyah' : formalSessionPreset.value,
+  set: (value) => {
+    if (props.type !== 'diniyyah' && ['4', '2'].includes(value)) formalSessionPreset.value = value;
+  },
+});
 const startTimeOptions = computed(() => sessionPatterns[sessionPreset.value].map((entry) => entry.start_time));
 const endTimeOptions = computed(() => {
   const selectedStart = form.value.start_time;
@@ -218,13 +228,13 @@ watch(() => props.show, (isShow) => {
       form.value = {
         assignment_id: props.type === 'diniyyah' ? props.schedule.diniyyah_lesson_teacher_id : props.schedule.lesson_teacher_id,
         day: props.schedule.day,
-        start_time: props.schedule.start_time?.substring(0, 5),
-        end_time: props.schedule.end_time?.substring(0, 5)
+        start_time: props.type === 'diniyyah' ? '13:00' : props.schedule.start_time?.substring(0, 5),
+        end_time: props.type === 'diniyyah' ? '14:00' : props.schedule.end_time?.substring(0, 5)
       };
     } else {
       // Creating: reset everything
       selectedClassId.value = props.classId || null;
-      form.value = { assignment_id: null, day: 'Senin', start_time: '', end_time: '' };
+      form.value = { assignment_id: null, day: 'Senin', start_time: props.type === 'diniyyah' ? '13:00' : '', end_time: props.type === 'diniyyah' ? '14:00' : '' };
       ltStore.assignments = [];
     }
   }

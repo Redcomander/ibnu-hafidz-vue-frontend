@@ -1,0 +1,72 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Diniyyah schedule regression</title></head>
+<body><pre id="result">RUNNING</pre><div id="builder"></div><div id="form"></div>
+<script type="module">
+import { createApp, nextTick, ref, h } from 'vue'
+import { createPinia } from 'pinia'
+import api from '/src/api/index.js'
+import Builder from '/src/views/academic/JadwalBuilder.vue'
+import ScheduleForm from '/src/views/academic/components/ScheduleForm.vue'
+
+const result = document.querySelector('#result')
+const saved = []
+const assignment = { id: 1, kelas_id: 1, diniyyah_lesson: { name: 'Fiqih' }, teacher: { id: 1, name: 'Guru' } }
+api.defaults.adapter = async config => {
+  let data = []
+  if (config.url === '/kelas') data = [{ id: 1, nama: 'A', tingkat: '7' }]
+  if (config.url === '/users') data = [{ id: 1, name: 'Guru' }]
+  if (config.url === '/kelas/1/teachers') data = [assignment]
+  if (config.url === '/schedules' && config.method === 'post') saved.push(JSON.parse(config.data))
+  return { data, status: 200, config, headers: {} }
+}
+const wait = async () => { for (let i = 0; i < 12; i++) { await new Promise(r => setTimeout(r, 0)); await nextTick() } }
+const check = (value, message) => { if (!value) throw new Error(message) }
+try {
+  const app = createApp(Builder, { type: 'diniyyah' })
+  app.use(createPinia())
+  const vm = app.mount('#builder')
+  await wait()
+  const state = vm.$.setupState
+  check(document.querySelectorAll('#builder tbody tr').length === 1, 'Diniyyah must render one row')
+  check(document.querySelector('#builder tbody th').textContent.includes('13:00 - 14:00'), 'Wrong grid times')
+  check(state.sessionOptions.length === 1, 'Diniyyah must offer one session')
+  await state.openEditor(1, '13:00')
+  state.editor.assignmentId = 1
+  await state.saveEditor()
+  check(saved[0]?.start_time === '13:00' && saved[0]?.end_time === '14:00' && saved[0]?.type === 'diniyyah', 'Wrong save payload')
+  app.unmount()
+
+  const generalApp = createApp(Builder)
+  generalApp.use(createPinia())
+  const general = generalApp.mount('#builder').$.setupState
+  await wait()
+  check(general.timeSlots.length === 4, 'Formal default changed')
+  general.selectedSessionPreset = '2'
+  await nextTick()
+  general.selectedType = 'diniyyah'
+  await wait()
+  check(general.timeSlots.length === 1 && general.timeSlots[0] === '13:00', 'Diniyyah tab did not switch times')
+  general.selectedType = 'formal'
+  await wait()
+  check(general.timeSlots.length === 2 && general.timeSlots[0] === '08:00', 'Formal preset was not restored')
+  generalApp.unmount()
+
+  const shown = ref(false)
+  let formVM
+  const formApp = createApp({ render: () => h(ScheduleForm, { ref: vm => { formVM = vm }, show: shown.value, type: 'diniyyah' }) })
+  formApp.use(createPinia())
+  formApp.mount('#form')
+  shown.value = true
+  await wait()
+  const form = formVM.$.setupState
+  check(form.form.start_time === '13:00' && form.form.end_time === '14:00', 'Regular form defaults are incorrect')
+  check(form.startTimeOptions.length === 1 && form.startTimeOptions[0] === '13:00', 'Regular form offers invalid start times')
+  check(form.endTimeOptions.length === 1 && form.endTimeOptions[0] === '14:00', 'Regular form offers invalid end times')
+  formApp.unmount()
+  result.textContent = 'PASS: one Diniyyah row, 13:00–14:00 save payload, tab switching, Formal presets, and regular form defaults'
+  document.title = 'PASS'
+} catch (error) {
+  result.textContent = 'FAIL: ' + error.message
+  document.title = 'FAIL'
+}
+</script></body></html>

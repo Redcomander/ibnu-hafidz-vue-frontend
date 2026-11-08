@@ -51,9 +51,12 @@
 
           <div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-300">Preset Sesi</label>
-            <select v-model="selectedSessionPreset" class="input-field w-full">
-              <option value="4">4 sesi</option>
-              <option value="2">2 sesi</option>
+            <select v-model="selectedSessionPreset" :disabled="selectedType === 'diniyyah'" class="input-field w-full">
+              <option v-if="selectedType === 'diniyyah'" value="diniyyah">1 sesi: 13:00 - 14:00</option>
+              <template v-else>
+                <option value="4">4 sesi</option>
+                <option value="2">2 sesi</option>
+              </template>
             </select>
           </div>
 
@@ -269,7 +272,9 @@ const typeOptions = computed(() => [
   { label: 'Ramadhan', value: 'ramadhan' },
   { label: 'Diniyyah', value: 'diniyyah' },
 ].filter((option) => !props.type || option.value === props.type))
+const selectedType = ref(props.type || 'formal')
 const sessionPatterns = {
+  diniyyah: [{ start_time: '13:00', end_time: '14:00' }],
   '4': [
     { start_time: '08:00', end_time: '08:45' },
     { start_time: '08:45', end_time: '09:30' },
@@ -281,7 +286,13 @@ const sessionPatterns = {
     { start_time: '10:00', end_time: '11:30' },
   ],
 }
-const selectedSessionPreset = ref('4')
+const formalSessionPreset = ref('4')
+const selectedSessionPreset = computed({
+  get: () => selectedType.value === 'diniyyah' ? 'diniyyah' : formalSessionPreset.value,
+  set: (value) => {
+    if (selectedType.value !== 'diniyyah' && ['4', '2'].includes(value)) formalSessionPreset.value = value
+  },
+})
 const timeSlots = computed(() => sessionPatterns[selectedSessionPreset.value].map((entry) => entry.start_time))
 
 const sessionOptions = computed(() => {
@@ -318,7 +329,6 @@ const sessionOptions = computed(() => {
 const classList = ref([])
 const assignmentsByClass = ref({})
 const allTeachers = ref([])
-const selectedType = ref(props.type || 'formal')
 const selectedDay = ref(getCurrentDayName())
 const selectedDate = ref(getDateForDayName(getCurrentDayName()))
 const editorOpen = ref(false)
