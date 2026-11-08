@@ -225,6 +225,13 @@ const routes = [
       },
       // ---- Academic (Diniyyah) ----
       {
+        path: 'jadwal-builder-diniyyah',
+        name: 'schedule-builder-diniyyah',
+        component: () => import('@/views/academic/JadwalBuilder.vue'),
+        props: { type: 'diniyyah' },
+        meta: { title: 'Jadwal Builder Diniyyah' },
+      },
+      {
         path: 'diniyyah-lesson',
         name: 'lessons-diniyyah',
         component: () => import('@/views/academic/LessonsList.vue'),

@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Builder</p>
-        <h1 class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Jadwal Builder</h1>
+        <h1 class="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{{ props.type === 'diniyyah' ? 'Jadwal Builder Diniyyah' : 'Jadwal Builder' }}</h1>
       </div>
 
       <div class="flex items-center gap-2 text-sm">
@@ -101,7 +101,7 @@
           </thead>
 
           <tbody>
-            <tr v-for="timeSlot in timeSlots" :key="timeSlot" v-if="shouldRenderTimeRow(timeSlot)" class="align-top">
+            <tr v-for="timeSlot in timeSlots" :key="timeSlot" class="align-top">
               <th class="sticky left-0 z-10 border-r border-b border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                 {{ getSessionRowLabel(timeSlot) }}
               </th>
@@ -255,16 +255,20 @@ import { useToastStore } from '@/stores/toast'
 import Modal from '@/components/ui/Modal.vue'
 import SearchableSelect from '@/components/ui/SearchableSelect.vue'
 
+const props = defineProps({
+  type: { type: String, default: null },
+})
+
 const scheduleStore = useScheduleStore()
 const lessonTeacherStore = useLessonTeacherStore()
 const toast = useToastStore()
 
 const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Ahad']
-const typeOptions = [
+const typeOptions = computed(() => [
   { label: 'Formal', value: 'formal' },
   { label: 'Ramadhan', value: 'ramadhan' },
   { label: 'Diniyyah', value: 'diniyyah' },
-]
+].filter((option) => !props.type || option.value === props.type))
 const sessionPatterns = {
   '4': [
     { start_time: '08:00', end_time: '08:45' },
@@ -314,7 +318,7 @@ const sessionOptions = computed(() => {
 const classList = ref([])
 const assignmentsByClass = ref({})
 const allTeachers = ref([])
-const selectedType = ref('formal')
+const selectedType = ref(props.type || 'formal')
 const selectedDay = ref(getCurrentDayName())
 const selectedDate = ref(getDateForDayName(getCurrentDayName()))
 const editorOpen = ref(false)
@@ -354,8 +358,15 @@ watch(selectedSessionPreset, () => {
 })
 
 watch(selectedType, async () => {
+  editorOpen.value = false
+  assignmentsByClass.value = {}
+  scheduleStore.schedules = []
   await loadAssignmentsForAllClasses()
   await refreshSchedules()
+})
+
+watch(() => props.type, (type) => {
+  selectedType.value = type || 'formal'
 })
 
 const scheduleLookup = computed(() => {
@@ -459,31 +470,7 @@ function getSessionOptionLabel(index, startTime, endTime) {
 }
 
 function getSessionRowLabel(startTime) {
-  if (selectedSessionPreset.value !== '4') {
-    return `${startTime} - ${getSessionEndTime(startTime)}`
-  }
-
-  if (startTime === '08:00') {
-    const hasMerged = classList.value.some((kelas) => isMergedSessionEntry(getCellEntry(kelas.id, '08:00')))
-    if (hasMerged) return '08:00 - 09:30'
-  }
-
-  if (startTime === '10:00') {
-    const hasMerged = classList.value.some((kelas) => isMergedSessionEntry(getCellEntry(kelas.id, '10:00')))
-    if (hasMerged) return '10:00 - 11:30'
-  }
-
   return `${startTime} - ${getSessionEndTime(startTime)}`
-}
-
-function shouldRenderTimeRow(slot) {
-  if (selectedSessionPreset.value !== '4') return true
-  const mergedEntryAtFirstSlot = classList.value.some((kelas) => isMergedSessionEntry(getCellEntry(kelas.id, '08:00')))
-  const mergedEntryAtThirdSlot = classList.value.some((kelas) => isMergedSessionEntry(getCellEntry(kelas.id, '10:00')))
-
-  if (slot === '08:45') return !mergedEntryAtFirstSlot
-  if (slot === '10:45') return !mergedEntryAtThirdSlot
-  return true
 }
 
 function getSessionOptionByKey(sessionKey) {
@@ -688,8 +675,10 @@ async function fetchAssignmentsForClass(classId) {
   if (!classId) return
 
   try {
-    await lessonTeacherStore.fetchAssignments(classId, selectedType.value)
-    assignmentsByClass.value[classId] = [...(lessonTeacherStore.assignments || [])]
+    const type = selectedType.value
+    const response = await api.get(`/kelas/${classId}/teachers`, { params: { type } })
+    if (type !== selectedType.value) return
+    assignmentsByClass.value[classId] = response.data || []
   } catch (error) {
     console.error('Failed to fetch assignments for class:', error)
     assignmentsByClass.value[classId] = []

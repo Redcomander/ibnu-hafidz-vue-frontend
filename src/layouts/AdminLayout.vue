@@ -463,6 +463,7 @@ const navItems = [
     label: "Jadwal Builder",
     permission: null,
     activeOn: ["/dashboard/jadwal-builder"],
+    activeExcept: ["/dashboard/jadwal-builder-diniyyah"],
     menuKey: 'jadwal_builder',
   },
   {
@@ -488,6 +489,14 @@ const navItems = [
     permission: null,
     activeOn: ["/dashboard/jadwal-diniyyah"],
     menuKey: 'jadwal_diniyyah',
+  },
+  {
+    to: "/dashboard/jadwal-builder-diniyyah",
+    icon: "calendar",
+    label: "Jadwal Builder Diniyyah",
+    permission: null,
+    activeOn: ["/dashboard/jadwal-builder-diniyyah"],
+    menuKey: 'jadwal_builder_diniyyah',
   },
 
   { header: 'Kesantrian' },
