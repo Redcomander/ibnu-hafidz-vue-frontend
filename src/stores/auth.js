@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios from 'axios'
+import { refreshSession } from '@/api/session'
 import api from '@/api'
 import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
-  // State — access token in memory only (XSS-safe)
+  // Keep access tokens in memory; article HTML is sanitized separately.
   const accessToken = ref(null)
   const user = ref(null)
   const loading = ref(false)
@@ -107,9 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Try silent refresh on app load (uses raw axios to bypass interceptor)
   async function tryRefresh() {
     try {
-      const { data } = await axios.post('/api/auth/refresh', null, {
-        withCredentials: true,
-      })
+      const data = await refreshSession()
       accessToken.value = data.access_token
       user.value = data.user
       return true

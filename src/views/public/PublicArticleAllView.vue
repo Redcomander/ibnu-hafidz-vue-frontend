@@ -143,6 +143,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { sanitizeArticleHtml } from '@/utils/articleHtml'
 import { fetchPublicArticles } from '@/api/public'
 import { normalizePublicMediaUrl } from '@/utils/mediaUrl'
 
@@ -230,7 +231,7 @@ const formatDate = (dateString) => {
 const stripHtml = (html) => {
   if (!html) return ''
   const tmp = document.createElement('DIV')
-  tmp.innerHTML = html
+  tmp.innerHTML = sanitizeArticleHtml(html)
   return tmp.textContent || tmp.innerText || ''
 }
 

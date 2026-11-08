@@ -429,6 +429,7 @@ function selectGalleryImage(img) {
     // Set as thumbnail
     thumbnailPreview.value = '/uploads/' + img.path
     thumbnailFile.value = null // Will need to send the path instead
+    form.value.thumbnail_gallery_id = img.id
     form.value.thumbnail_from_gallery = img.path
     showGalleryPicker.value = false
   } else {
@@ -484,8 +485,8 @@ async function handleSubmit() {
     }
     if (thumbnailFile.value) {
       fd.append('thumbnail', thumbnailFile.value)
-    } else if (form.value.thumbnail_from_gallery) {
-      fd.append('thumbnail_from_gallery', form.value.thumbnail_from_gallery)
+    } else if (form.value.thumbnail_gallery_id) {
+      fd.append('thumbnail_gallery_id', String(form.value.thumbnail_gallery_id))
     }
 
     if (isEdit.value) {

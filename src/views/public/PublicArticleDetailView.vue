@@ -83,7 +83,7 @@
 
       <!-- Content -->
       <div class="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-slate-100 prose prose-slate prose-emerald lg:prose-lg max-w-none prose-img:rounded-2xl prose-headings:font-bold prose-a:text-emerald-600 hover:prose-a:text-emerald-700">
-        <div v-html="article.content || article.body"></div>
+        <div v-html="sanitizeArticleHtml(article.content || article.body)"></div>
       </div>
 
       <!-- Comments -->
@@ -179,6 +179,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { sanitizeArticleHtml } from '@/utils/articleHtml'
 import { useRoute } from 'vue-router'
 import {
   fetchPublicArticleDetail,

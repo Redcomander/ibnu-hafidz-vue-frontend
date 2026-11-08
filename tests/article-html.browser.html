@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Article HTML security regression</title></head>
+<body><pre id="result">RUNNING</pre><script type="module">
+import { sanitizeArticleHtml } from '/src/utils/articleHtml.js'
+const result = document.querySelector('#result')
+try {
+  const attacks = [
+    '<script>alert(1)<\/script><p>text</p>',
+    '<img src="x" onerror="alert(1)">',
+    '<a href="javascript:alert(1)">link</a>',
+    '<svg onload="alert(1)"><circle /></svg>',
+    '<form action="https://example.test"><input name="password"></form>',
+  ]
+  for (const attack of attacks) {
+    const clean = sanitizeArticleHtml(attack)
+    const node = document.createElement('div')
+    node.innerHTML = clean
+    if (node.querySelector('script,svg,form,input') || [...node.querySelectorAll('*')].some(el =>
+      [...el.attributes].some(attr => /^on/i.test(attr.name) || /javascript:/i.test(attr.value)))) {
+      throw new Error('Unsafe markup survived: ' + clean)
+    }
+  }
+  const safe = sanitizeArticleHtml('<h2>Title</h2><p><strong>Bold</strong> <a href="https://example.test">Link</a></p>')
+  if (!safe.includes('<strong>Bold</strong>') || !safe.includes('https://example.test')) throw new Error('Safe rich text was removed')
+  result.textContent = 'PASS: article HTML blocks scripts, event handlers, unsafe links, SVG and forms; safe rich text survives'
+  document.title = 'PASS'
+} catch (error) {
+  result.textContent = 'FAIL: ' + error.message
+  document.title = 'FAIL'
+}
+</script></body></html>

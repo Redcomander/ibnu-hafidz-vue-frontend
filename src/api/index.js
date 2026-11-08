@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { refreshSession } from './session'
 
 // Create Axios instance configured for Go API
 const api = axios.create({
@@ -51,13 +52,11 @@ api.interceptors.response.use(
       error.response?.status === 401 ||
       (error.response?.status === 400 && error.response?.data?.error === 'unauthorized')
 
-    if (isUnauthorized && !originalRequest._retry && !isAuthEndpoint) {
+    if (isUnauthorized && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       try {
-        const { data } = await axios.post('/api/auth/refresh', null, {
-          withCredentials: true,
-        })
+        const data = await refreshSession()
 
         const auth = useAuthStore()
 
