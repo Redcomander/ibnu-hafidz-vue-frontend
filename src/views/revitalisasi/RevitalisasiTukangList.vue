@@ -435,7 +435,7 @@ async function exportReport(format = 'excel') {
     const blob = new Blob([response.data], { type: mimeType })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')
+    const stamp = new Date().toISOString().slice(0, 19).replace(/-|:|T/g, '')
     const rangePart = [reportStartDate.value || 'all', reportEndDate.value || 'all'].join('_to_')
     link.download = `laporan_gaji_revitalisasi_${rangePart}_${stamp}.${format === 'excel' ? 'xlsx' : 'pdf'}`
     link.href = url

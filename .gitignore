@@ -37,3 +37,7 @@ package-lock.json
 /.npm/
 /.yarn/
 
+# Automated browser test artifacts
+/playwright-report/
+/test-results/
+

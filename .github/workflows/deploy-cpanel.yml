@@ -6,29 +6,23 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: deploy-frontend-cpanel-main
   cancel-in-progress: true
 
 jobs:
+  test:
+    uses: ./.github/workflows/frontend-tests.yml
+
   deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build frontend
-        run: npm run build
-
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -41,5 +35,10 @@ jobs:
             set -euo pipefail
             cd "${{ secrets.CPANEL_FRONTEND_REPO_PATH }}"
             git fetch origin main
-            git reset --hard origin/main
+            # Never publish an older run after main has advanced.
+            if [ "$(git rev-parse origin/main)" != "${{ github.sha }}" ]; then
+              echo "Skipping deployment: main has advanced beyond the tested commit."
+              exit 0
+            fi
+            git reset --hard "${{ github.sha }}"
             /bin/bash deploy/cpanel/deploy.sh

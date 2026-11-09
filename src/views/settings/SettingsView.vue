@@ -5,6 +5,8 @@
       <p class="text-sm text-gray-500 mt-1">{{ pageDescription }}</p>
     </div>
 
+    <MaintenanceSettings v-if="!isSidebarSettingsPage && auth.userRoles.some(role => ['admin', 'super_admin'].includes(role.name))" />
+
     <div v-if="isSidebarSettingsPage && !isSuperAdmin" class="glass-card p-6 rounded-xl border border-amber-200">
       <h2 class="text-lg font-semibold text-amber-700 mb-2">Akses Dibatasi</h2>
       <p class="text-sm text-gray-600">Hanya super admin yang dapat mengatur visibilitas menu sidebar.</p>
@@ -209,6 +211,7 @@
 import { computed, reactive, ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '@/api';
+import MaintenanceSettings from '@/components/settings/MaintenanceSettings.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useToastStore } from '@/stores/toast';
 import { confirmDelete } from '@/utils/confirmDialog';

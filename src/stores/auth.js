@@ -125,6 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
     userEmail,
     userRoles,
     userPermissions,
+    hasRole,
     hasPermission,
     hasAnyPermission,
     setAccessToken,

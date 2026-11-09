@@ -41,6 +41,25 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
     const requestUrl = originalRequest?.url || ''
+    const requestId = error.response?.headers?.['x-request-id'] || error.response?.data?.request_id
+    if (error.response?.status >= 500 && error.response?.data?.error !== 'maintenance' && requestId && !requestUrl.startsWith('/system-logs')) {
+      globalThis.dispatchEvent(new CustomEvent('production-error', { detail: { requestId } }))
+    }
+
+    if (error.response?.status === 503 && error.response?.data?.error === 'maintenance') {
+      const auth = useAuthStore()
+      if (originalRequest && !originalRequest._maintenanceRetry && (auth.hasRole('admin') || auth.hasRole('super_admin'))) {
+        originalRequest._maintenanceRetry = true
+        try {
+          const data = await refreshSession()
+          auth.setAccessToken(data.access_token)
+          originalRequest.headers.Authorization = `Bearer ${data.access_token}`
+          return api(originalRequest)
+        } catch { /* Keep recovery login reachable if session renewal fails. */ }
+      }
+      globalThis.dispatchEvent(new CustomEvent('maintenance-required', { detail: error.response.data }))
+      return Promise.reject(error)
+    }
 
     // Skip retry for auth endpoints to prevent infinite loops
     const isAuthEndpoint = AUTH_URLS.some(url => requestUrl.includes(url))

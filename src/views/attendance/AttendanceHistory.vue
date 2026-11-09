@@ -787,7 +787,7 @@ function sanitizeExportLabel(value) {
 
 function buildExportFilename(format) {
   const ext = format === 'excel' ? 'xlsx' : 'pdf'
-  const timestamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '')
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/-|:|T/g, '')
 
   const startDate = filters.value.start_date || ''
   const endDate = filters.value.end_date || ''

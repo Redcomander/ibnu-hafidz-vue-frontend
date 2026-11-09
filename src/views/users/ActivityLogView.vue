@@ -5,9 +5,15 @@
         <h1 class="text-2xl font-bold text-primary-dark tracking-tight">{{ pageTitle }}</h1>
         <p class="text-sm text-gray-500 mt-1">{{ pageDescription }}</p>
       </div>
-      <button @click="fetchLogs" class="btn-secondary px-4 py-2">Refresh</button>
+      <button v-if="activeTab === 'audit'" @click="fetchLogs" class="btn-secondary px-4 py-2">Refresh</button>
     </div>
 
+    <nav v-if="isSystemLogs" class="flex gap-3" aria-label="Jenis log">
+      <button class="btn-secondary" :aria-pressed="activeTab === 'diagnostics'" @click="activeTab = 'diagnostics'">Error & Debug</button>
+      <button class="btn-secondary" :aria-pressed="activeTab === 'audit'" @click="activeTab = 'audit'; fetchLogs()">Audit request</button>
+    </nav>
+    <SystemDiagnosticsPanel v-if="isSystemLogs && activeTab === 'diagnostics'" />
+    <template v-if="activeTab === 'audit'">
     <div class="glass-card p-4 rounded-xl border border-gray-100 flex flex-wrap gap-3">
       <input v-model="filters.search" class="input-field !py-2 min-w-[220px]" placeholder="Cari route, path, atau method..." />
       <select v-model="filters.method" class="input-field !py-2 !w-auto min-w-[130px]">
@@ -19,6 +25,7 @@
         <option value="DELETE">DELETE</option>
       </select>
       <input v-model="filters.user_name" class="input-field !py-2 !w-auto min-w-[180px]" placeholder="Nama Pengguna" />
+      <input v-model="filters.status" type="number" min="100" max="599" aria-label="Status HTTP audit" class="input-field !py-2 !w-auto max-w-36" placeholder="HTTP status" />
     </div>
 
     <div class="glass-card overflow-x-auto">
@@ -84,6 +91,7 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -91,9 +99,16 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '@/api';
+import SystemDiagnosticsPanel from '@/components/users/SystemDiagnosticsPanel.vue';
 import { useToastStore } from '@/stores/toast';
 
 const route = useRoute();
+const isSystemLogs = computed(() => route.name === 'request-logs');
+const activeTab = ref(isSystemLogs.value ? 'diagnostics' : 'audit');
+watch(isSystemLogs, (value) => {
+  activeTab.value = value ? 'diagnostics' : 'audit';
+  if (!value) { meta.page = 1; fetchLogs(); }
+});
 const toast = useToastStore();
 const loading = ref(false);
 const isFetching = ref(false);
@@ -103,7 +118,7 @@ const pageDescription = computed(() => route.name === 'request-logs'
   : 'Riwayat aktivitas pengguna berdasarkan request API.');
 const logs = ref([]);
 const meta = reactive({ page: 1, per_page: 20, total_pages: 1, total: 0 });
-const filters = reactive({ search: '', method: '', user_name: '' });
+const filters = reactive({ search: '', method: '', user_name: '', status: '' });
 let filterDebounceTimer;
 let autoRefreshTimer;
 const AUTO_REFRESH_MS = 15000;
@@ -148,6 +163,7 @@ function deviceLabel(item) {
 }
 
 async function fetchLogs({ silent = false } = {}) {
+  if (activeTab.value !== 'audit') return;
   if (isFetching.value) return;
   isFetching.value = true;
   if (!silent) loading.value = true;
@@ -159,6 +175,7 @@ async function fetchLogs({ silent = false } = {}) {
         search: filters.search || undefined,
         method: filters.method || undefined,
         user_name: filters.user_name || undefined,
+        status: filters.status || undefined,
       },
     });
 
@@ -204,7 +221,7 @@ function handleVisibilityChange() {
 }
 
 watch(
-  () => [filters.search, filters.method, filters.user_name],
+  () => [filters.search, filters.method, filters.user_name, filters.status],
   () => {
     clearTimeout(filterDebounceTimer);
     filterDebounceTimer = setTimeout(() => {

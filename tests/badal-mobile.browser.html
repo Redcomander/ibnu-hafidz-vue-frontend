@@ -7,14 +7,15 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import { useAuthStore } from '/src/stores/auth.js'
 import api from '/src/api/index.js'
 import Page from '/src/views/attendance/TeacherAttendanceStats.vue'
+import TeacherAttendanceModal from '/src/views/attendance/TeacherAttendanceModal.vue'
 import '/src/assets/main.css'
 
 const writes = []
 api.defaults.adapter = async config => {
   let data = []
-  if (config.url === '/attendance/teacher-statistics') data = { teacher_counts: {}, teacher_summary: [], substitute_history: [], absence_history: [] }
+  if (config.url === '/attendance/teacher-statistics') data = { teacher_counts: { Dinas: 4 }, teacher_summary: [{ id: 1, name: 'Guru Asli', dinas: 4 }], substitute_history: [], absence_history: [{ id: 1, teacher: 'Guru Asli', status: 'Dinas Luar', date: '2026-11-09' }] }
   if (config.url === '/users') data = [{ id: 1, name: 'Guru Asli' }, { id: 2, name: 'Guru Pengganti' }]
-  if (config.method === 'post' || config.method === 'put') writes.push({ url: config.url, method: config.method, body: JSON.parse(config.data) })
+  if (config.method === 'post' || config.method === 'put') writes.push({ url: config.url, method: config.method, body: config.data instanceof FormData ? Object.fromEntries(config.data) : JSON.parse(config.data) })
   return { data, status: 200, config, headers: {} }
 }
 const check = (value, message) => { if (!value) throw new Error(message) }
@@ -27,7 +28,14 @@ try {
   await router.push('/'); await router.isReady()
   const app = createApp(Page); app.use(pinia); app.use(router)
   const vm = app.mount('#app').$.setupState
-  await settle(); await vm.openSubstituteModal(); await settle()
+  await settle()
+  check(vm.teacherTotal === 4, 'Dinas must be included in the attendance total')
+  check(!document.querySelector('#app').textContent.includes('Dinas Luar'), 'Legacy status must display as Dinas')
+  vm.openEditAbsence({ id: 1, status: 'Dinas Luar' })
+  await settle()
+  check(vm.editAbsenceForm.status === 'Dinas', 'Legacy absence edit must select Dinas')
+  vm.editingAbsence = null
+  await vm.openSubstituteModal(); await settle()
   const panel = document.querySelector('.substitute-modal')
   const body = panel.querySelector('.substitute-modal-body')
   const footer = panel.querySelector('footer')
@@ -48,14 +56,26 @@ try {
   check(optionBounds.top >= 0 && optionBounds.bottom <= innerHeight, 'Teacher option is outside viewport')
   option.click(); await settle()
   check(vm.substituteForm.substitute_teacher_id === 2, 'Teacher selection failed')
-  Object.assign(vm.substituteForm, { date: '2026-11-09', lesson: 'Matematika', kelas: '7 A', jam_mulai: '07:00', jam_selesai: '08:00', original_teacher_id: 1, reason: 'Badal manual' })
+  Object.assign(vm.substituteForm, { date: '2026-11-09', lesson: 'Matematika', kelas: '7 A', jam_mulai: '07:00', jam_selesai: '08:00', original_teacher_id: 1, status: 'Dinas', reason: 'Badal manual' })
   await settle(); footer.querySelectorAll('button')[1].click(); await settle()
   check(writes.length === 1 && writes[0].method === 'post', 'Create request missing')
   check(writes[0].body.type === 'formal' && writes[0].body.substitute_teacher_id === 2 && !('jadwal_id' in writes[0].body), 'Manual payload changed')
   check(!document.querySelector('.substitute-modal'), 'Modal must close after save')
-  await vm.openSubstituteModal({ id: 9, ...writes[0].body }); await settle()
+  check(writes[0].body.status === 'Dinas', 'New substitute must submit Dinas')
+  await vm.openSubstituteModal({ id: 9, ...writes[0].body, original_status: 'Dinas Luar' }); await settle()
+  check(vm.substituteForm.status === 'Dinas', 'Legacy substitute edit must select Dinas')
   await vm.saveSubstituteHistory()
   check(writes[1]?.method === 'put' && writes[1]?.url === '/attendance/substitute/9', 'Edit request changed')
+  check(writes[1].body.status === 'Dinas', 'Edited legacy substitute must submit Dinas')
+  const attendanceRoot = document.createElement('div'); document.body.append(attendanceRoot)
+  const attendanceApp = createApp(TeacherAttendanceModal, { show: true, schedule: { id: 10 }, date: '2026-11-09', type: 'formal' })
+  attendanceApp.use(pinia); attendanceApp.mount(attendanceRoot)
+  await settle()
+  const radio = document.querySelector('input[type="radio"][value="Dinas"]')
+  check(radio, 'Teacher attendance modal needs a Dinas option')
+  radio.click(); radio.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await settle()
+  check(writes[2]?.url === '/attendance/teacher' && writes[2]?.body.status === 'Dinas', 'Teacher attendance must submit Dinas')
+  attendanceApp.unmount()
   document.querySelector('#result').textContent = `PASS ${innerWidth}x${innerHeight}: bounds, scrolling, visible actions, teacher selection, create and edit`
   document.title = 'PASS'
 } catch (error) {

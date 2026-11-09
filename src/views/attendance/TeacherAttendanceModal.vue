@@ -13,7 +13,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-2">Status Kehadiran</label>
                 <div class="grid grid-cols-2 gap-2">
                     <label 
-                        v-for="s in ['Hadir', 'Izin', 'Sakit', 'Alpha']" 
+                        v-for="s in ['Hadir', 'Izin', 'Sakit', 'Alpha', 'Dinas']"
                         :key="s"
                         class="cursor-pointer border rounded-lg p-2 flex items-center justify-center gap-2 hover:bg-gray-50 transition"
                         :class="{'border-purple-500 bg-purple-50 text-purple-700 font-bold': form.status === s}"

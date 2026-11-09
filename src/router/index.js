@@ -1,8 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useMaintenanceStore } from '@/stores/maintenance'
 import { applySeoMetadata, nonPublicSeo, publicSeo } from '@/utils/seo'
 
 const routes = [
+  { path: '/maintenance', name: 'maintenance', component: () => import('@/views/MaintenanceView.vue'), meta: { title: 'Pemeliharaan', seo: nonPublicSeo } },
   // ---- Public Pages ----
   {
     path: '/',
@@ -570,6 +572,23 @@ router.beforeEach(async (to, from, next) => {
   // Protected pages — redirect to login if not authenticated
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return next({ name: 'login', query: { redirect: to.fullPath } })
+  }
+
+  // Availability is checked on navigation; the API enforces it independently.
+  if (to.name !== 'login' && to.name !== 'maintenance') {
+    const maintenance = useMaintenanceStore()
+    try {
+      await maintenance.refresh(auth.accessToken)
+      if (maintenance.enabled && !maintenance.canBypass && (auth.hasRole('admin') || auth.hasRole('super_admin'))) {
+        if (await auth.tryRefresh()) await maintenance.refresh(auth.accessToken)
+      }
+      if (maintenance.enabled && !maintenance.canBypass && (maintenance.scope === 'all' || !to.meta.requiresAuth)) {
+        return next({ name: 'maintenance', query: { redirect: to.fullPath } })
+      }
+    } catch {
+      // Preserve normal error handling when the status endpoint is unreachable.
+      // Backend middleware still blocks requests during maintenance.
+    }
   }
 
   // Permission check

@@ -34,7 +34,7 @@
                     <option value="Sakit">Sakit</option>
                     <option value="Izin">Izin</option>
                     <option value="Alpha">Alpha</option>
-                    <option value="Dinas Luar">Dinas Luar</option>
+                    <option value="Dinas">Dinas</option>
                     <option value="Lainnya">Lainnya</option>
                 </select>
             </div>

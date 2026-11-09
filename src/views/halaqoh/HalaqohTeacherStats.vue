@@ -228,7 +228,7 @@
                 <td class="px-4 py-3 font-medium text-gray-800">{{ a.teacher }}</td>
                 <td class="px-4 py-3 text-gray-600">{{ a.session }}</td>
                 <td class="px-4 py-3">
-                  <span :class="statusBadge(a.status)">{{ a.status }}</span>
+                  <span :class="statusBadge(a.status)">{{ normalizeTeacherDutyStatus(a.status) }}</span>
                 </td>
                 <td class="px-4 py-3 text-gray-500 text-xs">{{ a.notes || '-' }}</td>
                 <td v-if="isSuperAdmin" class="px-4 py-3 text-center">
@@ -282,7 +282,7 @@
                 <td class="px-4 py-3 font-medium text-gray-800">{{ h.sesi }}</td>
                 <td class="px-4 py-3 text-gray-600">{{ h.guru_asli || '-' }}</td>
                 <td class="px-4 py-3">
-                  <span :class="statusBadge(h.status)">{{ h.status }}</span>
+                  <span :class="statusBadge(h.status)">{{ normalizeTeacherDutyStatus(h.status) }}</span>
                 </td>
                 <td class="px-4 py-3 font-medium" :class="h.pengganti !== '-' ? 'text-emerald-600' : 'text-gray-500'">
                   {{ h.pengganti }}
@@ -400,6 +400,7 @@
 </template>
 
 <script setup>
+import { normalizeTeacherDutyStatus } from '@/utils/teacherAttendance'
 import { ref, onMounted, computed } from 'vue'
 import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
@@ -555,7 +556,7 @@ const statusBadge = (status) => {
   if (s === 'izin') return 'px-2 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-700 uppercase'
   if (s === 'sakit') return 'px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700 uppercase'
   if (s === 'alpha' || s === 'alpa') return 'px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-700 uppercase'
-  if (s === 'dinas luar') return 'px-2 py-1 text-xs font-semibold rounded bg-pink-100 text-pink-700 uppercase'
+  if (s === 'dinas' || s === 'dinas luar') return 'px-2 py-1 text-xs font-semibold rounded bg-pink-100 text-pink-700 uppercase'
   if (s === 'cuti') return 'px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-700 uppercase'
   return 'px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600 uppercase'
 }
@@ -587,7 +588,7 @@ async function deleteAbsenceRecord(item) {
   if (!isSuperAdmin.value || !item?.id) return
   const confirmed = await confirmDelete({
     title: 'Hapus data absensi',
-    message: `Hapus data absensi ${item.teacher} (${item.status}) pada ${formatDate(item.date)}?`,
+    message: `Hapus data absensi ${item.teacher} (${normalizeTeacherDutyStatus(item.status)}) pada ${formatDate(item.date)}?`,
     confirmText: 'Hapus',
   })
   if (!confirmed) return

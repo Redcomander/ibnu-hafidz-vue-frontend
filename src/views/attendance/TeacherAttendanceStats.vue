@@ -128,7 +128,8 @@
                 <th class="px-4 py-3 text-center">Hadir</th>
                 <th class="px-4 py-3 text-center">Izin</th>
                 <th class="px-4 py-3 text-center">Sakit</th>
-                <th class="px-4 py-3 text-center border-r border-gray-100">Alpha</th>
+                <th class="px-4 py-3 text-center">Alpha</th>
+                <th class="px-4 py-3 text-center border-r border-gray-100">Dinas</th>
                 <th class="px-4 py-3 text-center font-bold text-primary bg-primary/5">Subst.</th>
               </tr>
             </thead>
@@ -152,11 +153,12 @@
                 <td class="px-4 py-3 text-center text-emerald-600 font-mono">{{ t.hadir }}</td>
                 <td class="px-4 py-3 text-center text-blue-600 font-mono">{{ t.izin }}</td>
                 <td class="px-4 py-3 text-center text-amber-600 font-mono">{{ t.sakit }}</td>
-                <td class="px-4 py-3 text-center text-rose-600 font-mono border-r border-gray-100">{{ t.alpha }}</td>
+                <td class="px-4 py-3 text-center text-rose-600 font-mono">{{ t.alpha }}</td>
+                <td class="px-4 py-3 text-center text-violet-600 font-mono border-r border-gray-100">{{ t.dinas || 0 }}</td>
                 <td class="px-4 py-3 text-center font-bold bg-primary/5 text-primary">{{ t.substitute || '-' }}</td>
               </tr>
               <tr v-if="!filteredTeacherSummary.length">
-                <td colspan="7" class="px-4 py-12 text-center text-gray-400">
+                <td colspan="8" class="px-4 py-12 text-center text-gray-400">
                   <template v-if="teacherTotal === 0">
                     Belum ada data absensi guru untuk periode ini
                   </template>
@@ -170,12 +172,12 @@
         </div>
       </div>
 
-      <!-- Absence History Table (Izin/Sakit/Alpha/Dinas Luar) -->
+      <!-- Absence History Table (Izin/Sakit/Alpha/Dinas) -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-4 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-2">
             <div class="w-1.5 h-6 bg-rose-500 rounded-full"></div>
-            <h3 class="font-bold text-gray-800">Riwayat Ketidakhadiran Guru (Izin / Sakit / Alpha / Dinas Luar)</h3>
+            <h3 class="font-bold text-gray-800">Riwayat Ketidakhadiran Guru (Izin / Sakit / Alpha / Dinas)</h3>
           </div>
           <div class="relative w-full sm:w-64">
             <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><SvgIcon name="search" :size="14" /></div>
@@ -202,7 +204,7 @@
                 <td class="px-4 py-3 text-gray-600">{{ a.lesson }}</td>
                 <td class="px-4 py-3 text-gray-500">{{ a.kelas }}</td>
                 <td class="px-4 py-3 text-center">
-                  <span :class="[getStatusBadge(a.status), 'px-2 py-0.5 rounded text-[10px] font-bold uppercase']">{{ a.status }}</span>
+                  <span :class="[getStatusBadge(a.status), 'px-2 py-0.5 rounded text-[10px] font-bold uppercase']">{{ normalizeTeacherDutyStatus(a.status) }}</span>
                 </td>
                 <td class="px-4 py-3 text-gray-500 text-xs">{{ a.notes || '-' }}</td>
                 <td v-if="isSuperAdmin" class="px-4 py-3 text-center">
@@ -280,7 +282,7 @@
                 <td class="px-4 py-3 text-gray-600">{{ s.original_teacher }}</td>
                 <td class="px-4 py-3 text-center">
                   <span :class="[getStatusBadge(s.original_status), 'px-2 py-0.5 rounded text-[10px] font-bold uppercase']">
-                    {{ s.original_status }}
+                    {{ normalizeTeacherDutyStatus(s.original_status) }}
                   </span>
                 </td>
                 <td class="px-4 py-3 font-semibold text-primary">{{ s.substitute_teacher }}</td>
@@ -330,7 +332,7 @@
                 <option value="Izin">Izin</option>
                 <option value="Sakit">Sakit</option>
                 <option value="Alpha">Alpha</option>
-                <option value="Dinas Luar">Dinas Luar</option>
+                <option value="Dinas">Dinas</option>
               </select>
             </div>
             <div>
@@ -365,7 +367,7 @@
                 <option value="Izin">Izin</option>
                 <option value="Sakit">Sakit</option>
                 <option value="Alpha">Alpha</option>
-                <option value="Dinas Luar">Dinas Luar</option>
+                <option value="Dinas">Dinas</option>
               </select>
             </div>
             <div>
@@ -444,6 +446,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { normalizeTeacherDutyStatus } from '@/utils/teacherAttendance'
 import { useRoute } from 'vue-router'
 import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
@@ -620,7 +623,7 @@ const teacherCards = computed(() => [
 
 const teacherTotal = computed(() => {
   const tc = teacherCounts.value
-  return (tc.Hadir || 0) + (tc.Izin || 0) + (tc.Sakit || 0) + (tc.Alpha || 0)
+  return (tc.Hadir || 0) + (tc.Izin || 0) + (tc.Sakit || 0) + (tc.Alpha || 0) + (tc.Dinas || 0)
 })
 
 const filteredTeacherSummary = computed(() => {
@@ -655,11 +658,11 @@ const filteredSubstituteHistory = computed(() => {
 })
 
 function getStatusBadge(status) {
-  const s = (status || '').toLowerCase()
+  const s = normalizeTeacherDutyStatus(status).toLowerCase()
   if (s === 'hadir') return 'bg-emerald-100 text-emerald-700'
   if (s === 'izin') return 'bg-blue-100 text-blue-700'
   if (s === 'sakit') return 'bg-amber-100 text-amber-700'
-  if (s === 'dinas luar') return 'bg-violet-100 text-violet-700'
+  if (s === 'dinas') return 'bg-violet-100 text-violet-700'
   return 'bg-rose-100 text-rose-700'
 }
 
@@ -773,7 +776,7 @@ function resetFilters() {
 
 function openEditAbsence(item) {
   editingAbsence.value = item
-  editAbsenceForm.value = { status: item.status, notes: item.notes || '' }
+  editAbsenceForm.value = { status: normalizeTeacherDutyStatus(item.status), notes: item.notes || '' }
 }
 
 async function saveAbsenceEdit() {
@@ -800,7 +803,7 @@ async function deleteAbsenceRecord(item) {
   if (!isSuperAdmin.value || !item?.id) return
   const confirmed = await confirmDelete({
     title: 'Hapus data absensi',
-    message: `Hapus data absensi ${item.teacher} (${item.status}) pada ${formatDate(item.date)}?`,
+    message: `Hapus data absensi ${item.teacher} (${normalizeTeacherDutyStatus(item.status)}) pada ${formatDate(item.date)}?`,
     confirmText: 'Hapus',
   })
   if (!confirmed) return
@@ -860,7 +863,7 @@ async function openSubstituteModal(item = null) {
     jam_mulai: normalizeTimeValue(item?.jam_mulai),
     jam_selesai: normalizeTimeValue(item?.jam_selesai),
     original_teacher_id: item?.original_teacher_id || '',
-    status: item?.original_status || 'Izin',
+    status: normalizeTeacherDutyStatus(item?.original_status) || 'Izin',
     substitute_teacher_id: item?.substitute_teacher_id || '',
     reason: item?.reason || '',
   }
