@@ -1,0 +1,91 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Halaqoh request design regression</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>body{margin:0;padding:32px;box-sizing:border-box}#history{max-width:1080px;margin:0 auto 32px}#review{max-width:1080px;margin:auto}#result{font:12px monospace;color:#789;padding:8px 0} @media(max-width:640px){body{padding:16px}}</style></head>
+<body><pre id="result">RUNNING</pre><div id="history"></div><div id="review"></div><script type="module">
+import { createApp, nextTick } from 'vue'
+import { createPinia } from 'pinia'
+import api from '/src/api/index.js'
+import History from '/src/views/halaqoh/components/HalaqohRequestHistory.vue'
+import Review from '/src/views/halaqoh/HalaqohApprovalValidation.vue'
+import '/src/assets/main.css'
+
+const params = new URLSearchParams(location.search)
+document.documentElement.setAttribute('data-theme', params.get('theme') || 'dark')
+const result = document.querySelector('#result')
+const history = [
+  { id: 40, request_type: 'update', status: 'rejected', reason: 'Mohon periksa kembali daftar santri. Beberapa santri masih terdaftar pada halaqoh lain.', created_at: '2026-11-09T07:10:00Z' },
+  { id: 1, request_type: 'create', status: 'approved', created_at: '2026-11-08T03:20:00Z' },
+  { id: 41, request_type: 'delete_single', status: 'pending', created_at: '2026-11-09T08:00:00Z' },
+]
+let active = { id: 50, teacher: { name: 'Ahmad Fauzi' }, requested_by: { name: 'Ahmad Fauzi' }, request_type: 'update', status: 'pending', student_ids: [12], previous_student_ids: [11], student_details: [{ id: 12, nama_lengkap: 'Muhammad Rizki' }], previous_student_details: [{ id: 11, nama_lengkap: 'Abdullah Hakim' }], created_at: '2026-11-09T08:00:00Z' }
+const rejectedBodies = []
+let release
+api.defaults.adapter = async config => {
+  let data = {}
+  if (config.url === '/halaqoh/assignment-change-requests') data = { data: [active] }
+  if (config.url === '/halaqoh/teacher-options') data = { data: [{ id: 7, name: 'Ahmad Fauzi' }] }
+  if (config.url.endsWith('/reject')) {
+    rejectedBodies.push(JSON.parse(config.data))
+    if (rejectedBodies.length === 1) throw { response: { data: { message: 'Server sementara tidak tersedia. Coba kembali.' } } }
+    await new Promise(resolve => { release = resolve })
+    active = { ...active, status: 'rejected', reason: JSON.parse(config.data).reason }
+  }
+  return { data, status: 200, config, headers: {} }
+}
+window.prompt = () => { throw new Error('System prompt must never be used') }
+const check = (value, message) => { if (!value) throw new Error(message) }
+const wait = async () => { for (let i = 0; i < 12; i++) { await new Promise(r => setTimeout(r, 0)); await nextTick() } }
+try {
+  const historyApp = createApp(History, { requests: history })
+  historyApp.mount('#history')
+  const reviewApp = createApp(Review)
+  reviewApp.use(createPinia())
+  reviewApp.mount('#review')
+  await wait()
+  if (params.has('preview')) {
+    result.remove()
+    if (params.get('preview') === 'modal') {
+      const reject = [...document.querySelectorAll('.review-actions button')].find(button => button.textContent.trim() === 'Tolak')
+      reject.focus(); reject.click(); await wait()
+    }
+    document.title = 'PREVIEW'
+  } else {
+    check(document.querySelectorAll('.history-row').length === 3, 'History rows missing')
+    check(!document.querySelector('#history').textContent.includes('#40 ?'), 'Broken typography separator remains')
+    check(document.querySelectorAll('.hq-badge[data-status="rejected"]').length === 1, 'Rejected status badge missing')
+    check(getComputedStyle(document.querySelector('.request-history')).backgroundColor === 'rgb(17, 28, 44)', 'Dark card surface is incorrect')
+    document.documentElement.setAttribute('data-theme', 'light')
+    check(getComputedStyle(document.querySelector('.request-history')).backgroundColor === 'rgb(255, 255, 255)', 'Light card surface is incorrect')
+    document.documentElement.setAttribute('data-theme', 'dark')
+    const reject = [...document.querySelectorAll('.review-actions button')].find(button => button.textContent.trim() === 'Tolak')
+    reject.focus(); reject.click(); await wait()
+    let dialog = document.querySelector('.rejection-dialog')
+    const textarea = dialog.querySelector('textarea')
+    check(dialog.open && document.activeElement === textarea, 'Custom modal must open and focus its reason field')
+    dialog.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await wait()
+    check(rejectedBodies.length === 0 && dialog.textContent.includes('Isi alasan'), 'Blank reason must be validated inline')
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true })); await wait()
+    check(!dialog.open && document.activeElement === reject, 'Cancel must close and restore focus')
+    reject.click(); await wait()
+    textarea.value = '  Mohon perbaiki daftar santri.  '
+    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    dialog.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await wait()
+    check(dialog.open && dialog.textContent.includes('Server sementara') && textarea.value.includes('Mohon perbaiki'), 'Failed submission must preserve modal, reason, and inline error')
+    dialog.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await wait()
+    check(dialog.querySelector('button[type="submit"]').disabled, 'Submit must be disabled while saving')
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true })); await wait()
+    check(dialog.open, 'Saving must not be dismissed')
+    dialog.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    check(rejectedBodies.length === 2, 'Duplicate submission must be blocked')
+    release(); await wait()
+    check(!dialog.open && rejectedBodies[1].reason === 'Mohon perbaiki daftar santri.', 'Successful rejection must close and submit the trimmed reason')
+    check(document.querySelector('.review-note').textContent.includes('Mohon perbaiki'), 'Saved reason must appear on the reviewed card')
+    check(document.documentElement.scrollWidth <= innerWidth, 'Layout must not overflow horizontally')
+    result.textContent = 'PASS: light/dark history, custom rejection dialog, focus, blank validation, cancel, retry, saving guard and saved reason'
+    document.title = 'PASS'
+    historyApp.unmount(); reviewApp.unmount()
+  }
+} catch (error) { result.textContent = 'FAIL: ' + error.message; document.title = 'FAIL' }
+</script></body></html>

@@ -34,14 +34,7 @@
       </div>
     </div>
 
-    <div v-if="!isAdmin && membershipRequests.length" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm space-y-2">
-      <p class="font-semibold">Pengajuan Perubahan Halaqoh</p>
-      <p v-if="membershipPending(auth.user?.id)">Tunggu persetujuan admin sebelum mengajukan perubahan berikutnya.</p>
-      <p v-for="request in membershipRequests.slice(0, 5)" :key="request.id">
-        #{{ request.id }} ? {{ request.status === 'pending' ? 'Menunggu persetujuan admin' : request.status === 'approved' ? 'Disetujui' : 'Ditolak' }}
-        <span v-if="request.reason">: {{ request.reason }}</span>
-      </p>
-    </div>
+    <HalaqohRequestHistory v-if="!isAdmin && membershipRequests.length" :requests="membershipRequests" />
     <router-link v-if="isAdmin" :to="{ name: 'halaqoh-validation' }" class="inline-block text-sm font-medium text-emerald-700">Validasi Pengajuan Guru</router-link>
 
     <!-- Search -->
@@ -403,6 +396,7 @@ import { useHalaqohStore } from '@/stores/halaqoh'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
+import HalaqohRequestHistory from './components/HalaqohRequestHistory.vue'
 import HalaqohAssignmentForm from './components/HalaqohAssignmentForm.vue'
 import HalaqohAttendanceModal from './components/HalaqohAttendanceModal.vue'
 import HalaqohTeacherAttendanceModal from './components/HalaqohTeacherAttendanceModal.vue'
