@@ -348,9 +348,12 @@
 
     <!-- Add/Edit Substitute Modal -->
     <Teleport to="body">
-      <div v-if="substituteModal.open" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="closeSubstituteModal">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6">
-          <h3 class="text-base font-bold text-gray-800 mb-4">{{ substituteModal.editingId ? 'Edit Riwayat Guru Pengganti' : 'Tambah Riwayat Guru Pengganti' }}</h3>
+      <div v-if="substituteModal.open" class="substitute-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="!savingSubstitute && closeSubstituteModal()">
+        <div class="substitute-modal bg-white rounded-2xl shadow-xl w-full max-w-xl" role="dialog" aria-modal="true" aria-labelledby="substitute-modal-title">
+          <header class="substitute-modal-header">
+            <h3 id="substitute-modal-title" class="text-base font-bold text-gray-800">{{ substituteModal.editingId ? 'Edit Riwayat Guru Pengganti' : 'Tambah Riwayat Guru Pengganti' }}</h3>
+          </header>
+          <div class="substitute-modal-body">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-gray-600 mb-1">Tanggal</label>
@@ -428,10 +431,11 @@
             <label class="block text-xs font-medium text-gray-600 mb-1">Catatan (opsional)</label>
             <textarea v-model="substituteForm.reason" rows="2" class="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none" placeholder="Catatan alasan pengganti..."></textarea>
           </div>
-          <div class="flex gap-2 mt-5">
-            <button @click="closeSubstituteModal" class="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">Batal</button>
-            <button @click="saveSubstituteHistory" :disabled="savingSubstitute" class="flex-1 h-9 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50">{{ savingSubstitute ? 'Menyimpan...' : 'Simpan' }}</button>
           </div>
+          <footer class="substitute-modal-footer flex gap-2">
+            <button @click="closeSubstituteModal" :disabled="savingSubstitute" class="flex-1 h-9 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50">Batal</button>
+            <button @click="saveSubstituteHistory" :disabled="savingSubstitute" class="flex-1 h-9 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50">{{ savingSubstitute ? 'Menyimpan...' : 'Simpan' }}</button>
+          </footer>
         </div>
       </div>
     </Teleport>
@@ -1008,6 +1012,50 @@ async function exportMissingReport() {
 </script>
 
 <style scoped>
+.substitute-modal-overlay {
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+.substitute-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  max-height: calc(100dvh - max(12px, env(safe-area-inset-top)) - max(12px, env(safe-area-inset-bottom)));
+  min-width: 0;
+  overflow: hidden;
+}
+.substitute-modal-header,
+.substitute-modal-footer {
+  flex-shrink: 0;
+  padding: 16px;
+}
+.substitute-modal-header { border-bottom: 1px solid #f3f4f6; }
+.substitute-modal-footer { border-top: 1px solid #f3f4f6; }
+.substitute-modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+}
+.substitute-modal-body :deep(.grid > div) { min-width: 0; }
+.substitute-modal-body :deep(input),
+.substitute-modal-body :deep(select),
+.substitute-modal-body :deep(textarea) {
+  min-width: 0;
+  max-width: 100%;
+  font-size: 16px;
+}
+.substitute-modal-body input,
+.substitute-modal-body select,
+.substitute-modal-footer button { min-height: 44px; }
+@media (min-width: 640px) {
+  .substitute-modal-header,
+  .substitute-modal-body,
+  .substitute-modal-footer { padding: 20px 24px; }
+  .substitute-modal-body :deep(input),
+  .substitute-modal-body :deep(select),
+  .substitute-modal-body :deep(textarea) { font-size: 14px; }
+}
 .btn-export {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg text-white text-xs font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm;
 }

@@ -1,0 +1,64 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>RUNNING</title></head>
+<body><pre id="result">RUNNING</pre><div id="app"></div><script type="module">
+import { createApp, nextTick } from 'vue'
+import { createPinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import { useAuthStore } from '/src/stores/auth.js'
+import api from '/src/api/index.js'
+import Page from '/src/views/attendance/TeacherAttendanceStats.vue'
+import '/src/assets/main.css'
+
+const writes = []
+api.defaults.adapter = async config => {
+  let data = []
+  if (config.url === '/attendance/teacher-statistics') data = { teacher_counts: {}, teacher_summary: [], substitute_history: [], absence_history: [] }
+  if (config.url === '/users') data = [{ id: 1, name: 'Guru Asli' }, { id: 2, name: 'Guru Pengganti' }]
+  if (config.method === 'post' || config.method === 'put') writes.push({ url: config.url, method: config.method, body: JSON.parse(config.data) })
+  return { data, status: 200, config, headers: {} }
+}
+const check = (value, message) => { if (!value) throw new Error(message) }
+const settle = async () => { await nextTick(); await new Promise(resolve => setTimeout(resolve, 50)); await nextTick() }
+try {
+  const pinia = createPinia()
+  const auth = useAuthStore(pinia)
+  auth.user = { roles: [{ name: 'admin' }] }; auth.accessToken = 'test'
+  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', name: 'attendance-guru-formal', component: Page, meta: { title: 'Rekapan Guru Formal' } }] })
+  await router.push('/'); await router.isReady()
+  const app = createApp(Page); app.use(pinia); app.use(router)
+  const vm = app.mount('#app').$.setupState
+  await settle(); await vm.openSubstituteModal(); await settle()
+  const panel = document.querySelector('.substitute-modal')
+  const body = panel.querySelector('.substitute-modal-body')
+  const footer = panel.querySelector('footer')
+  const bounds = panel.getBoundingClientRect()
+  check(bounds.top >= 0 && bounds.bottom <= innerHeight + 1, 'Modal exceeds viewport height')
+  check(bounds.left >= 0 && bounds.right <= innerWidth + 1, 'Modal exceeds viewport width')
+  check(body.scrollWidth <= body.clientWidth + 1, 'Form has horizontal overflow')
+  if (innerHeight < 850 && innerWidth < 640) check(body.scrollHeight > body.clientHeight, 'Long phone form must scroll')
+  const footerTop = footer.getBoundingClientRect().top
+  body.scrollTop = body.scrollHeight; await settle()
+  check(Math.abs(footer.getBoundingClientRect().top - footerTop) < 1, 'Actions must stay visible while scrolling')
+  check(footer.getBoundingClientRect().bottom <= innerHeight, 'Save button is outside viewport')
+  const substitute = [...body.querySelectorAll('button')].find(button => button.textContent.includes('Pilih guru pengganti'))
+  substitute.scrollIntoView({ block: 'center' }); substitute.click(); await settle()
+  const option = [...document.querySelectorAll('button')].find(button => button.textContent.trim() === 'Guru Pengganti')
+  check(option, 'Teacher dropdown is inaccessible')
+  const optionBounds = option.getBoundingClientRect()
+  check(optionBounds.top >= 0 && optionBounds.bottom <= innerHeight, 'Teacher option is outside viewport')
+  option.click(); await settle()
+  check(vm.substituteForm.substitute_teacher_id === 2, 'Teacher selection failed')
+  Object.assign(vm.substituteForm, { date: '2026-11-09', lesson: 'Matematika', kelas: '7 A', jam_mulai: '07:00', jam_selesai: '08:00', original_teacher_id: 1, reason: 'Badal manual' })
+  await settle(); footer.querySelectorAll('button')[1].click(); await settle()
+  check(writes.length === 1 && writes[0].method === 'post', 'Create request missing')
+  check(writes[0].body.type === 'formal' && writes[0].body.substitute_teacher_id === 2 && !('jadwal_id' in writes[0].body), 'Manual payload changed')
+  check(!document.querySelector('.substitute-modal'), 'Modal must close after save')
+  await vm.openSubstituteModal({ id: 9, ...writes[0].body }); await settle()
+  await vm.saveSubstituteHistory()
+  check(writes[1]?.method === 'put' && writes[1]?.url === '/attendance/substitute/9', 'Edit request changed')
+  document.querySelector('#result').textContent = `PASS ${innerWidth}x${innerHeight}: bounds, scrolling, visible actions, teacher selection, create and edit`
+  document.title = 'PASS'
+} catch (error) {
+  document.title = 'FAIL'; document.querySelector('#result').textContent = error.stack
+}
+</script></body></html>
