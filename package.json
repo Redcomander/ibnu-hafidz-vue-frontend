@@ -35,9 +35,10 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "vite": "^6.0.7"
+    "vite": "^6.4.4"
   },
   "overrides": {
-    "rollup": "^4.59.0"
+    "rollup": "^4.59.0",
+    "postcss-selector-parser@<6.1.5": "^6.1.5"
   }
 }
