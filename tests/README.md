@@ -22,6 +22,7 @@ unmatched API calls receive 401 instead of reaching a real backend.
 - Expired access-token refresh and retry with the replacement bearer token.
 - Maintenance page, retry/recovery, scope enforcement, admin settings and API-driven redirects.
 - Production diagnostics, temporary debug controls, incident resolution, role restrictions and report IDs.
+- Notification unread totals, pagination, reconnect/poll recovery, deduplication, read failures and logout races.
 - Unknown routes and public article search/empty results.
 - Existing browser regression harnesses: article HTML sanitization, diniyyah
   schedules, halaqoh membership/approval dialogs, and mobile substitute attendance.

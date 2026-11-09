@@ -217,6 +217,8 @@
           <div class="relative">
             <button
               @click.stop="showNotifications = !showNotifications"
+              aria-label="Notifikasi"
+              :aria-expanded="showNotifications"
               class="relative text-gray-500 hover:text-primary transition text-xl p-1"
             >
               <SvgIcon name="bell" :size="22" />
@@ -232,6 +234,7 @@
               <NotificationDropdown 
                 v-if="showNotifications" 
                 v-click-outside="() => showNotifications = false"
+                @close="showNotifications = false"
               />
             </transition>
           </div>
@@ -325,7 +328,7 @@ onUnmounted(() => {
 });
 
 watch(
-  () => auth.isAuthenticated,
+  () => auth.isAuthenticated ? auth.user?.id : null,
   (isAuthed) => {
     if (isAuthed) {
       notifStore.initialize();
@@ -334,15 +337,6 @@ watch(
     }
   },
   { immediate: true }
-);
-
-watch(
-  () => auth.accessToken,
-  (newToken, oldToken) => {
-    if (!newToken || newToken === oldToken) return;
-    notifStore.disconnectSSE();
-    notifStore.initialize();
-  }
 );
 
 watch(

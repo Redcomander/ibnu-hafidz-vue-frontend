@@ -1,11 +1,13 @@
 <template>
   <div
-    class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in"
+    class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in"
+    role="region" aria-label="Daftar notifikasi"
   >
     <div class="px-4 py-2 border-b border-gray-50 flex items-center justify-between">
       <h3 class="font-bold text-gray-800 text-sm">Notifikasi</h3>
       <button
         @click="store.markAsRead('all')"
+        :disabled="store.unreadCount === 0"
         class="text-xs text-primary hover:text-primary-dark transition"
       >
         Tandai semua dibaca
@@ -13,16 +15,18 @@
     </div>
 
     <div class="max-h-80 overflow-y-auto">
-      <div v-if="store.notifications.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
+      <p v-if="store.error" role="alert" class="px-4 py-3 text-xs text-red-700">{{ store.error }} <button class="underline" @click="store.fetchRecent()">Coba lagi</button></p>
+      <p v-if="store.loading" role="status" class="px-4 py-3 text-xs text-gray-500">Memuat notifikasi...</p>
+      <div v-if="!store.loading && !store.error && store.notifications.length === 0" class="px-4 py-8 text-center text-gray-400 text-sm">
         Tidak ada notifikasi baru
       </div>
 
-      <div
+      <button type="button"
         v-for="notif in store.notifications"
         :key="notif.id"
         @click="handleClick(notif)"
         :class="[
-          'px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer transition',
+          'block w-full text-left px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
           !notif.is_read ? 'bg-blue-50/50' : ''
         ]"
       >
@@ -45,7 +49,8 @@
             </span>
           </div>
         </div>
-      </div>
+      </button>
+      <button v-if="store.hasMore" type="button" class="w-full py-3 text-sm text-primary" :disabled="store.loading" @click="store.loadMore()">Lihat notifikasi sebelumnya</button>
     </div>
   </div>
 </template>
@@ -53,17 +58,21 @@
 <script setup>
 import { useNotificationStore } from '@/stores/notification';
 import { useRouter } from 'vue-router';
+import { onMounted } from 'vue';
 
 const store = useNotificationStore();
 const router = useRouter();
+const emit = defineEmits(['close']);
+onMounted(() => store.fetchRecent());
 
 const handleClick = async (notif) => {
   if (!notif.is_read) {
-    await store.markAsRead(notif.id);
+    if (!await store.markAsRead(notif.id)) return;
   }
-  if (notif.action_url) {
-    router.push(notif.action_url);
+  if (typeof notif.action_url === 'string' && /^\/(?!\/)/.test(notif.action_url) && !/[\\\u0000-\u001f]/.test(notif.action_url)) {
+    await router.push(notif.action_url);
   }
+  emit('close');
 };
 
 const formatTime = (dateString) => {
