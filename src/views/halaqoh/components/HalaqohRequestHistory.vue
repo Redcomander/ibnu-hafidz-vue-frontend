@@ -1,6 +1,7 @@
 <template>
   <section class="halaqoh-requests request-history" aria-labelledby="halaqoh-history-title">
-    <header class="history-header">
+    <details class="history-disclosure" open>
+    <summary class="history-header" aria-labelledby="halaqoh-history-title">
       <div class="history-heading">
         <span class="history-mark"><SvgIcon name="clipboard-check" :size="21" aria-hidden="true" /></span>
         <div>
@@ -9,8 +10,11 @@
           <p class="history-description">Pantau pembaruan anggota dan tanggapan admin.</p>
         </div>
       </div>
-      <span class="history-count">{{ requests.length }} pengajuan</span>
-    </header>
+      <span class="history-header-actions">
+        <span class="history-count">{{ requests.length }} pengajuan</span>
+        <SvgIcon class="history-chevron" name="chevron-down" :size="20" aria-hidden="true" />
+      </span>
+    </summary>
     <ol class="history-list">
       <li v-for="request in visibleRequests" :key="request.id" class="history-row" :data-status="request.status">
         <span class="history-status-icon" aria-hidden="true"><SvgIcon :name="request.status === 'approved' ? 'check' : request.status === 'rejected' ? 'x' : 'clock'" :size="16" /></span>
@@ -33,6 +37,7 @@
       <p v-if="pendingCount"><SvgIcon name="clock" :size="14" aria-hidden="true" /> {{ pendingCount }} pengajuan menunggu. Perubahan berlaku setelah disetujui admin.</p>
       <button v-if="requests.length > 5" type="button" :aria-expanded="expanded" @click="expanded = !expanded">{{ expanded ? 'Tampilkan lebih sedikit' : 'Lihat semua pengajuan' }}</button>
     </footer>
+    </details>
   </section>
 </template>
 
@@ -51,6 +56,13 @@ const pendingCount = computed(() => props.requests.filter(request => request.sta
 <style scoped>
 .request-history { overflow: hidden; background: var(--hq-bg); border: 1px solid var(--hq-line); border-radius: 18px; box-shadow: 0 8px 28px #071b3110; }
 .history-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px; background: radial-gradient(ellipse at top right, #159b7d0c, transparent 65%); }
+.history-header { cursor: pointer; list-style: none; }
+.history-header::-webkit-details-marker { display: none; }
+.history-header:focus-visible { outline: 2px solid var(--hq-green); outline-offset: -4px; border-radius: 16px; }
+.history-header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; color: var(--hq-muted); }
+.history-chevron { transition: transform .2s ease; }
+.history-disclosure[open] .history-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .history-chevron { transition: none; } }
 .history-heading { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .history-mark { display: grid; place-items: center; width: 46px; height: 46px; flex-shrink: 0; border: 1px solid var(--hq-line); border-radius: 14px; color: var(--hq-green); background: var(--hq-green-bg); }
 .history-description { margin: 6px 0 0; color: var(--hq-muted); font-size: 12px; }
