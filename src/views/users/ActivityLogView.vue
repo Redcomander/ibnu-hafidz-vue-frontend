@@ -53,7 +53,7 @@
             <td class="text-gray-600 whitespace-nowrap">{{ formatDuration(item.duration_ms) }}</td>
             <td class="text-gray-500 whitespace-nowrap">{{ item.ip_address || '-' }}</td>
             <td class="text-gray-500 max-w-[180px] truncate" :title="deviceLabel(item)">{{ deviceLabel(item) }}</td>
-            <td class="text-gray-500 uppercase whitespace-nowrap">{{ item.country_code || '-' }}</td>
+            <td class="text-gray-500 whitespace-nowrap">{{ countryLabel(item) }}</td>
           </tr>
           <tr v-if="logs.length === 0">
             <td colspan="9" class="text-center py-8 text-gray-400">Belum ada data log.</td>
@@ -70,7 +70,7 @@
           <div class="font-medium text-sm">{{ item.user?.name || (item.user_id ? ('User #' + item.user_id) : 'Anonim') }} · {{ item.method }} {{ item.path }}</div>
           <div class="text-xs text-gray-500 space-y-1">
             <div>Duration: {{ formatDuration(item.duration_ms) }}</div>
-            <div>IP: {{ item.ip_address || '-' }} · {{ deviceLabel(item) }} · {{ item.country_code || 'Unknown' }}</div>
+            <div>IP: {{ item.ip_address || '-' }} · {{ deviceLabel(item) }} · {{ countryLabel(item) }}</div>
           </div>
         </div>
         <div v-if="logs.length === 0" class="text-center text-gray-400 py-6">Belum ada data log.</div>
@@ -107,6 +107,18 @@ const filters = reactive({ search: '', method: '', user_name: '' });
 let filterDebounceTimer;
 let autoRefreshTimer;
 const AUTO_REFRESH_MS = 15000;
+
+const countryNames = typeof Intl.DisplayNames === 'function'
+  ? new Intl.DisplayNames(['id'], { type: 'region' }) : null;
+
+function countryLabel(item) {
+  const code = String(item.country_code || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return 'Tidak diketahui';
+  try {
+    const name = countryNames?.of(code);
+    return name && name !== code ? `${name} (${code})` : code;
+  } catch { return code; }
+}
 
 function methodClass(method) {
   if (method === 'GET') return 'badge-info';
