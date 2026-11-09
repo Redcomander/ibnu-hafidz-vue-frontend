@@ -32,15 +32,19 @@
           ]">{{ request.status }}</span>
         </div>
 
+        <div class="mb-3 text-sm text-slate-600">
+          <p class="font-medium text-slate-700">Daftar sebelumnya</p>
+          <p>{{ formatStudentList(request.previous_student_ids || []) }}</p>
+        </div>
         <div class="grid sm:grid-cols-2 gap-4 text-sm text-slate-600">
           <div>
-            <p class="font-medium text-slate-700 mb-1">Siswa baru</p>
+            <p class="font-medium text-slate-700 mb-1">{{ request.request_type.startsWith('delete') ? 'Santri yang dihapus' : 'Daftar santri yang diajukan' }}</p>
             <p v-if="request.student_ids?.length">{{ formatStudentList(request.student_ids) }}</p>
             <p v-else class="text-slate-400">Tidak ada</p>
           </div>
           <div>
             <p class="font-medium text-slate-700 mb-1">Guru pembantu</p>
-            <p>{{ request.helper_teacher_id ? getTeacherName(request.helper_teacher_id) : 'Tidak ada' }}</p>
+            <p>{{ request.request_type.startsWith('delete') ? 'Tidak berubah' : request.helper_teacher_id ? getTeacherName(request.helper_teacher_id) : 'Tidak ada' }}</p>
           </div>
         </div>
 
@@ -48,8 +52,13 @@
           <span class="font-medium text-slate-700">Alasan:</span> {{ request.reason }}
         </div>
 
+        <p v-if="hasTransfers(request)" class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+          Persetujuan ini juga memindahkan santri dari halaqoh guru lain:
+          {{ transferSummary(request) }}
+        </p>
+
         <div v-if="request.status === 'pending'" class="mt-4 flex flex-wrap gap-2">
-          <button @click="approve(request.id)" class="px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 text-sm font-medium">Setujui</button>
+          <button @click="approve(request.id)" class="px-4 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 text-sm font-medium">{{ hasTransfers(request) ? 'Setujui Perpindahan' : 'Setujui' }}</button>
           <button @click="reject(request.id)" class="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium">Tolak</button>
         </div>
       </div>
@@ -61,6 +70,7 @@
 import { ref, onMounted } from 'vue'
 import { useHalaqohStore } from '@/stores/halaqoh'
 import { useToastStore } from '@/stores/toast'
+import api from '@/api'
 
 const store = useHalaqohStore()
 const toast = useToastStore()
@@ -75,32 +85,18 @@ const normalizePaginatedItems = (payload) => {
   return []
 }
 
-async function loadAllPages(path, perPage = 1000) {
-  let page = 1
-  let totalPages = 1
-  const allItems = []
-
-  do {
-    const { data } = await window.axios.get(path, { params: { page, per_page: perPage } })
-    allItems.push(...normalizePaginatedItems(data))
-    totalPages = Number(data?.total_pages || 1)
-    page += 1
-  } while (page <= totalPages)
-
-  return allItems
-}
-
 async function loadRequests() {
   loading.value = true
   try {
     const { data } = await store.fetchAssignmentChangeRequests()
     requests.value = data || []
+    allStudents.value = requests.value.flatMap(request => [...(request.student_details || []), ...(request.previous_student_details || [])])
     if (!allTeachers.value.length) {
-      allTeachers.value = await loadAllPages('/users')
-      allStudents.value = await loadAllPages('/students')
+      const teachers = await api.get('/halaqoh/teacher-options')
+      allTeachers.value = normalizePaginatedItems(teachers.data)
     }
   } catch (error) {
-    toast.error(error.response?.data?.error || 'Gagal memuat permintaan validasi')
+    toast.error(error.response?.data?.message || error.response?.data?.error || 'Gagal memuat permintaan validasi')
   } finally {
     loading.value = false
   }
@@ -119,22 +115,36 @@ function formatStudentList(studentIds) {
 
 async function approve(id) {
   try {
-    await store.approveAssignmentChangeRequest(id)
+    const request = requests.value.find(item => item.id === id)
+    await store.approveAssignmentChangeRequest(id, { confirm_transfers: hasTransfers(request) })
     toast.success('Permintaan berhasil disetujui')
     await loadRequests()
   } catch (error) {
-    toast.error(error.response?.data?.error || 'Gagal menyetujui permintaan')
+    toast.error(error.response?.data?.message || error.response?.data?.error || 'Gagal menyetujui permintaan')
   }
 }
 
+function hasTransfers(request) {
+  return request && ['create', 'update'].includes(request.request_type) && Object.values(request.student_owner_snapshot || {}).some(owner => Number(owner) !== 0 && Number(owner) !== Number(request.target_teacher_id || request.teacher_id))
+}
+
+function transferSummary(request) {
+  return (request.student_ids || []).filter(id => {
+    const owner = Number(request.student_owner_snapshot?.[id] || 0)
+    return owner && owner !== Number(request.target_teacher_id || request.teacher_id)
+  }).map(id => `${formatStudentList([id])} (${getTeacherName(Number(request.student_owner_snapshot[id]))})`).join(', ')
+}
+
 async function reject(id) {
-  const reason = window.prompt('Alasan penolakan:') || 'Permintaan ditolak oleh admin'
+  const answer = window.prompt('Alasan penolakan:')
+  if (answer === null) return
+  const reason = answer || 'Permintaan ditolak oleh admin'
   try {
     await store.rejectAssignmentChangeRequest(id, { reason })
     toast.success('Permintaan berhasil ditolak')
     await loadRequests()
   } catch (error) {
-    toast.error(error.response?.data?.error || 'Gagal menolak permintaan')
+    toast.error(error.response?.data?.message || error.response?.data?.error || 'Gagal menolak permintaan')
   }
 }
 

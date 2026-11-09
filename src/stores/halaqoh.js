@@ -153,8 +153,8 @@ export const useHalaqohStore = defineStore('halaqoh', {
       return data
     },
 
-    async approveAssignmentChangeRequest(id) {
-      const { data } = await api.post(`/halaqoh/assignment-change-requests/${id}/approve`)
+    async approveAssignmentChangeRequest(id, payload = {}) {
+      const { data } = await api.post(`/halaqoh/assignment-change-requests/${id}/approve`, payload)
       return data
     },
 

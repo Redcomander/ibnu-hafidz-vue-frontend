@@ -18,6 +18,9 @@
         </div>
 
         <form @submit.prevent="save" class="p-6 space-y-5">
+          <p v-if="!isAdmin" class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            Perubahan berlaku setelah disetujui admin. Cari santri mana pun. Perpindahan dari halaqoh guru lain harus disetujui admin.
+          </p>
           <!-- Teacher Select -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Guru Pengampu</label>
@@ -27,6 +30,7 @@
               placeholder="-- Pilih Guru --"
               label-key="name"
               value-key="id"
+              :disabled="!isAdmin"
               :search-debounce="300"
             />
           </div>
@@ -52,10 +56,16 @@
             <label class="block text-sm font-medium text-gray-700 mb-1.5">
               Santri ({{ form.student_ids.length }} dipilih)
             </label>
+            <div v-if="selectedStudents.length" class="mb-2 flex flex-wrap gap-2">
+              <button v-for="student in selectedStudents" :key="student.id" type="button" @click="form.student_ids = form.student_ids.filter(id => id !== student.id)" class="rounded-full bg-emerald-50 px-3 py-1 text-xs text-emerald-800" :aria-label="`Keluarkan ${student.nama_lengkap} dari pengajuan`">
+                {{ student.nama_lengkap }} ?
+              </button>
+            </div>
+            <p class="mb-2 text-xs text-gray-500">Ketik minimal 2 karakter untuk mencari semua santri. Hasil ditampilkan 20 per halaman.</p>
             <input
               v-model="studentSearch"
               type="text"
-              placeholder="Cari santri..."
+              placeholder="Cari nama santri (minimal 2 karakter)..."
               class="input-field mb-2"
             />
             <div
@@ -74,16 +84,23 @@
                 />
                 <span class="text-sm text-gray-700">{{ s.nama_lengkap || s.name }}</span>
                 <span
-                  v-if="isAssigned(s.id)"
+                  v-if="s.current_teacher_id && Number(s.current_teacher_id) !== Number(form.user_id)"
                   class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full ml-auto"
                 >
-                  Sudah ditugaskan
+                  Halaqoh: {{ s.current_teacher_name || 'Guru lain' }}
                 </span>
               </label>
-              <p v-if="!filteredStudents.length" class="text-center text-gray-400 text-sm py-4">
+              <p v-if="studentLoading" class="text-center text-gray-400 text-sm py-4">Mencari santri...</p>
+              <p v-else-if="!filteredStudents.length" class="text-center text-gray-400 text-sm py-4">
                 Tidak ada santri ditemukan
               </p>
             </div>
+          </div>
+
+          <div v-if="studentTotalPages > 1" class="flex items-center justify-between text-xs">
+            <button type="button" :disabled="studentLoading || studentPage <= 1" @click="loadStudentOptions(studentPage - 1)" class="btn-secondary">Sebelumnya</button>
+            <span>{{ studentPage }} / {{ studentTotalPages }}</span>
+            <button type="button" :disabled="studentLoading || studentPage >= studentTotalPages" @click="loadStudentOptions(studentPage + 1)" class="btn-secondary">Berikutnya</button>
           </div>
 
           <!-- Actions -->
@@ -97,10 +114,10 @@
             </button>
             <button
               type="submit"
-              :disabled="saving || !form.user_id || !form.student_ids.length"
+              :disabled="saving || !form.user_id || (!isEditing && !form.student_ids.length)"
               class="flex-1 px-4 py-2.5 text-sm rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {{ saving ? 'Menyimpan...' : isEditing ? 'Perbarui' : 'Simpan' }}
+              {{ saving ? 'Mengirim...' : !isAdmin ? 'Ajukan ke Admin' : isEditing ? 'Perbarui' : 'Simpan' }}
             </button>
           </div>
         </form>
@@ -110,7 +127,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { useHalaqohStore } from '@/stores/halaqoh'
 import { useToastStore } from '@/stores/toast'
 import api from '@/api'
@@ -121,6 +139,8 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
+const auth = useAuthStore()
+const isAdmin = computed(() => auth.userRoles.some(role => ['admin', 'super_admin'].includes(role.name)))
 const store = useHalaqohStore()
 const toast = useToastStore()
 
@@ -128,7 +148,12 @@ const isEditing = computed(() => !!props.editingGroup)
 
 const teachers = ref([])
 const allStudents = ref([])
-const assignedStudentIds = ref(new Set())
+const knownStudents = ref({})
+const studentLoading = ref(false)
+const studentPage = ref(1)
+const studentTotalPages = ref(1)
+let studentRequestVersion = 0
+const selectedStudents = computed(() => form.value.student_ids.map(id => knownStudents.value[id] || { id, nama_lengkap: `#${id}` }))
 const studentSearch = ref('')
 const debouncedStudentSearch = ref('')
 const saving = ref(false)
@@ -146,39 +171,32 @@ function normalizePaginatedItems(payload) {
   return []
 }
 
-async function fetchAllPages(path, perPage = 1000) {
-  let page = 1
-  let totalPages = 1
-  const allItems = []
-
-  do {
-    const { data } = await api.get(path, { params: { page, per_page: perPage } })
-    allItems.push(...normalizePaginatedItems(data))
-    totalPages = Number(data?.total_pages || 1)
-    page += 1
-  } while (page <= totalPages)
-
-  const uniqueMap = new Map()
-  for (const item of allItems) {
-    if (item?.id != null && !uniqueMap.has(item.id)) {
-      uniqueMap.set(item.id, item)
-    }
+async function loadStudentOptions(page = 1) {
+  const version = ++studentRequestVersion
+  studentLoading.value = true
+  try {
+    const { data } = await api.get('/halaqoh/student-options', { params: { page, per_page: 20, search: debouncedStudentSearch.value } })
+    if (version !== studentRequestVersion) return
+    allStudents.value = normalizePaginatedItems(data)
+    for (const student of allStudents.value) knownStudents.value[student.id] = student
+    studentPage.value = page
+    studentTotalPages.value = Math.max(1, Number(data?.total_pages || 1))
+  } catch (error) {
+    if (version !== studentRequestVersion) return
+    allStudents.value = []
+    studentTotalPages.value = 1
+    toast.error(error.response?.data?.message || 'Gagal mencari santri')
+  } finally {
+    if (version === studentRequestVersion) studentLoading.value = false
   }
-
-  return Array.from(uniqueMap.values())
 }
 
 async function loadTeacherOptions() {
-  const { data } = await api.get('/users', { params: { per_page: 1000 } })
+  const { data } = await api.get('/halaqoh/teacher-options')
   return normalizePaginatedItems(data).map(normalizeTeacherOption)
 }
 
-const filteredStudents = computed(() => {
-  const q = debouncedStudentSearch.value.toLowerCase()
-  return allStudents.value.filter(
-    (s) => (s.nama_lengkap || s.name || '').toLowerCase().includes(q)
-  )
-})
+const filteredStudents = computed(() => allStudents.value)
 
 function normalizeTeacherOption(teacher) {
   if (!teacher) return teacher
@@ -200,43 +218,31 @@ const helperTeacherOptions = computed(() => {
 })
 
 watch(studentSearch, (value) => {
+  studentRequestVersion++
   if (studentSearchTimer) {
     clearTimeout(studentSearchTimer)
   }
   studentSearchTimer = setTimeout(() => {
-    debouncedStudentSearch.value = value
+    debouncedStudentSearch.value = value.trim()
+    loadStudentOptions(1)
   }, 300)
 })
 
-function isAssigned(studentId) {
-  return assignedStudentIds.value.has(studentId) && !form.value.student_ids.includes(studentId)
-}
+onUnmounted(() => { clearTimeout(studentSearchTimer); studentRequestVersion++ })
 
 onMounted(async () => {
-  // Fetch teachers + students
+  if (!isAdmin.value) form.value.user_id = auth.user?.id
+  if (props.editingGroup) {
+    form.value.user_id = props.editingGroup.teacher_id
+    form.value.student_ids = props.editingGroup.assignments.map(assignment => assignment.student_id)
+    form.value.helper_teacher_id = props.editingGroup.assignments[0]?.helper_teacher_id || null
+    for (const assignment of props.editingGroup.assignments) {
+      knownStudents.value[assignment.student_id] = { id: assignment.student_id, nama_lengkap: assignment.student?.nama_lengkap || `#${assignment.student_id}` }
+    }
+  }
   try {
-    const [loadedTeachers, loadedStudents] = await Promise.all([
-      loadTeacherOptions(),
-      fetchAllPages('/students'),
-    ])
+    const [loadedTeachers] = await Promise.all([loadTeacherOptions(), loadStudentOptions()])
     teachers.value = loadedTeachers
-    allStudents.value = loadedStudents
-
-    // Build assigned set from all groups
-    for (const g of store.groups || []) {
-      for (const a of g.assignments || []) {
-        assignedStudentIds.value.add(a.student_id)
-      }
-    }
-
-    // Pre-fill if editing
-    if (props.editingGroup) {
-      form.value.user_id = props.editingGroup.teacher_id
-      form.value.student_ids = props.editingGroup.assignments.map((a) => a.student_id)
-      // Find helper from first assignment
-      const first = props.editingGroup.assignments[0]
-      form.value.helper_teacher_id = first?.helper_teacher_id || null
-    }
   } catch {
     toast.error('Gagal memuat data guru/santri')
   }
@@ -247,14 +253,14 @@ async function save() {
   try {
     if (isEditing.value) {
       await store.updateAssignment(props.editingGroup.teacher_id, form.value)
-      toast.success('Penugasan berhasil diperbarui')
+      toast.success(isAdmin.value ? 'Penugasan berhasil diperbarui' : 'Pengajuan dikirim. Menunggu persetujuan admin.')
     } else {
       await store.createAssignment(form.value)
-      toast.success('Penugasan berhasil dibuat')
+      toast.success(isAdmin.value ? 'Penugasan berhasil dibuat' : 'Pengajuan dikirim. Menunggu persetujuan admin.')
     }
     emit('saved')
   } catch (err) {
-    toast.error(err.response?.data?.error || 'Gagal menyimpan')
+    toast.error(err.response?.data?.message || err.response?.data?.error || 'Gagal menyimpan')
   } finally {
     saving.value = false
   }

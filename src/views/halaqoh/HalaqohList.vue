@@ -22,16 +22,27 @@
           <option value="banat">Banat (Putri)</option>
         </select>
         <button
-          v-if="auth.hasPermission('halaqoh-assignments.create')"
+          v-if="canRequestAssignment"
           @click="showCreateForm = true"
+          :disabled="membershipPending(auth.user?.id)"
           class="btn-primary flex items-center gap-1.5 text-sm px-3 py-2"
         >
           <SvgIcon name="plus" :size="16" />
-          <span class="hidden sm:inline">Tambah Penugasan</span>
+          <span class="hidden sm:inline">{{ isAdmin ? 'Tambah Penugasan' : 'Ajukan Penambahan' }}</span>
           <span class="sm:hidden">Tambah</span>
         </button>
       </div>
     </div>
+
+    <div v-if="!isAdmin && membershipRequests.length" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm space-y-2">
+      <p class="font-semibold">Pengajuan Perubahan Halaqoh</p>
+      <p v-if="membershipPending(auth.user?.id)">Tunggu persetujuan admin sebelum mengajukan perubahan berikutnya.</p>
+      <p v-for="request in membershipRequests.slice(0, 5)" :key="request.id">
+        #{{ request.id }} ? {{ request.status === 'pending' ? 'Menunggu persetujuan admin' : request.status === 'approved' ? 'Disetujui' : 'Ditolak' }}
+        <span v-if="request.reason">: {{ request.reason }}</span>
+      </p>
+    </div>
+    <router-link v-if="isAdmin" :to="{ name: 'halaqoh-validation' }" class="inline-block text-sm font-medium text-emerald-700">Validasi Pengajuan Guru</router-link>
 
     <!-- Search -->
     <div class="relative">
@@ -222,6 +233,7 @@
             <button
               v-if="getAccessInfo(group.teacher_id)?.can_manage"
               @click="editAssignment(group)"
+              :disabled="membershipPending(group.teacher_id)"
               class="text-xs bg-white/15 hover:bg-white/25 text-white px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1"
               title="Edit Penugasan"
             >
@@ -292,6 +304,7 @@
               <button
                 v-if="getAccessInfo(group.teacher_id)?.can_manage"
                 @click.stop="deleteSingleAssignment(assignment)"
+                :disabled="membershipPending(group.teacher_id)"
                 class="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors"
                 title="Hapus santri dari penugasan"
               >
@@ -304,6 +317,7 @@
           <button
             v-if="getAccessInfo(group.teacher_id)?.can_manage"
             @click="confirmDeleteGroup(group)"
+            :disabled="membershipPending(group.teacher_id)"
             class="w-full mt-2 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors flex items-center justify-center gap-1"
           >
             <SvgIcon name="trash" :size="13" />
@@ -397,6 +411,14 @@ import HalaqohSubstituteForm from './components/HalaqohSubstituteForm.vue'
 const store = useHalaqohStore()
 const auth = useAuthStore()
 const toast = useToastStore()
+const isAdmin = computed(() => auth.userRoles.some(role => ['admin', 'super_admin'].includes(role.name)))
+const canRequestAssignment = computed(() => isAdmin.value ||
+  auth.userRoles.some(role => ['teacher', 'guru', 'musyrif'].includes(role.name)) ||
+  store.groups.some(group => Number(group.teacher_id) === Number(auth.user?.id)))
+const membershipRequests = ref([])
+function membershipPending(teacherId) {
+  return !isAdmin.value && membershipRequests.value.some(request => request.status === 'pending' && Number(request.teacher_id) === Number(teacherId))
+}
 
 const getLocalDateString = (date = new Date()) => {
   const offsetMs = date.getTimezoneOffset() * 60000
@@ -483,6 +505,10 @@ onMounted(loadData)
 async function loadData() {
   try {
     await store.fetchAssignments(selectedDate.value)
+    if (!isAdmin.value) {
+      const response = await store.fetchAssignmentChangeRequests()
+      membershipRequests.value = response.data || []
+    }
   } catch (err) {
     toast.error('Gagal memuat data Halaqoh')
   }
@@ -609,11 +635,11 @@ function confirmDeleteGroup(group) {
 async function executeDelete() {
   try {
     await store.deleteAssignmentsByTeacher(deleteTarget.value.teacher_id)
-    toast.success('Penugasan berhasil dihapus')
+    toast.success(isAdmin.value ? 'Penugasan berhasil dihapus' : 'Pengajuan penghapusan dikirim ke admin')
     deleteTarget.value = null
     loadData()
   } catch (err) {
-    toast.error('Gagal menghapus penugasan')
+    toast.error(err.response?.data?.message || err.response?.data?.error || 'Gagal menghapus penugasan')
   }
 }
 
@@ -622,7 +648,7 @@ async function deleteSingleAssignment(assignment) {
 
   try {
     await store.deleteAssignment(assignment.id)
-    toast.success('Penugasan santri berhasil dihapus')
+    toast.success(isAdmin.value ? 'Penugasan santri berhasil dihapus' : 'Pengajuan penghapusan santri dikirim ke admin')
     loadData()
   } catch (err) {
     toast.error(err.response?.data?.error || 'Gagal menghapus penugasan santri')

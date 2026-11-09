@@ -1,0 +1,74 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Halaqoh membership regression</title></head>
+<body><pre id="result">RUNNING</pre><div id="app"></div><script type="module">
+import { createApp, nextTick } from 'vue'
+import { createPinia } from 'pinia'
+import api from '/src/api/index.js'
+import { useAuthStore } from '/src/stores/auth.js'
+import { useToastStore } from '/src/stores/toast.js'
+import Form from '/src/views/halaqoh/components/HalaqohAssignmentForm.vue'
+import Review from '/src/views/halaqoh/HalaqohApprovalValidation.vue'
+
+const result = document.querySelector('#result')
+const calls = []
+const student = { id: 11, nama_lengkap: 'Santri Sendiri' }
+const added = { id: 12, nama_lengkap: 'Santri Dari Guru Lain', current_teacher_id: 8, current_teacher_name: 'Guru Lain' }
+const request = { id: 1, teacher: { name: 'Guru Sendiri' }, requested_by: { name: 'Guru Sendiri' }, teacher_id: 7, target_teacher_id: 7, student_owner_snapshot: { 12: 8 }, request_type: 'update', status: 'pending', student_ids: [12], previous_student_ids: [11], student_details: [added], previous_student_details: [student], helper_teacher_id: null }
+api.defaults.adapter = async config => {
+  calls.push({ url: config.url, method: config.method, data: config.data, params: config.params })
+  if (config.url === '/users' || config.url === '/students') throw new Error('Master directory must not be loaded')
+  let data = {}
+  if (config.url === '/halaqoh/teacher-options') data = { data: [{ id: 7, name: 'Guru Sendiri' }, { id: 8, name: 'Guru Lain' }] }
+  if (config.url === '/halaqoh/student-options') {
+    const searching = (config.params.search || '').length >= 2
+    data = { data: searching ? config.params.page === 2 ? [{ id: 13, nama_lengkap: 'Santri Halaman 2' }] : [student, added] : [student], total_pages: searching ? 2 : 1 }
+  }
+  if (config.url === '/halaqoh/assignment-change-requests') data = { data: [request] }
+  if (config.url === '/halaqoh/assignments/7' && config.method === 'put') data = { request_id: 1 }
+  return { data, status: config.method === 'put' ? 202 : 200, config, headers: {} }
+}
+const wait = async () => { for (let i = 0; i < 12; i++) { await new Promise(r => setTimeout(r, 0)); await nextTick() } }
+const check = (value, message) => { if (!value) throw new Error(message) }
+try {
+  const pinia = createPinia()
+  const auth = useAuthStore(pinia)
+  auth.user = { id: 7, name: 'Guru Sendiri', roles: [{ name: 'guru' }] }
+  auth.accessToken = 'mock'
+  const app = createApp(Form, { editingGroup: { teacher_id: 7, assignments: [{ student_id: 11, student }] } })
+  app.use(pinia)
+  const state = app.mount('#app').$.setupState
+  await wait()
+  check(state.form.user_id === 7 && !state.isAdmin, 'Teacher ownership is incorrect')
+  check(document.body.textContent.includes('Ajukan ke Admin'), 'Teacher must see approval action')
+  check(document.body.textContent.includes('Perubahan berlaku setelah disetujui admin'), 'Missing pending explanation')
+  check(state.allStudents.length === 1 && state.form.student_ids[0] === 11, 'Initial picker must show only own roster')
+  check(calls.filter(call => call.url === '/halaqoh/student-options').length === 1, 'Picker must not download all pages')
+  state.studentSearch = 'Santri'
+  await new Promise(resolve => setTimeout(resolve, 350))
+  await wait()
+  check(state.allStudents.length === 2 && state.allStudents.some(item => item.current_teacher_id === 8), 'Search must include students from another teacher')
+  state.form.student_ids = [12]
+  await state.loadStudentOptions(2)
+  check(state.selectedStudents[0].nama_lengkap === added.nama_lengkap, 'Selected student must remain available across pages')
+  check(calls.filter(call => call.url === '/halaqoh/student-options').every(call => call.params.per_page === 20), 'Search must be capped at 20 per page')
+  await state.save()
+  check(calls.some(call => call.url === '/halaqoh/assignments/7' && call.method === 'put'), 'Wrong teacher target')
+  check(useToastStore(pinia).toast.message.includes('Menunggu persetujuan admin'), 'Teacher success must say pending')
+  app.unmount()
+
+  auth.user = { id: 9, name: 'Admin', roles: [{ name: 'admin' }] }
+  const reviewApp = createApp(Review)
+  reviewApp.use(pinia)
+  const review = reviewApp.mount('#app').$.setupState
+  await wait()
+  check(document.body.textContent.includes('Santri Sendiri') && document.body.textContent.includes('Santri Dari Guru Lain'), 'Admin must see before and proposed student names')
+  check(review.requests.length === 1, 'Admin request did not load')
+  check(document.body.textContent.includes('Setujui Perpindahan') && document.body.textContent.includes('Guru Lain'), 'Admin must see a clear transfer action and source teacher')
+  await review.approve(1)
+  check(calls.some(call => call.url === '/halaqoh/assignment-change-requests/1/approve' && JSON.parse(call.data).confirm_transfers === true), 'Explicit admin transfer approval not submitted')
+  check(!calls.some(call => call.url === '/users' || call.url === '/students'), 'Master directory access attempted')
+  reviewApp.unmount()
+  result.textContent = 'PASS: limited all-student search, pagination with preserved selection, pending UX, and explicit admin transfer approval; no master directory requests'
+  document.title = 'PASS'
+} catch (error) { result.textContent = 'FAIL: ' + error.message; document.title = 'FAIL' }
+</script></body></html>
