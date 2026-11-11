@@ -811,6 +811,7 @@ const navItems = [
   },
 
   { header: 'Sistem' },
+  { to: '/dashboard/mobile-app/releases', icon: 'download', label: 'Rilis Aplikasi Mobile', roles: ['super_admin'] },
   {
     to: "/dashboard/roles",
     icon: "roles",

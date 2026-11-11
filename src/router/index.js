@@ -129,6 +129,13 @@ const routes = [
         meta: { permission: 'users.view', title: 'Log Aktivitas Pengguna' },
       },
       {
+        path: 'mobile-app/releases',
+        alias: '/admin/mobile-app/releases',
+        name: 'mobile-app-releases',
+        component: () => import('@/views/mobile-app/MobileReleases.vue'),
+        meta: { roles: ['super_admin'], title: 'Rilis Aplikasi Mobile' },
+      },
+      {
         path: 'request-logs',
         name: 'request-logs',
         component: () => import('@/views/users/ActivityLogView.vue'),
