@@ -206,9 +206,10 @@
           <!-- Action Buttons -->
           <div
             class="flex flex-wrap gap-1.5 sm:gap-2 mt-3"
-            v-if="getAccessInfo(group.teacher_id)?.can_access_attendance"
+            v-if="getAccessInfo(group.teacher_id)?.can_access_attendance || canOpenTeacherAttendance(group) || canOpenSubstitute(group)"
           >
             <button
+              v-if="getAccessInfo(group.teacher_id)?.can_access_attendance"
               @click="openStudentAttendance(group)"
               class="flex-1 min-w-[100px] text-xs bg-white/15 hover:bg-white/25 text-white px-2.5 py-1.5 rounded-lg transition-colors flex items-center justify-center gap-1"
             >
@@ -234,7 +235,7 @@
               <span class="hidden sm:inline">Edit</span>
             </button>
             <button
-              v-if="getAccessInfo(group.teacher_id)?.can_manage"
+              v-if="canOpenSubstitute(group)"
               @click="openSubstitute(group)"
               class="text-xs bg-white/15 hover:bg-white/25 text-white px-2 py-1.5 rounded-lg transition-colors flex items-center gap-1"
               title="Guru Pengganti"
@@ -574,7 +575,7 @@ function getSubstituteInfos(teacherId) {
 }
 
 function getAccessInfo(teacherId) {
-  return (store.accessInfos || []).find((a) => a.teacher_id === teacherId) || {
+  return (store.accessInfos || []).find((a) => Number(a.teacher_id) === Number(teacherId)) || {
     can_access_attendance: false,
     can_manage: false,
     is_substitute: false,
@@ -588,14 +589,17 @@ function getHelperName(group) {
 }
 
 function canOpenTeacherAttendance(group) {
-  const hasTeacherAttendanceAccess = auth.hasPermission('halaqoh.view_all') ||
-    auth.userRoles?.some((role) => ['super_admin', 'admin', 'tim_presensi'].includes(role.name))
-  if (!hasTeacherAttendanceAccess) {
-    return false
-  }
-
   const access = getAccessInfo(group.teacher_id)
-  return !!(access.can_manage || access.is_substitute || store.currentUserId === group.teacher_id)
+  return access.can_submit_teacher_attendance ?? (auth.hasPermission('halaqoh.view_all') ||
+    auth.userRoles?.some((role) => ['super_admin', 'admin', 'tim_presensi'].includes(role.name))
+  )
+}
+
+function canOpenSubstitute(group) {
+  const access = getAccessInfo(group.teacher_id)
+  return access.can_assign_substitute ?? (auth.hasPermission('halaqoh-assignments.edit') ||
+    auth.userRoles?.some((role) => ['super_admin', 'admin', 'tim_presensi'].includes(role.name))
+  )
 }
 
 // ── Actions ──
