@@ -129,3 +129,39 @@ test('failed uploads show hosting diagnostics and preserve the selected APK for 
  await feedback.getByRole('button', { name: 'Muat ulang riwayat rilis' }).click()
  expect(attempts).toBe(1)
 })
+
+async function setupSharing(page, clipboardDenied = false) {
+ await setup(page)
+ await page.addInitScript(denied => {
+  window.copiedReleaseLink = ''
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async text => { if (denied) throw new Error('Permission denied'); window.copiedReleaseLink = text } } })
+ }, clipboardDenied)
+ await page.route('**/api/admin/app/releases?*', route => route.fulfill({ json: {
+  data: [{ ...release, id: 2, status: 'published' }, release, { ...release, id: 3, status: 'archived' }], total: 3,
+  policy: { current_release_id: 2, highest_version_code: 12, minimum_supported_version_code: 0 }, upload_ready: true, max_file_size: 100000,
+ } }))
+ await page.route('**/api/app/version?*', route => route.fulfill({ json: { latest_version_code: 12, download_url: 'https://ibnuhafidz.ponpes.id/api/app/download/2' } }))
+ await page.goto('/dashboard/mobile-app/releases')
+}
+
+test('copy download link uses the public APK URL and is available only for the active release', async ({ page }) => {
+ await setupSharing(page)
+ const copy = page.getByRole('button', { name: 'Salin link download', exact: true })
+ await expect(copy).toHaveCount(2)
+ await copy.first().click()
+ await expect(page.getByText('Link download APK berhasil disalin. Siap dibagikan ke WhatsApp.')).toBeVisible()
+ expect(await page.evaluate(() => window.copiedReleaseLink)).toBe('https://ibnuhafidz.ponpes.id/api/app/download/2')
+ await page.locator('.release-row').filter({ has: page.locator('.status-badge.draft') }).getByRole('button', { name: 'Detail', exact: true }).click()
+ await expect(page.getByRole('dialog').getByRole('button', { name: 'Salin link download' })).toHaveCount(0)
+})
+
+test('clipboard denial provides a selectable public link and stale releases are not copied', async ({ page }) => {
+ await setupSharing(page, true)
+ await page.getByRole('button', { name: 'Salin link download', exact: true }).first().click()
+ await expect(page.getByLabel('Link download APK', { exact: true })).toHaveValue('https://ibnuhafidz.ponpes.id/api/app/download/2')
+ expect(await page.evaluate(() => window.copiedReleaseLink)).toBe('')
+ await page.route('**/api/app/version?*', route => route.fulfill({ json: { latest_version_code: 13, download_url: 'https://ibnuhafidz.ponpes.id/api/app/download/4' } }))
+ await page.getByRole('button', { name: 'Salin link download', exact: true }).first().click()
+ await expect(page.getByText('Rilis aktif berubah atau link belum tersedia. Muat ulang riwayat rilis.')).toBeVisible()
+ await expect(page.getByLabel('Link download APK', { exact: true })).toHaveCount(0)
+})
