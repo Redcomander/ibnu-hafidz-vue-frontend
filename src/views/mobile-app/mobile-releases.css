@@ -1,3 +1,10 @@
+.upload-elapsed { margin-left: 9px; font-variant-numeric: tabular-nums; font-weight: 400; }
+.upload-error-card { margin: 16px 0; padding: 17px; border: 1px solid #e4bdb3; border-radius: 14px; background: #fff5f0; color: #803c2e; }
+.upload-error-card>div { display: flex; align-items: center; gap: 9px; }
+.upload-error-card p { font-size: 11px; margin-top: 9px; line-height: 1.8; }
+.upload-error-detail { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; font-weight: 650; }
+.upload-error-card .text-action { margin-top: 13px; }
+[data-theme="dark"] .upload-error-card { background: #3b2822; color: #f3c7b4; border-color: #785344; }
 .release-studio,.release-studio-modal {
   --rs-forest: #173e32;
   --rs-green: #276b4e;

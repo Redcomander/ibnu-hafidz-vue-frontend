@@ -43,7 +43,8 @@
             <details class="metadata-disclosure"><summary>Sesuaikan metadata versi <span>Opsional <SvgIcon name="chevron-down" :size="15" aria-hidden="true" /></span></summary><div class="metadata-fields"><label>Nama versi (opsional)<input v-model.trim="form.version_name" maxlength="80" :disabled="busy" placeholder="Contoh: 1.0.1" /></label><label>Build number (opsional)<input v-model="form.version_code" type="number" min="1" max="2100000000" :disabled="busy" placeholder="Contoh: 13" /></label><p>Biarkan kosong untuk menggunakan versi dari APK. Jika diisi, nilainya harus cocok.</p></div></details>
             <label class="notes-field"><span>Catatan rilis <small>Yang baru untuk pengguna</small></span><textarea v-model="form.changelog" rows="4" maxlength="10000" :disabled="busy" placeholder="Ceritakan fitur baru dan perbaikan pada versi ini…" /><span class="field-footer">Tampil di aplikasi sebelum pengguna memperbarui.<span>{{ form.changelog.length.toLocaleString('id-ID') }}/10.000</span></span></label>
             <label class="policy-toggle"><input v-model="form.force_update" type="checkbox" :disabled="busy" /><span class="toggle-track" aria-hidden="true"><i /></span><span><strong>Usulkan pembaruan wajib</strong><small>Batas versi dikonfirmasi kembali saat publikasi.</small></span><SvgIcon name="info" :size="17" aria-hidden="true" /></label>
-            <Transition name="notice"><div v-if="uploading" class="upload-progress" role="status" aria-live="polite"><div><span><SvgIcon name="spinner" :size="15" class="spinning" aria-hidden="true" />{{ progress === 100 ? 'Memeriksa APK di server…' : 'Mengunggah berkas…' }}</span><strong>{{ progress }}%</strong></div><progress :value="progress" max="100" aria-label="Progres unggahan APK" /><p>{{ progress === 100 ? 'Tunggu hingga package, versi, sertifikat, ukuran, dan SHA-256 selesai diperiksa.' : 'Anda dapat membatalkan unggahan selama proses berlangsung.' }}</p></div></Transition>
+            <Transition name="notice"><div v-if="uploading" class="upload-progress" role="status" aria-live="polite"><div><span><SvgIcon name="spinner" :size="15" class="spinning" aria-hidden="true" />{{ progress === 100 ? 'Memeriksa APK di server…' : 'Mengunggah berkas…' }}</span><strong>{{ progress }}% <span class="upload-elapsed">{{ uploadDuration(elapsedMs) }}</span></strong></div><progress :value="progress" max="100" aria-label="Progres unggahan APK" /><p>{{ progress === 100 ? 'Tunggu hingga package, versi, sertifikat, ukuran, dan SHA-256 selesai diperiksa.' : 'Anda dapat membatalkan unggahan selama proses berlangsung.' }}</p></div></Transition>
+            <Transition name="notice"><div v-if="uploadError" class="upload-error-card" role="alert"><div><SvgIcon name="alert-triangle" :size="19" aria-hidden="true" /><strong>{{ uploadError.title }}</strong></div><p>{{ uploadError.message }}</p><p class="upload-error-detail">{{ uploadError.detail }}</p><p>{{ uploadError.advice }}</p><button type="button" class="text-action" :disabled="busy || loading" @click="load">Muat ulang riwayat rilis <SvgIcon name="refresh" :size="14" aria-hidden="true" /></button></div></Transition>
             <div class="upload-actions"><button type="submit" class="studio-button button-primary" :disabled="busy || !ready || !file"><SvgIcon :name="uploading ? 'spinner' : 'upload'" :size="17" :class="{ spinning: uploading }" aria-hidden="true" />{{ uploading ? 'Mengunggah / memeriksa…' : 'Unggah sebagai draft' }}<SvgIcon v-if="!uploading" name="arrow-right" :size="16" aria-hidden="true" /></button><button v-if="uploading" type="button" class="studio-button button-surface" @click="abort?.abort()">Batalkan unggahan</button></div>
             <p class="upload-footnote"><SvgIcon name="check-circle" :size="14" aria-hidden="true" /> Unggahan tidak langsung tersedia untuk pengguna.</p>
           </form>
@@ -81,6 +82,7 @@
 import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import api from '@/api'
 import SvgIcon from '@/components/ui/SvgIcon.vue'
+import { APK_UPLOAD_TIMEOUT_MS, uploadDuration, uploadFailure } from './upload-feedback'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 
@@ -90,6 +92,9 @@ const loading = ref(false), busy = ref(false), uploading = ref(false), progress 
 const ready = ref(false), readiness = ref(''), maxSize = ref(150 * 1024 * 1024), file = ref(null), fileInput = ref(null)
 const publishing = ref(null), editingPolicy = ref(false), details = ref(null), archiving = ref(null), minimum = ref(0)
 const dragging = ref(false), dialog = ref(null)
+const uploadError = ref(null), elapsedMs = ref(0)
+let uploadStartedAt = 0, uploadTimer = null
+function stopUploadTimer() { if (uploadTimer) clearInterval(uploadTimer); uploadTimer = null }
 const form = reactive({ version_name: '', version_code: '', changelog: '', force_update: false })
 const modalOpen = computed(() => Boolean(publishing.value || editingPolicy.value || details.value || archiving.value))
 const validationChecks = [
@@ -136,14 +141,16 @@ function focusUpload() { const el = fileInput.value?.closest('.dropzone'); el?.s
 function changePage(delta) { page.value += delta; load() }
 async function upload() {
   if (busy.value || !ready.value || !file.value || !auth.hasRole('super_admin')) return
-  busy.value = uploading.value = true; progress.value = 0; abort = new AbortController()
+  busy.value = uploading.value = true; progress.value = 0; uploadError.value = null; abort = new AbortController()
+  stopUploadTimer(); uploadStartedAt = Date.now(); elapsedMs.value = 0
+  uploadTimer = setInterval(() => { elapsedMs.value = Date.now() - uploadStartedAt }, 1000)
   const body = new FormData(); for (const [key, value] of Object.entries(form)) body.append(key, String(value)); body.append('apk', file.value)
   try {
-    await api.post('/admin/app/releases', body, { signal: abort.signal, timeout: 180000, onUploadProgress: e => { if (e.total && !disposed) progress.value = Math.min(100, Math.round(e.loaded * 100 / e.total)) } })
+    await api.post('/admin/app/releases', body, { signal: abort.signal, timeout: APK_UPLOAD_TIMEOUT_MS, onUploadProgress: e => { if (e.total && !disposed) progress.value = Math.min(100, Math.round(e.loaded * 100 / e.total)) } })
     if (disposed) return
     toast.success('APK tervalidasi dan disimpan sebagai draft. Belum dipublikasikan.'); clearFile(); page.value = 1; await load()
-  } catch (e) { if (!disposed) toast.error(e.code === 'ERR_CANCELED' ? 'Unggahan dibatalkan. Muat ulang untuk memastikan hasil server.' : message(e)) }
-  finally { busy.value = uploading.value = false; abort = null }
+  } catch (e) { if (!disposed) { elapsedMs.value = Date.now() - uploadStartedAt; uploadError.value = uploadFailure(e, { elapsedMs: elapsedMs.value, progress: progress.value }); toast.error(uploadError.value.title) } }
+  finally { stopUploadTimer(); busy.value = uploading.value = false; abort = null }
 }
 function openPublish(release) { publishing.value = release; minimum.value = release.force_update ? release.version_code : policy.value.minimum_supported_version_code || 0 }
 function openPolicy() { editingPolicy.value = true; minimum.value = policy.value.minimum_supported_version_code || 0 }
@@ -185,7 +192,7 @@ watch(modalOpen, async open => {
   else { document.body.style.overflow = bodyOverflow; await nextTick(); if (previousFocus?.isConnected) previousFocus.focus() }
 })
 onMounted(load)
-onBeforeUnmount(() => { disposed = true; loadGeneration++; abort?.abort(); if (modalOpen.value) document.body.style.overflow = bodyOverflow; for (const [url, timer] of objectUrls) { clearTimeout(timer); URL.revokeObjectURL(url) } })
+onBeforeUnmount(() => { disposed = true; loadGeneration++; stopUploadTimer(); abort?.abort(); if (modalOpen.value) document.body.style.overflow = bodyOverflow; for (const [url, timer] of objectUrls) { clearTimeout(timer); URL.revokeObjectURL(url) } })
 </script>
 
 <style scoped src="./mobile-releases.css"></style>

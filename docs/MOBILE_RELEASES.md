@@ -27,7 +27,17 @@ pergantian berkas, progres unggah, loading skeleton, serta transisi dialog dan
 daftar. Preferensi reduced motion menonaktifkan animasi. Tema terang dan gelap
 menggunakan variabel warna khusus halaman; tidak menambah library animasi.
 
-Pengujian: build Vite, unit session, dan 14 tes Playwright desktop/mobile untuk
+Unggah APK memiliki batas waktu aplikasi 30 menit untuk koneksi lambat, tombol
+batal dan penghitung durasi. Persentase berasal dari browser, bukan konfirmasi
+bahwa berkas sudah tersimpan atau selesai divalidasi oleh backend. Error unggah
+menampilkan durasi, progres terakhir, status HTTP dan request ID bila tersedia.
+HTTP 413 mengarah ke batas ukuran; 408/502/504/524 mengarah ke proxy/hosting;
+401/403 mengarah ke sesi/izin atau WAF. Tanpa respons HTTP, penyebab jaringan
+perangkat dan hosting belum dapat dibedakan. Timeout frontend yang lebih panjang
+tidak mengubah timeout Apache/proxy/Imunify360. Setelah timeout atau putus koneksi,
+muat ulang riwayat sebelum mengulang unggahan; tidak ada retry otomatis.
+
+Pengujian: build Vite, 5 tes unit session/error unggah, dan 16 tes Playwright desktop/mobile untuk
 akses, draft upload, konfirmasi publikasi/arsip, validasi drag-and-drop, penutupan
 dan fokus dialog, keadaan kosong/tidak siap, responsivitas, tema, serta reduced
 motion. Mocks tidak memverifikasi konfigurasi Apache atau instalasi pada telepon.
