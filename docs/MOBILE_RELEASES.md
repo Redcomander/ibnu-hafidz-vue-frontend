@@ -15,13 +15,22 @@ Backend tetap memeriksa autentikasi dan role secara independen.
 6. Rilis lama diarsipkan, bukan dihapus. Mengarsipkan rilis aktif menghentikan
    tawaran update. Kebijakan minimum dapat diturunkan tanpa downgrade Android.
 
-Dashboard memakai API Axios, layout, toast dan guard role yang sudah ada. Upload
-memiliki progres/batal, validasi ukuran dan pesan kegagalan. Tabel riwayat
-memiliki pagination dan horizontal scroll pada layar kecil.
+Dashboard memakai API Axios, layout, toast dan guard role yang sudah ada. Desain
+studio rilis memakai warna hijau dan emas, pratinjau versi aktif, kartu ringkasan,
+drag-and-drop APK, metadata opsional yang dapat dilipat, serta toggle usulan wajib.
+Upload memiliki progres/batal, validasi ukuran dan pesan kegagalan. Riwayat memakai
+kartu responsif dengan pagination. Dialog detail, publikasi, kebijakan minimum,
+dan arsip mendukung keyboard, Escape, penguncian fokus, serta pengembalian fokus.
 
-Pengujian: build Vite, unit session, dan enam tes Playwright desktop/mobile
-untuk akses, draft upload dan konfirmasi publikasi. Mocks tidak memverifikasi
-konfigurasi Apache atau proses instalasi pada telepon.
+Animasi mencakup masuk halaman bertahap, pratinjau ponsel, hover kartu/tombol,
+pergantian berkas, progres unggah, loading skeleton, serta transisi dialog dan
+daftar. Preferensi reduced motion menonaktifkan animasi. Tema terang dan gelap
+menggunakan variabel warna khusus halaman; tidak menambah library animasi.
+
+Pengujian: build Vite, unit session, dan 14 tes Playwright desktop/mobile untuk
+akses, draft upload, konfirmasi publikasi/arsip, validasi drag-and-drop, penutupan
+dan fokus dialog, keadaan kosong/tidak siap, responsivitas, tema, serta reduced
+motion. Mocks tidak memverifikasi konfigurasi Apache atau instalasi pada telepon.
 
 Panduan deployment cPanel dan checklist dua APK ada di repository backend:
 `MOBILE_APP_RELEASES.md`. Tidak ada deployment otomatis pada implementasi ini.
