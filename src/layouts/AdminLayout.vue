@@ -218,8 +218,9 @@
             <button
               @click.stop="showNotifications = !showNotifications"
               aria-label="Notifikasi"
+              aria-controls="notification-panel"
               :aria-expanded="showNotifications"
-              class="relative text-gray-500 hover:text-primary transition text-xl p-1"
+              class="relative rounded-xl border border-gray-200/80 bg-white/70 text-gray-500 hover:text-primary hover:bg-emerald-50 transition p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary dark:bg-white/5 dark:border-white/10"
             >
               <SvgIcon name="bell" :size="22" />
               <span

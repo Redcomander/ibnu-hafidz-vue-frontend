@@ -34,6 +34,41 @@ async function mockNotifications(page) {
   return state
 }
 
+test('notification filters and search combine without changing unread counts', async ({ page }) => {
+  const state = await mockNotifications(page)
+  state.rows[0].is_read = true
+  state.unread = 22
+  await page.goto('/dashboard')
+  const bell = page.getByRole('button', { name: 'Notifikasi', exact: true })
+  await bell.click()
+  const panel = page.getByRole('region', { name: 'Daftar notifikasi' })
+  await expect(panel).toBeFocused()
+  await panel.getByRole('group', { name: 'Filter notifikasi' }).getByRole('button', { name: /Belum dibaca/ }).click()
+  await expect(panel.getByRole('button', { name: /Notification/ })).toHaveCount(9)
+  await panel.getByRole('searchbox', { name: 'Cari notifikasi' }).fill('Notification 23')
+  await expect(panel.getByText('Kabar tidak ditemukan')).toBeVisible()
+  await panel.getByRole('button', { name: 'Semua', exact: true }).click()
+  await expect(panel.getByRole('button', { name: /Notification 23/ })).toHaveCount(1)
+  await expect(bell).toContainText('22')
+  await page.keyboard.press('Escape')
+  await expect(panel).toHaveCount(0)
+  await expect(bell).toBeFocused()
+})
+
+test('notification panel fits viewport and has an explicit close action', async ({ page }) => {
+  await mockNotifications(page)
+  await page.goto('/dashboard')
+  await page.getByRole('button', { name: 'Notifikasi', exact: true }).click()
+  const panel = page.getByRole('region', { name: 'Daftar notifikasi' })
+  await expect(panel.getByRole('heading', { name: 'Pusat Notifikasi' })).toBeVisible()
+  const box = await panel.boundingBox()
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width)
+  expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height)
+  await panel.getByRole('button', { name: 'Tutup notifikasi' }).click()
+  await expect(panel).toHaveCount(0)
+})
+
 test('badge counts all unread notifications and older pages remain accessible', async ({ page }) => {
   await mockNotifications(page)
   await page.goto('/dashboard')
