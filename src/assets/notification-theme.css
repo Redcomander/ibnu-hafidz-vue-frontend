@@ -1,0 +1,28 @@
+/* The application switches themes with data-theme, not a .dark class. */
+html[data-theme="dark"] .notification-panel { background:#111c2d;color:#edf4fc;border-color:#304158;box-shadow:0 24px 70px #00000070; }
+html[data-theme="dark"] .notification-header { background:linear-gradient(125deg,#182c40,#21465a); }
+html[data-theme="dark"] .notification-header p { color:#c5d5e5; }
+html[data-theme="dark"] .notification-tools, html[data-theme="dark"] .notification-footer { border-color:#304158; }
+html[data-theme="dark"] .filter-row button { color:#b0c1d5; }
+html[data-theme="dark"] .filter-row button[aria-pressed="true"] { background:#243d52;color:#a9e1ff; }
+html[data-theme="dark"] .notification-search { background:#1b293c;border-color:#3b4d65;color:#afc4dc; }
+.notification-panel .notification-search input { background:transparent!important;color:inherit!important;border:0!important;box-shadow:none!important; }
+html[data-theme="dark"] .notification-search:focus-within { border-color:#8acff3;box-shadow:0 0 0 3px #8acff31c; }
+html[data-theme="dark"] .notification-search input::placeholder { color:#a4b6cd!important; }
+html[data-theme="dark"] .notification-item { border-color:#27384c; }
+html[data-theme="dark"] .notification-item.unread { background:#1b3043; }
+html[data-theme="dark"] .notification-item:hover, html[data-theme="dark"] .notification-item.unread:hover { background:#264258; }
+html[data-theme="dark"] .item-title { color:#eef5fc; }
+html[data-theme="dark"] .item-message { color:#bacbdd; }
+html[data-theme="dark"] .item-meta, html[data-theme="dark"] .date-label, html[data-theme="dark"] .load-more p { color:#a2b7cd; }
+html[data-theme="dark"] .item-action { color:#9cdaff; }
+html[data-theme="dark"] .unread-dot { background:#8fceef; }
+html[data-theme="dark"] .item-icon.emerald { background:#23463d;color:#a5e2c2; }
+html[data-theme="dark"] .item-icon.gold { background:#493e27;color:#efd399; }
+html[data-theme="dark"] .item-icon.blue { background:#293e59;color:#b5d7ff; }
+html[data-theme="dark"] .notification-footer { background:#152235;color:#afc0d4; }
+html[data-theme="dark"] .empty-icon { background:#243d52;color:#9bdcff; }
+html[data-theme="dark"] .empty-state p, html[data-theme="dark"] .loading-state { color:#b0c1d5; }
+html[data-theme="dark"] .skeleton { background:#25384e; }
+html[data-theme="dark"] .error-state { background:#492a30;color:#ffd0ca; }
+html[data-theme="dark"] .load-more button { border-color:#47647d;color:#b2e2ff; }

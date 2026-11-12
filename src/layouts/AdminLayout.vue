@@ -149,98 +149,7 @@
         'ml-0',
       ]"
     >
-      <!-- Top Bar -->
-      <header
-        :class="['sticky top-0 z-20 backdrop-blur-md border-b px-4 md:px-6 py-3 flex items-center justify-between', theme.isDark ? 'bg-slate-900/80 border-slate-700 text-slate-100' : 'bg-white/80 border-gray-200 text-slate-900']"
-      >
-        <!-- Mobile Search Overlay -->
-        <div
-          v-if="showMobileSearch"
-          class="absolute inset-0 bg-white z-30 flex items-center px-4 gap-2 animate-fade-in"
-        >
-          <SvgIcon name="search" :size="20" class="text-gray-400" />
-          <input
-            type="text"
-            placeholder="Cari..."
-            class="flex-1 bg-transparent border-none focus:ring-0 text-sm outline-none"
-            autofocus
-          />
-          <button @click="showMobileSearch = false" class="p-1 text-gray-500">
-            <SvgIcon name="x" :size="20" />
-          </button>
-        </div>
-
-        <div :class="['flex items-center gap-2 text-sm', theme.isDark ? 'text-slate-300' : 'text-gray-500']">
-          <!-- Mobile Menu Toggle -->
-          <button
-            @click="isSidebarOpen = !isSidebarOpen"
-            class="md:hidden mr-2 p-1 text-gray-600 hover:text-primary rounded hover:bg-gray-100"
-          >
-            <SvgIcon name="menu" :size="24" />
-          </button>
-
-          <router-link to="/dashboard" class="hover:text-primary transition"
-            >Dashboard</router-link
-          >
-          <span v-if="$route.meta.title && $route.name !== 'dashboard'">/</span>
-          <span
-            v-if="$route.meta.title && $route.name !== 'dashboard'"
-            class="text-gray-800 font-medium"
-          >
-            {{ $route.meta.title }}
-          </span>
-        </div>
-        <div class="flex items-center gap-4">
-          <div class="relative hidden md:block">
-            <input
-              type="text"
-              placeholder="Cari..."
-              class="input-field !py-2 !pl-10 !pr-4 w-64 text-sm"
-            />
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              ><SvgIcon name="search" :size="16"
-            /></span>
-          </div>
-          <button
-            @click="showMobileSearch = true"
-            class="md:hidden text-gray-500 hover:text-primary transition"
-          >
-            <SvgIcon name="search" :size="20" />
-          </button>
-          <button
-            @click="theme.toggleTheme()"
-            class="p-2 rounded-md text-gray-500 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-            :title="theme.isDark ? 'Light mode' : 'Dark mode'"
-          >
-            <SvgIcon :name="theme.isDark ? 'sun' : 'moon'" :size="18" />
-          </button>
-          <div class="relative">
-            <button
-              @click.stop="showNotifications = !showNotifications"
-              aria-label="Notifikasi"
-              aria-controls="notification-panel"
-              :aria-expanded="showNotifications"
-              class="relative rounded-xl border border-gray-200/80 bg-white/70 text-gray-500 hover:text-primary hover:bg-emerald-50 transition p-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary dark:bg-white/5 dark:border-white/10"
-            >
-              <SvgIcon name="bell" :size="22" />
-              <span
-                v-if="notifStore.unreadCount > 0"
-                class="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white"
-              >
-                {{ notifStore.unreadCount > 99 ? '99+' : notifStore.unreadCount }}
-              </span>
-            </button>
-            
-            <transition name="fade">
-              <NotificationDropdown 
-                v-if="showNotifications" 
-                v-click-outside="() => showNotifications = false"
-                @close="showNotifications = false"
-              />
-            </transition>
-          </div>
-        </div>
-      </header>
+      <TopNavigation :items="visibleNavItems" :user-name="auth.userName" :avatar="sidebarAvatarUrl" @toggle-menu="isSidebarOpen = !isSidebarOpen" />
 
 
       <!-- Page Content -->
@@ -262,7 +171,7 @@ import { useNotificationStore } from "@/stores/notification";
 import { useThemeStore } from "@/stores/theme";
 import { useRoute } from "vue-router";
 import SvgIcon from "@/components/ui/SvgIcon.vue";
-import NotificationDropdown from "@/components/ui/NotificationDropdown.vue";
+import TopNavigation from "@/components/ui/TopNavigation.vue";
 import { fetchSidebarMenuSettings } from "@/api/sidebarMenuSettings";
 
 const auth = useAuthStore();
@@ -271,8 +180,8 @@ const theme = useThemeStore();
 const route = useRoute();
 const collapsed = ref(false);
 const isSidebarOpen = ref(false);
-const showMobileSearch = ref(false);
-const showNotifications = ref(false);
+
+
 const avatarLoadFailed = ref(false);
 const sidebarMenuSettings = ref({});
 const collapsedSections = ref({});
