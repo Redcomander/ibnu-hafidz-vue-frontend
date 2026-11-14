@@ -4,6 +4,7 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import { applySeoMetadata, nonPublicSeo, publicSeo } from '@/utils/seo'
 
 const routes = [
+  { path: '/download-app', name: 'app-download', component: () => import('@/views/mobile-app/AppDownload.vue'), meta: { publicDownload: true, title: 'Download Aplikasi Ibnu Hafidz', seo: { title: 'Download Aplikasi Ibnu Hafidz', description: 'Unduh aplikasi absensi Ibnu Hafidz terbaru untuk Android.' } } },
   { path: '/maintenance', name: 'maintenance', component: () => import('@/views/MaintenanceView.vue'), meta: { title: 'Pemeliharaan', seo: nonPublicSeo } },
   // ---- Public Pages ----
   {
@@ -555,7 +556,7 @@ router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
 
   // Try to restore session when required, but throttle attempts.
-  if (!auth.isAuthenticated && !to.meta.guest) {
+  if (!auth.isAuthenticated && !to.meta.guest && !to.meta.publicDownload) {
     const now = Date.now()
     const canRetry = now-lastRefreshAttemptAt >= REFRESH_COOLDOWN_MS
 
@@ -582,7 +583,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Availability is checked on navigation; the API enforces it independently.
-  if (to.name !== 'login' && to.name !== 'maintenance') {
+  if (to.name !== 'login' && to.name !== 'maintenance' && !to.meta.publicDownload) {
     const maintenance = useMaintenanceStore()
     try {
       await maintenance.refresh(auth.accessToken)

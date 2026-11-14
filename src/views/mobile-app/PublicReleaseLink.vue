@@ -25,7 +25,7 @@ let disposed = false, controller = null, feedbackTimer = null
 async function copyLink() {
   if (!isPublic.value || props.disabled || copying.value) return
   copying.value = true; copied.value = false; manualLink.value = ''
-  const id = props.release.id, code = props.release.version_code
+  const id = props.release.id
   controller = new AbortController()
   try {
     // Use the configured public origin, which may differ from the admin host.
@@ -34,9 +34,10 @@ async function copyLink() {
     let url
     try { url = new URL(data.download_url) }
     catch { throw new Error('Rilis aktif berubah atau link belum tersedia. Muat ulang riwayat rilis.') }
-    if (Number(data.latest_version_code) !== Number(code) || url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== `/api/app/download/${id}`) {
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || !/^\/api\/app\/download\/\d+$/.test(url.pathname)) {
       throw new Error('Rilis aktif berubah atau link belum tersedia. Muat ulang riwayat rilis.')
     }
+    url = new URL('/download-app', url.origin)
     try {
       if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable')
       await navigator.clipboard.writeText(url.href)
