@@ -15,7 +15,7 @@
       <div class="flex flex-wrap gap-2">
         <button
           v-if="auth.hasPermission('laundry_accounts.edit')"
-          @click="openTransferModal"
+          aria-label="Transfer Akun Acak" @click="openTransferModal"
           class="btn-secondary flex items-center gap-1.5 !bg-amber-50 !text-amber-700 !border-amber-200 hover:!bg-amber-100 !py-2 !px-3 text-sm"
         >
           <SvgIcon name="user-group" :size="14" />
@@ -24,7 +24,7 @@
         </button>
         <button
           v-if="auth.hasPermission('laundry_accounts.edit')"
-          @click="openEqualizeModal"
+          aria-label="Pemerataan Vendor" @click="openEqualizeModal"
           class="btn-secondary flex items-center gap-1.5 !bg-cyan-50 !text-cyan-700 !border-cyan-200 hover:!bg-cyan-100 !py-2 !px-3 text-sm"
         >
           <SvgIcon name="user-group" :size="14" />
@@ -33,7 +33,7 @@
         </button>
         <button
           v-if="auth.hasPermission('laundry_accounts.view')"
-          @click="openMergeModal"
+          aria-label="Gabung Vendor" @click="openMergeModal"
           class="btn-secondary flex items-center gap-1.5 !bg-emerald-50 !text-emerald-700 !border-emerald-200 hover:!bg-emerald-100 !py-2 !px-3 text-sm"
         >
           <SvgIcon name="document-add" :size="14" />
@@ -42,7 +42,7 @@
         </button>
         <button
           v-if="auth.hasPermission('laundry_accounts.view')" 
-          @click="openStatsModal"
+          aria-label="Statistik Global" @click="openStatsModal"
           class="btn-secondary flex items-center gap-1.5 !py-2 !px-3 text-sm"
         >
           <SvgIcon name="chart" :size="14" />
@@ -288,7 +288,7 @@
     <VendorMergeModal v-model:show="showMergeModal" :vendors="data" />
 
     <!-- Transfer / Equalize Accounts Modal -->
-    <ConfirmModal
+    <ConfirmModal panel-class="laundry-dialog"
       v-model:show="showTransferModal"
       :title="transferMode === 'equalize' ? 'Pemerataan Akun Vendor' : 'Transfer Akun Acak'"
       :message="transferPreviewMessage"
@@ -334,7 +334,7 @@
     </ConfirmModal>
 
     <!-- Delete Confirmation Modal -->
-    <ConfirmModal
+    <ConfirmModal panel-class="laundry-dialog"
       v-model:show="showDeleteModal"
       title="Hapus Vendor"
       :message="`Apakah Anda yakin ingin menghapus vendor ${vendorToDelete?.name}?`"

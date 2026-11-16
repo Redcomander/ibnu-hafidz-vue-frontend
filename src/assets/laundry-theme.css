@@ -17,3 +17,15 @@ html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-pink-700, 
 html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-yellow-700, .text-amber-600, .text-amber-700, .text-orange-600, .text-orange-700) { color: #fcd68a; }
 html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.border-slate-200, .border-red-100, .border-blue-200, .border-pink-200) { border-color: #3e4e65; }
 html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(input, select, textarea) { color-scheme: dark; }
+html[data-theme="dark"] .laundry-dialog { background: #111827 !important; color: #e2e8f0; border: 1px solid #334155; }
+html[data-theme="dark"] .laundry-dialog :is(.bg-gray-50\/50, .bg-indigo-50, .bg-blue-50) { background-color: #192c45 !important; }
+html[data-theme="dark"] .laundry-dialog :is(.bg-green-50, .bg-emerald-50, .bg-primary-50\/10) { background-color: #123e30 !important; }
+html[data-theme="dark"] .laundry-dialog .bg-purple-50 { background-color: #38253f !important; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.bg-orange-50\/50, .bg-amber-50) { background-color: #40311b !important; }
+html[data-theme="dark"] .laundry-dialog :is(.bg-red-50\/60, .bg-red-50) { background-color: #421e28 !important; }
+html[data-theme="dark"] .laundry-dialog :is(.border-green-100, .border-blue-100, .border-gray-300, .border-purple-100, .border-red-200) { border-color: #41516a !important; }
+html[data-theme="dark"] .laundry-dialog :is(.divide-gray-200, .divide-gray-100) > :not([hidden]) ~ :not([hidden]) { border-color: #334155; }
+.laundry-page .laundry-similar { background-color: #fff8e6 !important; box-shadow: inset 3px 0 #d89a21; }
+.laundry-similar-badge { display: inline-block; margin-top: 6px; padding: 4px 7px; border-radius: 6px; background: #ffedb5; color: #78500b; font-size: 10px; font-weight: 700; white-space: normal; }
+html[data-theme="dark"] .laundry-page .laundry-similar { background-color: #352d1d !important; }
+html[data-theme="dark"] .laundry-similar-badge { background: #55421e; color: #ffdf8a; }

@@ -32,18 +32,27 @@
           class="input-field !py-2"
         />
       </div>
-      <select v-model="filters.status" class="input-field !py-2 w-auto" @change="fetchData">
+      <div class="w-full sm:w-auto min-w-0">
+        <label for="transaction-vendor-filter" class="block text-xs font-semibold text-gray-600 mb-1">Vendor transaksi</label>
+        <select id="transaction-vendor-filter" v-model="filters.vendor_id" :disabled="vendorsLoading" class="input-field !py-2 sm:w-60">
+          <option value="">{{ vendorsLoading ? 'Memuat vendor…' : 'Semua vendor' }}</option>
+          <option v-for="vendor in vendors" :key="vendor.id" :value="String(vendor.id)">{{ vendor.name }} ({{ vendor.gender_type }})</option>
+        </select>
+        <button v-if="vendorsError" type="button" class="text-xs text-red-600" @click="loadVendors">Gagal memuat vendor. Coba lagi</button>
+      </div>
+      <select v-model="filters.status" class="input-field !py-2 w-auto">
         <option value="">Status Transaksi (Semua)</option>
         <option value="pending">Sedang Dicuci (Pending)</option>
         <option value="picked_up">Sudah Diambil (Picked Up)</option>
       </select>
       <div class="flex items-center gap-2">
-        <input type="date" v-model="filters.date_from" @change="fetchData" class="input-field !py-2" />
+        <input type="date" v-model="filters.date_from" class="input-field !py-2" />
         <span class="text-gray-400">-</span>
-        <input type="date" v-model="filters.date_to" @change="fetchData" class="input-field !py-2" />
+        <input type="date" v-model="filters.date_to" class="input-field !py-2" />
       </div>
     </div>
 
+    <p class="text-xs text-gray-500 mb-3">Sorotan kuning: akun atau pemilik yang sama memiliki lebih dari satu transaksi pada tanggal yang sama, termasuk di halaman/vendor lain. Periksa kembali; ini bukan otomatis transaksi duplikat.</p>
     <!-- Data Table -->
     <div class="glass-card overflow-hidden animate-fade-in">
       <div v-if="loading" class="p-12 text-center text-gray-400">
@@ -61,17 +70,19 @@
               <th class="text-right">Berat (Kg)</th>
               <th class="text-right">Tagihan Total</th>
               <th class="text-center">Status</th>
+              <th>Diinput oleh</th>
               <th>Catatan</th>
               <th class="text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in data" :key="item.id">
+            <tr v-for="item in data" :key="item.id" :class="{ 'laundry-similar': item.same_day_count > 1 }">
               <td class="font-medium text-gray-800">
                 {{ formatDate(item.tanggal) }}
               </td>
               <td>
                 <div class="font-medium text-blue-700">{{ item.account?.nomor_laundry }}</div>
+                <span v-if="item.same_day_count > 1" class="laundry-similar-badge">{{ item.same_day_count }} transaksi pada tanggal yang sama</span>
                 <div class="text-xs text-gray-500 truncate max-w-[200px]">
                   {{ item.account?.student?.nama_lengkap || item.account?.user?.name || 'Unknown' }}
                 </div>
@@ -101,6 +112,7 @@
                   {{ formatDateTime(item.picked_up_at) }}
                 </div>
               </td>
+              <td class="text-sm text-gray-600">{{ item.input_by?.name || 'Belum tercatat' }}</td>
               <td class="text-sm text-gray-500 truncate max-w-[150px]">
                 {{ item.catatan || "-" }}
               </td>
@@ -134,7 +146,7 @@
               </td>
             </tr>
             <tr v-if="data.length === 0">
-              <td colspan="8" class="text-center py-8 text-gray-400">
+              <td colspan="9" class="text-center py-8 text-gray-400">
                 Tidak ada transaksi laundry ditemukan.
               </td>
             </tr>
@@ -146,12 +158,14 @@
           <div
             v-for="item in data"
             :key="item.id"
+            :class="{ 'laundry-similar': item.same_day_count > 1 }"
             class="bg-white border text-sm border-gray-100 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow relative"
           >
             <div class="flex justify-between items-start mb-2">
               <div>
                 <span class="text-xs text-gray-500 font-medium">{{ formatDate(item.tanggal) }}</span>
                 <h3 class="font-bold text-blue-700 mt-1">{{ item.account?.nomor_laundry }}</h3>
+                <span v-if="item.same_day_count > 1" class="laundry-similar-badge">{{ item.same_day_count }} transaksi pada tanggal yang sama</span>
                 <p class="text-xs text-gray-600 truncate max-w-[200px]">
                   {{ item.account?.student?.nama_lengkap || item.account?.user?.name || 'Unknown' }}
                 </p>
@@ -180,6 +194,7 @@
               </div>
             </div>
 
+            <p class="text-xs text-gray-600 mb-3">Diinput oleh: <strong>{{ item.input_by?.name || 'Belum tercatat' }}</strong></p>
             <div v-if="item.catatan" class="mb-3 text-sm text-gray-600 bg-orange-50/50 p-2 rounded">
               <span class="font-medium text-gray-700 block text-xs mb-1">Catatan:</span>
               {{ item.catatan }}
@@ -255,7 +270,7 @@
     <!-- Forms/Modals -->
     <TransactionForm v-model="showForm" :transaction="selectedTransaction" @saved="handleSaved" />
     
-    <ConfirmModal
+    <ConfirmModal panel-class="laundry-dialog"
       v-model:show="showDeleteModal"
       title="Hapus Transaksi"
       :message="`Menghapus transaksi ini akan mengurangi total berat (sebesar ${transactionToDelete?.berat_kg} Kg) pada akun laundry terkait. Lanjutkan?`"
@@ -270,6 +285,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { useLaundryVendors } from '@/composables/useLaundryVendors';
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
 import api from "@/api";
@@ -280,6 +296,7 @@ import { useToastStore } from "@/stores/toast";
 
 const auth = useAuthStore();
 const toast = useToastStore();
+const { vendors, vendorsLoading, vendorsError, loadVendors } = useLaundryVendors();
 
 const showForm = ref(false);
 const selectedTransaction = ref(null);
@@ -296,6 +313,7 @@ const { data, loading, meta, search, filters, fetchData, setPage } =
     defaultSort: "created_at",
     defaultOrder: "desc",
     initialFilters: {
+      vendor_id: "",
       status: "",
       date_from: firstDay,
       date_to: lastDay,
@@ -372,11 +390,6 @@ async function handleDelete() {
 
 function handleSaved() {
   selectedTransaction.value = null;
-  search.value = "";
-  filters.status = "";
-  filters.date_from = "";
-  filters.date_to = "";
-  meta.page = 1;
   fetchData();
 }
 </script>

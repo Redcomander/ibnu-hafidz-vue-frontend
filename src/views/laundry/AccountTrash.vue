@@ -129,7 +129,7 @@
     </div>
 
     <!-- Confirm Modal -->
-    <ConfirmModal
+    <ConfirmModal panel-class="laundry-dialog"
       v-model:show="showConfirmModal"
       :title="confirmTitle"
       :message="confirmMessage"

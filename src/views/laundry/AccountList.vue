@@ -332,7 +332,7 @@
     <AccountForm v-model="showForm" :account="selectedAccount" @saved="handleSaved" />
     <AccountBulkCreateModal v-model:show="showBulkModal" @saved="handleSaved" />
     
-    <ConfirmModal
+    <ConfirmModal panel-class="laundry-dialog"
       v-model:show="showDeleteModal"
       title="Hapus Akun Laundry"
       :message="`Menghapus akun laundry ${accountToDelete?.nomor_laundry} akan menghapus semua riwayat transaksi terkait. Apakah Anda yakin?`"
@@ -346,7 +346,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref } from "vue";
+import { useLaundryVendors } from '@/composables/useLaundryVendors';
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
 import api from "@/api";
@@ -385,28 +386,7 @@ const { data, loading, meta, search, filters, fetchData, setPage } =
     },
   });
 
-const vendors = ref([]), vendorsLoading = ref(false), vendorsError = ref(false);
-const vendorController = new AbortController();
-async function loadVendors() {
-  if (vendorsLoading.value) return;
-  vendorsLoading.value = true; vendorsError.value = false;
-  try {
-    const result = [];
-    let page = 1;
-    while (!vendorController.signal.aborted) {
-      const { data } = await api.get('/laundry/vendors', { params: { page, per_page: 100 }, signal: vendorController.signal });
-      const batch = Array.isArray(data.data) ? data.data : [];
-      result.push(...batch);
-      if (page >= Number(data.total_pages || 1) || batch.length === 0) break;
-      page++;
-    }
-    if (!vendorController.signal.aborted) vendors.value = result;
-  } catch {
-    if (!vendorController.signal.aborted) vendorsError.value = true;
-  } finally { vendorsLoading.value = false; }
-}
-onMounted(loadVendors);
-onBeforeUnmount(() => vendorController.abort());
+const { vendors, vendorsLoading, vendorsError, loadVendors } = useLaundryVendors();
 function formatNumber(num) {
   if (!num) return "0";
   return parseFloat(num).toFixed(2);

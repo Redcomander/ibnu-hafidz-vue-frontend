@@ -1,5 +1,5 @@
 <template>
-  <Modal :show="show" :max-width="maxWidth" @close="cancel">
+  <Modal :show="show" :max-width="maxWidth" :panel-class="panelClass" @close="cancel">
     <template #header>
       <div class="flex items-center gap-2" :class="headerClass">
         <SvgIcon v-if="icon" :name="icon" :size="24" />
@@ -54,6 +54,7 @@ const props = defineProps({
   type: { type: String, default: "primary" }, // primary, danger, warning, info
   loading: Boolean,
   maxWidth: { type: String, default: "md" },
+  panelClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(["update:show", "confirm", "cancel"]);

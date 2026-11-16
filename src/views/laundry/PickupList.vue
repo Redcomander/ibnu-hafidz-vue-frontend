@@ -202,7 +202,7 @@
     </div>
 
     <!-- Confirm Pickup Modal -->
-    <ConfirmModal
+    <ConfirmModal panel-class="laundry-dialog"
       v-model:show="showConfirmModal"
       title="Konfirmasi Pengambilan"
       :message="`Anda akan menyelesaikan ${selectedTransactions.length} transaksi laundry dan mengubah statusnya menjadi 'Sudah Diambil'. Proses ini tidak dapat dibatalkan.`"

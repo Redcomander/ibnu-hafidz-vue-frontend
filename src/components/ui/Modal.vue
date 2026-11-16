@@ -18,7 +18,7 @@
           <div
             v-if="show"
             class="relative bg-white rounded-xl shadow-2xl w-full flex flex-col overflow-hidden max-h-[90vh]"
-            :class="maxWidthClass"
+            :class="[maxWidthClass, panelClass]"
           >
             <!-- Header -->
             <div
@@ -64,6 +64,7 @@ const props = defineProps({
   title: { type: String, default: "" },
   maxWidth: { type: String, default: "lg" }, // sm, md, lg, xl, 2xl, full
   closeOnBackdrop: { type: Boolean, default: true },
+  panelClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(["close"]);
