@@ -52,7 +52,8 @@
                     <input
                       v-model="searchQuery"
                       type="text"
-                      class="w-full px-4 py-3.5 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition"
+                      aria-label="Cari akun laundry"
+                      class="laundry-account-search w-full px-4 py-3.5 text-base border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition"
                       :placeholder="selectedAccountDetails ? `${selectedAccountDetails.nomor_laundry} — ${selectedAccountDetails.owner_name}` : 'Cari nomor laundry atau nama...'"
                       autocomplete="off"
                       @focus="showAccountDropdown = true"
@@ -65,7 +66,7 @@
 
                   <div
                     v-if="showAccountDropdown && filteredAccounts.length > 0"
-                    class="absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
+                    class="laundry-account-options absolute z-50 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-2xl max-h-72 overflow-y-auto"
                   >
                     <button
                       v-for="account in filteredAccounts"
@@ -228,7 +229,8 @@
                   </p>
                 </div>
 
-                <div class="flex gap-3 pt-3 sticky bottom-0 bg-white pb-2 sm:pb-0">
+                <div v-if="saveError" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ saveError }}</div>
+                <div class="laundry-form-actions flex gap-3 pt-3 sticky bottom-0 bg-white pb-2 sm:pb-0">
                   <button type="button" class="btn-secondary flex-1" @click="closeModal" :disabled="loading">
                     Batal
                   </button>
@@ -275,6 +277,7 @@ const emit = defineEmits(["update:modelValue", "saved"]);
 const toast = useToastStore();
 const auth = useAuthStore();
 const loading = ref(false);
+const saveError = ref('');
 
 const form = ref({
   laundry_account_id: "",
@@ -372,6 +375,7 @@ async function fetchAccounts() {
 }
 
 function resetForm() {
+  saveError.value = '';
   form.value = {
     laundry_account_id: "",
     tanggal: getJakartaDateString(),
@@ -383,6 +387,7 @@ function resetForm() {
 }
 
 function fillFormFromTransaction() {
+  saveError.value = '';
   if (!props.transaction) {
     resetForm();
     return;
@@ -426,6 +431,7 @@ async function saveTransaction() {
   if (!form.value.laundry_account_id || !form.value.berat_kg) return;
 
   loading.value = true;
+  saveError.value = '';
   try {
     const payload = {
       laundry_account_id: form.value.laundry_account_id,
@@ -445,11 +451,14 @@ async function saveTransaction() {
     closeModal();
   } catch (err) {
     console.error(err);
-    if (err.response?.data?.error) {
-      toast.error(err.response.data.message || "Gagal menyimpan transaksi");
-    } else {
-      toast.error("Terjadi kesalahan server");
-    }
+    const response = err.response?.data;
+    saveError.value = response?.error === 'laundry_not_ready'
+      ? response.message
+      : err.response?.status === 503
+        ? 'Layanan transaksi belum tersedia. Hubungi admin dan sertakan ID permintaan jika tersedia.'
+        : response?.message || 'Gagal menyimpan transaksi. Periksa jaringan dan coba lagi.';
+    if (response?.request_id) saveError.value += ` ID permintaan: ${response.request_id}`;
+    toast.error(saveError.value);
   } finally {
     loading.value = false;
   }
