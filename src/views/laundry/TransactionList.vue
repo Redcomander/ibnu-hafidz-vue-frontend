@@ -1,67 +1,38 @@
 <template>
-  <div class="laundry-page">
-    <!-- Page Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-primary-dark tracking-tight">
-          Transaksi Laundry
-        </h1>
-        <p class="text-gray-500 text-sm mt-1">
-          Catat setoran laundry per kantong dan pantau batas mingguan (7.5 Kg).
-        </p>
-      </div>
-      <div class="flex gap-2">
-        <button
-          v-if="auth.hasPermission('laundry_accounts.create')"
-          @click="createTransaction"
-          class="btn-primary flex items-center gap-2"
-        >
-          <SvgIcon name="plus" :size="16" />
-          <span>Tambah Transaksi</span>
-        </button>
-      </div>
-    </div>
+  <div class="laundry-page tx-page">
+    <header class="tx-hero">
+      <div><span class="tx-eyebrow">OPERASIONAL / LAUNDRY</span><h1>Transaksi Laundry</h1><p>Setiap setoran tercatat. Pantau proses, vendor, dan petugas dalam satu tempat.</p></div>
+      <button v-if="auth.hasPermission('laundry_accounts.create')" @click="createTransaction" class="tx-add"><SvgIcon name="plus" :size="18" /><span>Tambah Transaksi</span></button>
+    </header>
 
-    <!-- Filters & Search -->
-    <div class="glass-card p-4 mb-6 flex flex-wrap items-center gap-4">
-      <div class="flex-1 min-w-[200px]">
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Cari nama, nomor laundry, atau catatan..."
-          class="input-field !py-2"
-        />
-      </div>
-      <div class="w-full sm:w-auto min-w-0">
-        <label for="transaction-vendor-filter" class="block text-xs font-semibold text-gray-600 mb-1">Vendor transaksi</label>
-        <select id="transaction-vendor-filter" v-model="filters.vendor_id" :disabled="vendorsLoading" class="input-field !py-2 sm:w-60">
-          <option value="">{{ vendorsLoading ? 'Memuat vendor…' : 'Semua vendor' }}</option>
-          <option v-for="vendor in vendors" :key="vendor.id" :value="String(vendor.id)">{{ vendor.name }} ({{ vendor.gender_type }})</option>
-        </select>
-        <button v-if="vendorsError" type="button" class="text-xs text-red-600" @click="loadVendors">Gagal memuat vendor. Coba lagi</button>
-      </div>
-      <select v-model="filters.status" class="input-field !py-2 w-auto">
-        <option value="">Status Transaksi (Semua)</option>
-        <option value="pending">Sedang Dicuci (Pending)</option>
-        <option value="picked_up">Sudah Diambil (Picked Up)</option>
-      </select>
-      <div class="flex items-center gap-2">
-        <input type="date" v-model="filters.date_from" class="input-field !py-2" />
-        <span class="text-gray-400">-</span>
-        <input type="date" v-model="filters.date_to" class="input-field !py-2" />
-      </div>
-    </div>
+    <section class="tx-summary" aria-label="Ringkasan transaksi halaman ini">
+      <div><span>Hasil pencarian</span><strong>{{ loading ? '—' : meta.total.toLocaleString('id-ID') }}</strong><small>transaksi sesuai filter</small></div>
+      <div><span>Berat halaman ini</span><strong>{{ loading ? '—' : formatNumber(pageSummary.weight) }} <em>kg</em></strong><small>dari {{ data.length }} transaksi yang tampil</small></div>
+      <div><span>Masih diproses</span><strong>{{ loading ? '—' : pageSummary.pending }}</strong><small>transaksi pada halaman ini</small></div>
+      <div class="tx-review-metric"><span>Perlu diperiksa</span><strong>{{ loading ? '—' : pageSummary.similar }}</strong><small>baris dengan transaksi serupa</small></div>
+    </section>
 
-    <p class="text-xs text-gray-500 mb-3">Sorotan kuning: akun atau pemilik yang sama memiliki lebih dari satu transaksi pada tanggal yang sama, termasuk di halaman/vendor lain. Periksa kembali; ini bukan otomatis transaksi duplikat.</p>
-    <!-- Data Table -->
-    <div class="glass-card overflow-hidden animate-fade-in">
+    <section class="tx-filters" aria-label="Filter transaksi laundry">
+      <div class="tx-section-head"><div><h2>Temukan transaksi</h2><p>Gabungkan vendor, status, dan periode pencatatan.</p></div><button type="button" class="tx-reset" @click="resetFilters">Reset filter</button></div>
+      <div class="tx-filter-grid">
+        <label class="tx-search"><span>Pencarian</span><input v-model="search" type="search" placeholder="Cari nama, nomor laundry, atau catatan..." class="input-field" /></label>
+        <div><label for="transaction-vendor-filter">Vendor transaksi</label><select id="transaction-vendor-filter" v-model="filters.vendor_id" :disabled="vendorsLoading" class="input-field"><option value="">{{ vendorsLoading ? 'Memuat vendor…' : 'Semua vendor' }}</option><option v-for="vendor in vendors" :key="vendor.id" :value="String(vendor.id)">{{ vendor.name }} ({{ vendor.gender_type }})</option></select><button v-if="vendorsError" type="button" class="tx-load-error" @click="loadVendors">Gagal memuat vendor. Coba lagi</button></div>
+        <label><span>Status transaksi</span><select v-model="filters.status" class="input-field"><option value="">Semua status</option><option value="pending">Sedang dicuci</option><option value="picked_up">Sudah diambil</option></select></label>
+        <label><span>Dari tanggal</span><input type="date" v-model="filters.date_from" class="input-field" /></label>
+        <label><span>Sampai tanggal</span><input type="date" v-model="filters.date_to" class="input-field" /></label>
+      </div>
+    </section>
+
+    <aside class="tx-review-note"><SvgIcon name="alert-triangle" :size="18" /><p><strong>Penanda transaksi serupa.</strong> Sorotan kuning berarti akun atau pemilik yang sama memiliki beberapa transaksi pada tanggal yang sama, termasuk di halaman/vendor lain. Periksa kembali sebelum mengambil tindakan.</p></aside>
+    <section class="tx-ledger">
+      <div class="tx-section-head tx-ledger-head"><div><span class="tx-eyebrow">RIWAYAT SETORAN</span><h2>Daftar transaksi <span class="tx-count">{{ meta.total }}</span></h2></div><div class="tx-scroll-controls"><span>Geser untuk melihat semua kolom</span><button type="button" aria-label="Geser tabel ke kiri" :disabled="!canScrollLeft" @click="scrollTable(-1)"><SvgIcon name="chevron-left" :size="18" /></button><button type="button" aria-label="Geser tabel ke kanan" :disabled="!canScrollRight" @click="scrollTable(1)"><SvgIcon name="chevron-right" :size="18" /></button></div></div>
       <div v-if="loading" class="p-12 text-center text-gray-400">
         <div class="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-3"></div>
         <p class="text-sm">Memuat data transaksi...</p>
       </div>
 
       <div v-else>
-        <table class="data-table hidden md:table">
+        <div ref="tableViewport" class="tx-table-scroll" role="region" aria-label="Tabel transaksi laundry, dapat digulir horizontal" tabindex="0" @scroll="updateScroll"><table class="data-table tx-table"><caption class="sr-only">Riwayat transaksi laundry beserta vendor, penginput, dan penanda transaksi serupa.</caption>
           <thead>
             <tr>
               <th>Tanggal</th>
@@ -83,7 +54,7 @@
               <td>
                 <div class="font-medium text-blue-700">{{ item.account?.nomor_laundry }}</div>
                 <span v-if="item.same_day_count > 1" class="laundry-similar-badge">{{ item.same_day_count }} transaksi pada tanggal yang sama</span>
-                <div class="text-xs text-gray-500 truncate max-w-[200px]">
+                <div class="tx-owner">
                   {{ item.account?.student?.nama_lengkap || item.account?.user?.name || 'Unknown' }}
                 </div>
               </td>
@@ -113,7 +84,7 @@
                 </div>
               </td>
               <td class="text-sm text-gray-600">{{ item.input_by?.name || 'Belum tercatat' }}</td>
-              <td class="text-sm text-gray-500 truncate max-w-[150px]">
+              <td class="tx-note-cell">
                 {{ item.catatan || "-" }}
               </td>
               <td class="text-right">
@@ -151,22 +122,22 @@
               </td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
 
         <!-- Mobile View -->
-        <div class="grid grid-cols-1 gap-4 md:hidden p-4">
+        <div class="tx-mobile-list">
           <div
             v-for="item in data"
             :key="item.id"
             :class="{ 'laundry-similar': item.same_day_count > 1 }"
-            class="bg-white border text-sm border-gray-100 p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow relative"
+            class="tx-mobile-card"
           >
             <div class="flex justify-between items-start mb-2">
               <div>
                 <span class="text-xs text-gray-500 font-medium">{{ formatDate(item.tanggal) }}</span>
                 <h3 class="font-bold text-blue-700 mt-1">{{ item.account?.nomor_laundry }}</h3>
                 <span v-if="item.same_day_count > 1" class="laundry-similar-badge">{{ item.same_day_count }} transaksi pada tanggal yang sama</span>
-                <p class="text-xs text-gray-600 truncate max-w-[200px]">
+                <p class="tx-owner">
                   {{ item.account?.student?.nama_lengkap || item.account?.user?.name || 'Unknown' }}
                 </p>
                 <p class="text-xs text-gray-500 mt-1">
@@ -205,7 +176,7 @@
               Diambil pada: {{ formatDateTime(item.picked_up_at) }}
             </div>
 
-            <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+            <div class="tx-card-actions">
               <button
                 v-if="auth.hasPermission('laundry_accounts.edit')"
                 @click="editTransaction(item)"
@@ -243,21 +214,21 @@
 
       <div
         v-if="meta.totalPages > 1"
-        class="flex items-center justify-between px-4 py-3 border-t border-gray-100"
+        class="tx-pagination"
       >
         <p class="text-sm text-gray-500">
           Halaman {{ meta.page }} dari {{ meta.totalPages }}
         </p>
         <div class="flex items-center gap-2">
           <button
-            @click="setPage(meta.page - 1)"
+            aria-label="Halaman transaksi sebelumnya" @click="setPage(meta.page - 1)"
             :disabled="meta.page === 1"
             class="p-1 rounded text-gray-600 hover:bg-gray-100 disabled:opacity-50"
           >
             <SvgIcon name="chevron-left" :size="20" />
           </button>
           <button
-            @click="setPage(meta.page + 1)"
+            aria-label="Halaman transaksi berikutnya" @click="setPage(meta.page + 1)"
             :disabled="meta.page === meta.totalPages"
             class="p-1 rounded text-gray-600 hover:bg-gray-100 disabled:opacity-50"
           >
@@ -265,7 +236,7 @@
           </button>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Forms/Modals -->
     <TransactionForm v-model="showForm" :transaction="selectedTransaction" @saved="handleSaved" />
@@ -284,7 +255,8 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
+import './transactions.css';
 import { useLaundryVendors } from '@/composables/useLaundryVendors';
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
@@ -320,6 +292,33 @@ const { data, loading, meta, search, filters, fetchData, setPage } =
     },
   });
 
+const tableViewport = ref(null), canScrollLeft = ref(false), canScrollRight = ref(false);
+const pageSummary = computed(() => data.value.reduce((summary, row) => {
+  summary.weight += Number(row.berat_kg) || 0;
+  summary.pending += row.status === 'pending' ? 1 : 0;
+  summary.similar += Number(row.same_day_count) > 1 ? 1 : 0;
+  return summary;
+}, { weight: 0, pending: 0, similar: 0 }));
+function updateScroll() {
+  const element = tableViewport.value;
+  canScrollLeft.value = !!element && element.scrollLeft > 1;
+  canScrollRight.value = !!element && element.scrollWidth - element.clientWidth - element.scrollLeft > 1;
+}
+watch(tableViewport, (element, _, onCleanup) => {
+  if (!element) { updateScroll(); return; }
+  const observer = new ResizeObserver(updateScroll);
+  observer.observe(element);
+  updateScroll();
+  onCleanup(() => observer.disconnect());
+}, { flush: 'post' });
+function scrollTable(direction) {
+  const element = tableViewport.value;
+  element?.scrollBy({ left: direction * Math.max(280, element.clientWidth * .7), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+function resetFilters() {
+  search.value = '';
+  Object.assign(filters, { vendor_id: '', status: '', date_from: firstDay, date_to: lastDay });
+}
 function formatNumber(num) {
   if (!num) return "0";
   return parseFloat(num).toFixed(2);

@@ -144,7 +144,7 @@
     <div
       id="main-content"
       :class="[
-        'flex-1 transition-all duration-300 flex flex-col min-h-screen',
+        'flex-1 min-w-0 transition-all duration-300 flex flex-col min-h-screen',
         collapsed ? 'md:ml-20' : 'md:ml-64',
         'ml-0',
       ]"
@@ -153,7 +153,7 @@
 
 
       <!-- Page Content -->
-      <main class="p-4 md:p-6">
+      <main class="min-w-0 p-4 md:p-6">
         <router-view v-slot="{ Component }">
           <transition name="page">
             <component :is="Component" />

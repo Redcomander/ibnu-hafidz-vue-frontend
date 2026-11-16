@@ -106,3 +106,36 @@ test('statistics, bulk create and shared transfer dialogs have dark surfaces', a
  await page.screenshot({ path: test.info().outputPath('laundry-transfer-dark.png'), fullPage: true })
  await page.keyboard.press('Escape')
 })
+
+test('desktop transaction table scrolls within the page and keeps actions available', async ({ page, isMobile }) => {
+ test.skip(isMobile, 'Mobile uses transaction cards')
+ await setup(page)
+ await page.emulateMedia({ reducedMotion: 'reduce' })
+ await page.route('**/api/laundry/transactions?*', route => route.fulfill({ json: { total: 80, total_pages: 4, data: [
+  { id: 1, tanggal: '2026-11-16', berat_kg: 2.5, total_harga: 12500, status: 'pending', account: { nomor_laundry: 'LA-081', student: { nama_lengkap: 'Ahmad Fajar dengan nama panjang' } }, vendor: { name: 'Vendor dengan nama yang cukup panjang' }, input_by: { name: 'Petugas Administrasi Laundry' }, same_day_count: 2, catatan: 'Catatan lengkap yang harus dapat dibaca tanpa terpotong pada kolom tabel transaksi laundry.' },
+  { id: 2, tanggal: '2026-11-16', berat_kg: 1, total_harga: 5000, status: 'picked_up', account: { nomor_laundry: 'LA-082' }, same_day_count: 1 },
+ ] } }))
+ for (const width of [1024, 1440]) {
+  await page.setViewportSize({ width, height: 900 })
+  await page.goto('/dashboard/laundry/transactions')
+  const table = page.getByRole('region', { name: 'Tabel transaksi laundry, dapat digulir horizontal' })
+  await expect(table).toBeVisible()
+  expect(await table.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+  await expect(page.locator('.tx-summary')).toContainText('80')
+  await expect(page.locator('.tx-summary')).toContainText('dari 2 transaksi yang tampil')
+  await page.getByRole('button', { name: 'Geser tabel ke kanan', exact: true }).click()
+  await expect.poll(() => table.evaluate(el => el.scrollLeft)).toBeGreaterThan(0)
+  const edit = table.getByRole('button', { name: 'Edit Transaksi', exact: true }).first()
+  const bounds = await table.boundingBox(), action = await edit.boundingBox()
+  expect(action.x + action.width).toBeLessThanOrEqual(bounds.x + bounds.width + 1)
+  await page.getByRole('button', { name: 'Geser tabel ke kiri', exact: true }).click()
+  await expect.poll(() => table.evaluate(el => el.scrollLeft)).toBe(0)
+  await table.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect.poll(() => table.evaluate(el => el.scrollLeft)).toBeGreaterThan(0)
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'))
+  await expect(table.locator('th').first()).toHaveCSS('background-color', 'rgb(23, 38, 56)')
+  await page.screenshot({ path: test.info().outputPath(`transactions-${width}-dark.png`), fullPage: true })
+ }
+})
