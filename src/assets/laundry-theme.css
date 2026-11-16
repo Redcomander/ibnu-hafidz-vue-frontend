@@ -1,0 +1,19 @@
+/* Theme legacy laundry utilities, including dialogs teleported outside the page. */
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) { color: #e2e8f0; color-scheme: dark; }
+html[data-theme="dark"] .laundry-page { background-image: none; background-color: #0b1120; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.from-slate-50, .from-slate-100, .from-gray-50, .from-blue-50, .from-indigo-50, .from-purple-50) { --tw-gradient-from: #182438; --tw-gradient-to: #111827; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-transparent, .text-slate-900, .text-slate-800) { color: #f1f5f9; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-slate-500, .text-slate-600) { color: #cbd5e1; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) .text-transparent { background-image: none; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.bg-blue-100, .bg-indigo-100) { background-color: #1e3a5f; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.bg-pink-100, .bg-purple-100) { background-color: #462547; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.bg-green-100, .bg-emerald-100) { background-color: #123e30; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.bg-red-100, .bg-red-50\/50, .bg-red-50\/20, .bg-red-50\/30) { background-color: #421e28; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.bg-yellow-100, .bg-amber-100, .bg-orange-100) { background-color: #45341a; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-blue-600, .text-blue-700, .text-blue-800, .text-indigo-600, .text-indigo-700) { color: #93c5fd; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-green-600, .text-green-700, .text-emerald-600, .text-emerald-700) { color: #86efac; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-red-500, .text-red-600, .text-red-700, .text-red-800) { color: #fca5a5; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-pink-700, .text-purple-600, .text-purple-700) { color: #e9b7f5; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.text-yellow-700, .text-amber-600, .text-amber-700, .text-orange-600, .text-orange-700) { color: #fcd68a; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(.border-slate-200, .border-red-100, .border-blue-200, .border-pink-200) { border-color: #3e4e65; }
+html[data-theme="dark"] :is(.laundry-page, .laundry-dialog) :is(input, select, textarea) { color-scheme: dark; }

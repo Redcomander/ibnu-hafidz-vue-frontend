@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="laundry-page">
     <!-- Page Header -->
     <div
       class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6"

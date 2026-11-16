@@ -25,7 +25,7 @@
           leave-to="opacity-0 translate-y-full sm:translate-y-0 sm:scale-95"
         >
           <DialogPanel
-            class="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl text-left overflow-hidden max-h-[92vh] sm:max-h-[90vh] flex flex-col"
+            class="laundry-dialog w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl text-left overflow-hidden max-h-[92vh] sm:max-h-[90vh] flex flex-col"
           >
             <!-- Drag handle (mobile visual cue) -->
             <div class="flex justify-center pt-3 pb-1 sm:hidden">

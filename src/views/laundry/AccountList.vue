@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 rounded-2xl p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-slate-100">
+  <div class="laundry-page min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 rounded-2xl p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-slate-100">
     <!-- Page Header -->
     <div class="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 mb-6">
       <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10"></div>
@@ -95,12 +95,20 @@
           class="w-full pl-4 pr-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition"
         />
       </div>
-      <select v-model="filters.gender_type" class="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition" @change="fetchData">
+      <div class="flex flex-col gap-1 min-w-0 w-full sm:w-auto">
+        <label for="laundry-vendor-filter" class="text-xs font-semibold text-slate-600">Vendor laundry</label>
+        <select id="laundry-vendor-filter" v-model="filters.vendor_id" :disabled="vendorsLoading" class="input-field w-full sm:w-60">
+          <option value="">{{ vendorsLoading ? 'Memuat vendor…' : 'Semua vendor' }}</option>
+          <option v-for="vendor in vendors" :key="vendor.id" :value="String(vendor.id)">{{ vendor.name }} ({{ vendor.gender_type }})</option>
+        </select>
+        <button v-if="vendorsError" type="button" class="text-xs text-red-600 text-left" @click="loadVendors">Gagal memuat vendor. Coba lagi</button>
+      </div>
+      <select v-model="filters.gender_type" class="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition">
         <option value="all">Semua Kategori</option>
         <option value="banin">Banin</option>
         <option value="banat">Banat</option>
       </select>
-      <select v-model="filters.owner_status" class="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition" @change="fetchData">
+      <select v-model="filters.owner_status" class="px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/40 transition">
         <option value="all">Semua Pemilik</option>
         <option value="has_owner">Punya Pemilik</option>
         <option value="unknown">Unknown</option>
@@ -108,9 +116,9 @@
       </select>
       <div class="flex flex-wrap gap-2 items-center w-full sm:w-auto">
         <span class="text-xs text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">Periode Limit:</span>
-        <input type="date" v-model="filters.date_from" @change="fetchData" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" />
+        <input type="date" v-model="filters.date_from" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" />
         <span class="text-slate-400 dark:text-slate-500">-</span>
-        <input type="date" v-model="filters.date_to" @change="fetchData" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" />
+        <input type="date" v-model="filters.date_to" class="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm" />
       </div>
       </div>
     </div>
@@ -303,14 +311,14 @@
         </p>
         <div class="flex items-center gap-2">
           <button
-            @click="setPage(meta.page - 1)"
+            aria-label="Halaman sebelumnya" @click="setPage(meta.page - 1)"
             :disabled="meta.page === 1"
             class="p-1 rounded text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50"
           >
             <SvgIcon name="chevron-left" :size="20" />
           </button>
           <button
-            @click="setPage(meta.page + 1)"
+            aria-label="Halaman berikutnya" @click="setPage(meta.page + 1)"
             :disabled="meta.page === meta.totalPages"
             class="p-1 rounded text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50"
           >
@@ -338,7 +346,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useTable } from "@/composables/useTable";
 import api from "@/api";
@@ -369,6 +377,7 @@ const { data, loading, meta, search, filters, fetchData, setPage } =
     defaultSort: "monthly_weight",
     defaultOrder: "desc",
     initialFilters: { 
+      vendor_id: "",
       gender_type: "all",
       owner_status: "all",
       date_from: firstDay,
@@ -376,6 +385,28 @@ const { data, loading, meta, search, filters, fetchData, setPage } =
     },
   });
 
+const vendors = ref([]), vendorsLoading = ref(false), vendorsError = ref(false);
+const vendorController = new AbortController();
+async function loadVendors() {
+  if (vendorsLoading.value) return;
+  vendorsLoading.value = true; vendorsError.value = false;
+  try {
+    const result = [];
+    let page = 1;
+    while (!vendorController.signal.aborted) {
+      const { data } = await api.get('/laundry/vendors', { params: { page, per_page: 100 }, signal: vendorController.signal });
+      const batch = Array.isArray(data.data) ? data.data : [];
+      result.push(...batch);
+      if (page >= Number(data.total_pages || 1) || batch.length === 0) break;
+      page++;
+    }
+    if (!vendorController.signal.aborted) vendors.value = result;
+  } catch {
+    if (!vendorController.signal.aborted) vendorsError.value = true;
+  } finally { vendorsLoading.value = false; }
+}
+onMounted(loadVendors);
+onBeforeUnmount(() => vendorController.abort());
 function formatNumber(num) {
   if (!num) return "0";
   return parseFloat(num).toFixed(2);
@@ -436,6 +467,7 @@ async function handleDelete() {
 function exportExceeded() {
   const token = auth.accessToken;
   const queryParams = new URLSearchParams();
+  if (filters.vendor_id) queryParams.append('vendor_id', filters.vendor_id);
   
   if (filters.gender_type && filters.gender_type !== 'all') {
     queryParams.append('gender_type', filters.gender_type);
@@ -469,6 +501,7 @@ function exportExceeded() {
 function exportAllAccountsPdf() {
   const token = auth.accessToken;
   const queryParams = new URLSearchParams();
+  if (filters.vendor_id) queryParams.append('vendor_id', filters.vendor_id);
   
   if (filters.gender_type && filters.gender_type !== 'all') {
     queryParams.append('gender_type', filters.gender_type);
